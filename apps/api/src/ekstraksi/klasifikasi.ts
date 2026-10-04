@@ -1,7 +1,7 @@
 import { HasilKlasifikasiSchema, type HasilKlasifikasi } from "@spjan/shared";
 
 import { AiGalat, type KlienAi, type KonfigurasiAi } from "../ai/klien.js";
-import { skemaJson } from "../ai/skema.js";
+import { skemaJson, uraikanJsonAi } from "../ai/skema.js";
 import type { IsiBerkas } from "./baca-berkas.js";
 
 export const SKEMA_KLASIFIKASI = skemaJson(HasilKlasifikasiSchema);
@@ -36,7 +36,7 @@ export async function klasifikasiBerkas(
       ...(pakaiGambar ? { gambar: isi.gambar } : {}),
     });
     try {
-      return { model, hasil: HasilKlasifikasiSchema.parse(JSON.parse(balasan)) };
+      return { model, hasil: HasilKlasifikasiSchema.parse(uraikanJsonAi(balasan)) };
     } catch (error) {
       const sebab = (error as Error).message.replace(/\s+/g, " ").slice(0, 200);
       prompt = `${dasar}\n\nJawaban sebelumnya tidak valid (${sebab}). Balas HANYA JSON sesuai skema.`;

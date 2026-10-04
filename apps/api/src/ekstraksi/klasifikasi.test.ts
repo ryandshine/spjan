@@ -26,6 +26,12 @@ describe("klasifikasiBerkas", () => {
     expect(klien.panggilan[0]?.gambar).toEqual(["QUJD"]);
   });
 
+  it("memahami balasan JSON yang dibungkus markdown codeblock ```json", async () => {
+    const klien = klienPalsu(() => '```json\n{"jenis":"hotel","ringkasan":"Invoice The Royal Alana"}\n```');
+    const { hasil } = await klasifikasiBerkas(klien, konf, { teks: "abc", gambar: [] });
+    expect(hasil).toEqual({ jenis: "hotel", ringkasan: "Invoice The Royal Alana" });
+  });
+
   it("model yang dibutuhkan belum diatur melempar MODEL_BELUM_DIATUR tanpa memanggil model", async () => {
     const klien = klienPalsu(() => valid);
     await expect(klasifikasiBerkas(klien, { ...konf, modelGambar: null }, { teks: "", gambar: ["QUJD"] })).rejects.toMatchObject({
