@@ -6,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { FileBerkasStore } from "./berkas/store.js";
 import { closePool, pool } from "./db.js";
+import { tautkanBerkasKeSt } from "./repositories/berkas.js";
 import { bersihkanData, bodyMultipart, loginCookie, PNG_1X1, pngUnik, siapkanApp, stResa } from "./test-support/helpers.js";
 
 let app: FastifyInstance;
@@ -163,4 +164,20 @@ describe("isi, hapus, dan ulang", () => {
     expect(rows[0].n).toBe(2);
     expect((await call("POST", "/api/berkas/999999/ulang")).statusCode).toBe(404);
   });
+
+  it("tautkanBerkasKeSt memindahkan berkas ke ST dan menangani duplikasi", async () => {
+    const stId = await buatSt();
+    const data = pngUnik(12);
+    const { berkas: b1 } = (await unggah("st.pdf", data)).json();
+    await tautkanBerkasKeSt(pool, store, b1.id, stId);
+    const { rows: r1 } = await pool.query<{ st_id: number }>("select st_id from berkas where id = $1", [b1.id]);
+    expect(r1[0]?.st_id).toBe(stId);
+
+    // Unggah file yang sama tanpa ST, lalu tautkan ke ST yang sama -> duplikat terhapus bersih
+    const { berkas: b2 } = (await unggah("st_copy.pdf", data)).json();
+    await tautkanBerkasKeSt(pool, store, b2.id, stId);
+    const { rows: r2 } = await pool.query("select 1 from berkas where id = $1", [b2.id]);
+    expect(r2).toHaveLength(0);
+  });
 });
+

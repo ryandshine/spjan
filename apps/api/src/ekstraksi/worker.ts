@@ -73,12 +73,31 @@ export function bikinWorker(opsi: WorkerOpsi) {
       const konf = await konfigurasiAi(db);
       const hasil = await ekstrak({ berkas, isi, konf, klien });
       model = hasil.model;
-      await db.query(
-        `update ekstraksi set status = 'selesai', model = $2, hasil = $3, kode_galat = null, galat = null, selesai_at = now()
-          where id = $1`,
-        [k.id, hasil.model, JSON.stringify(hasil.hasil)],
-      );
-      if (hasil.jenis) await db.query("update berkas set jenis = $2 where id = $1", [berkas.id, hasil.jenis]);
+      if ("connect" in db && typeof (db as any).connect === "function") {
+        const client = await (db as any).connect();
+        try {
+          await client.query("begin");
+          await client.query(
+            `update ekstraksi set status = 'selesai', model = $2, hasil = $3, kode_galat = null, galat = null, selesai_at = now()
+              where id = $1`,
+            [k.id, hasil.model, JSON.stringify(hasil.hasil)],
+          );
+          if (hasil.jenis) await client.query("update berkas set jenis = $2 where id = $1", [berkas.id, hasil.jenis]);
+          await client.query("commit");
+        } catch (txErr) {
+          await client.query("rollback");
+          throw txErr;
+        } finally {
+          client.release();
+        }
+      } else {
+        await db.query(
+          `update ekstraksi set status = 'selesai', model = $2, hasil = $3, kode_galat = null, galat = null, selesai_at = now()
+            where id = $1`,
+          [k.id, hasil.model, JSON.stringify(hasil.hasil)],
+        );
+        if (hasil.jenis) await db.query("update berkas set jenis = $2 where id = $1", [berkas.id, hasil.jenis]);
+      }
       console.log(`[ekstraksi] berkas=${k.berkasId} model=${model} status=selesai durasi=${Date.now() - mulai}ms`);
     } catch (error) {
       const galat = error instanceof AiGalat ? error : new AiGalat("GALAT_INTERNAL", "Terjadi kesalahan saat membaca dokumen.");
@@ -103,13 +122,17 @@ export function bikinWorker(opsi: WorkerOpsi) {
       if (!k) break;
       diklaim.push(k);
     }
-    await Promise.all(diklaim.map(proses));
+    await Promise.allSettled(diklaim.map(proses));
     return diklaim.length;
   }
 
-  /** Pekerjaan 'berjalan' sisa proses sebelumnya (mis. API di-restart) dikembalikan ke antrean. */
-  async function pulihkan(): Promise<void> {
-    await db.query("update ekstraksi set status = 'antre' where status = 'berjalan'");
+  /** Pekerjaan 'berjalan' sisa proses sebelumnya dikembalikan ke antrean (semua saat boot, atau yang macet > 10 menit). */
+  async function pulihkan(semua = true): Promise<void> {
+    if (semua) {
+      await db.query("update ekstraksi set status = 'antre' where status = 'berjalan'");
+    } else {
+      await db.query("update ekstraksi set status = 'antre' where status = 'berjalan' and mulai_at < now() - interval '10 minutes'");
+    }
   }
 
   let berhenti = false;
@@ -119,10 +142,19 @@ export function bikinWorker(opsi: WorkerOpsi) {
     if (lari) return;
     berhenti = false;
     lari = (async () => {
-      await pulihkan();
+      try {
+        await pulihkan(true);
+      } catch (error) {
+        console.error(`[ekstraksi] pulihkan saat boot gagal jenis=${namaGalat(error)}`);
+      }
+      let pemulihanTerakhir = Date.now();
       while (!berhenti) {
         let n = 0;
         try {
+          if (Date.now() - pemulihanTerakhir > 5 * 60 * 1000) {
+            await pulihkan(false);
+            pemulihanTerakhir = Date.now();
+          }
           n = await jalankanSekali();
         } catch (error) {
           console.error(`[ekstraksi] putaran worker gagal jenis=${namaGalat(error)}`);

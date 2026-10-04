@@ -33,19 +33,28 @@ export async function bacaIsi(mime: MimeBerkas, data: Buffer): Promise<IsiBerkas
         timeout: 30_000,
       });
       teks = stdout.trim();
-    } catch {
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new AiGalat("GALAT_INTERNAL", "Utilitas sistem pembaca PDF (pdftotext) tidak ditemukan.");
+      }
       throw new AiGalat("BERKAS_TIDAK_TERBACA", "PDF tidak dapat dibaca (rusak atau terkunci).");
     }
     if (teks.length >= MIN_TEKS_PDF) return { teks: teks.slice(0, BATAS_TEKS), gambar: [] };
 
     try {
-      await jalankan("pdftoppm", ["-png", "-r", "110", "-f", "1", "-l", String(MAKS_HALAMAN_GAMBAR), pdf, path.join(dir, "hal")], {
+      await jalankan("pdftoppm", ["-png", "-r", "110", "-scale-to", "2000", "-f", "1", "-l", String(MAKS_HALAMAN_GAMBAR), pdf, path.join(dir, "hal")], {
         timeout: 60_000,
       });
-    } catch {
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new AiGalat("GALAT_INTERNAL", "Utilitas sistem pembaca PDF (pdftoppm) tidak ditemukan.");
+      }
       throw new AiGalat("BERKAS_TIDAK_TERBACA", "Halaman PDF tidak dapat dirender menjadi gambar.");
     }
     const png = (await readdir(dir)).filter((n) => n.startsWith("hal") && n.endsWith(".png")).sort();
+    if (png.length === 0) {
+      throw new AiGalat("BERKAS_TIDAK_TERBACA", "PDF tidak dapat dirender menjadi gambar.");
+    }
     const gambar = await Promise.all(png.map(async (n) => (await readFile(path.join(dir, n))).toString("base64")));
     return { teks, gambar };
   } finally {

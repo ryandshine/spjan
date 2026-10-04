@@ -157,3 +157,19 @@ export async function ulangiEkstraksi(db: Db, berkasId: number): Promise<boolean
   const { rowCount } = await db.query("insert into ekstraksi (berkas_id) select id from berkas where id = $1", [berkasId]);
   return (rowCount ?? 0) > 0;
 }
+
+/** Tautkan berkas yang semula tanpa ST ke suatu ST (menghindari duplikasi sha256). */
+export async function tautkanBerkasKeSt(db: Db, store: BerkasStore, berkasId: number, stId: number): Promise<void> {
+  const meta = await metaBerkas(db, berkasId);
+  if (!meta) return;
+  const { rows: ada } = await db.query<{ id: number }>(
+    "select id from berkas where st_id = $1 and sha256 = $2 and id <> $3",
+    [stId, meta.sha256, berkasId],
+  );
+  if (ada.length > 0) {
+    await hapusBerkas(db, store, berkasId);
+    return;
+  }
+  await db.query("update berkas set st_id = $1 where id = $2", [stId, berkasId]);
+}
+
