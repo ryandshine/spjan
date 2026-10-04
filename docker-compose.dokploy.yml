@@ -1,0 +1,55 @@
+# Compose untuk Dokploy (proyek `spjan`, domain spjan.ditpps.com lewat Traefik).
+# Variabel yang wajib diisi di environment Dokploy: DATABASE_URL, ADMIN_USERNAME, ADMIN_PASSWORD
+# (dua yang terakhir hanya dipakai untuk membuat akun pertama saat tabel users masih kosong).
+# Jangan menambahkan domain lewat antarmuka Dokploy: routing Traefik sudah ditulis pada label di bawah.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.combined
+      target: api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+      - DATABASE_URL=${DATABASE_URL}
+      - FRONTEND_ORIGIN=https://spjan.ditpps.com
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - SESSION_TTL_DAYS=${SESSION_TTL_DAYS:-7}
+    networks:
+      - default
+      - dokploy-network
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.combined
+      target: web
+    restart: unless-stopped
+    environment:
+      - API_UPSTREAM=http://api:8000
+    depends_on:
+      - api
+    networks:
+      - default
+      - dokploy-network
+    labels:
+      traefik.docker.network: dokploy-network
+      traefik.enable: "true"
+      traefik.http.routers.spjan-web.entrypoints: web
+      traefik.http.routers.spjan-web.middlewares: redirect-to-https@file
+      traefik.http.routers.spjan-web.rule: Host(`spjan.ditpps.com`)
+      traefik.http.routers.spjan-web.service: spjan-web
+      traefik.http.routers.spjan-websecure.entrypoints: websecure
+      traefik.http.routers.spjan-websecure.rule: Host(`spjan.ditpps.com`)
+      traefik.http.routers.spjan-websecure.service: spjan-websecure
+      traefik.http.routers.spjan-websecure.tls.certresolver: letsencrypt
+      traefik.http.services.spjan-web.loadbalancer.server.port: "80"
+      traefik.http.services.spjan-websecure.loadbalancer.server.port: "80"
+
+networks:
+  # Jaringan overlay Dokploy: Traefik menjangkau `web` lewat sini, dan `api` menjangkau
+  # PostgreSQL (alias gealgeolgeo-postgis) lewat sini.
+  dokploy-network:
+    external: true
