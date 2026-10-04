@@ -121,6 +121,15 @@ describe("unggah berkas", () => {
 });
 
 describe("isi, hapus, dan ulang", () => {
+  it("GET /:id mengembalikan detail berkas beserta ekstraksi, atau 404 jika tidak ada", async () => {
+    const { berkas } = (await unggah("st.png", pngUnik(77))).json();
+    const res = await call("GET", `/api/berkas/${berkas.id}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.json().id).toBe(berkas.id);
+    expect(res.json().namaAsli).toBe("st.png");
+    expect((await call("GET", "/api/berkas/999999")).statusCode).toBe(404);
+  });
+
   it("GET /:id/isi mengembalikan byte asli dengan tipe dan nama berkas", async () => {
     const isi = pngUnik(8);
     const { berkas } = (await unggah("bukti hotel.png", isi)).json();

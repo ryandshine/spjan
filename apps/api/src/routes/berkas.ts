@@ -41,6 +41,13 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
     return listBerkas(opts.db, stId ?? null);
   });
 
+  app.get("/:id", async (req) => {
+    const { id } = IdSchema.parse(req.params);
+    const b = await getBerkas(opts.db, id);
+    if (!b) throw notFound("Berkas");
+    return b;
+  });
+
   app.get("/:id/isi", async (req, reply) => {
     const { id } = IdSchema.parse(req.params);
     const meta = await metaBerkas(opts.db, id);
