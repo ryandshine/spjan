@@ -111,3 +111,7 @@ Dokumen PDF diperiksa manual terhadap berkas SPJ yang ada.
 - `biaya` memuat `etape_urutan` (nullable) sebagai penghubung tiket ke etape (`etapeIndex` pada masukan mesin hitung): TIKET_PERGI default etape 0, TIKET_KEMBALI default etape terakhir.
 - Fixture SBM berupa berkas TypeScript hasil `scripts/build-sbm-fixture.py` (`packages/shared/src/data/sbm-2026.ts`); seed basis data di API membaca objek yang sama.
 - Rencana dibagi: (1) fondasi + `@spjan/shared` (mesin hitung bertes), (2) API + basis data + auth, (3) web + dokumen PDF, (4) deploy Dokploy.
+- Data SBM disimpan sebagai satu kolom `jsonb` (`sbm_versi.data`, bentuk `Sbm` dari `@spjan/shared`), bukan tabel anak per jenis: tabel itu selalu dibaca utuh oleh mesin hitung dan tidak pernah di-query per baris. Konfigurasi status (kolom hotel, baris representasi, kelas tiket) ada di `data.statusKonfigurasi` dan dapat diedit lewat `PATCH /api/sbm/versi/:id/status-konfigurasi`.
+- Skema zod (`SuratTugasPayloadSchema`, `PegawaiPayloadSchema`, `PengaturanSchema`, ...) dan `toSpjInput` berada di `@spjan/shared` (satu-satunya dependensi runtime shared: `zod`).
+- `SESSION_SECRET` dihapus dari env: token sesi acak disimpan sebagai hash sha256 di tabel `sessions`, tidak ada penandatanganan.
+- Perlindungan CSRF: cookie SameSite=Strict + penolakan `Origin` selain `FRONTEND_ORIGIN` pada metode non-GET.

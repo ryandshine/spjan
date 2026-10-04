@@ -1,0 +1,18 @@
+# Postgres khusus pengembangan dan tes SPJAN. Terpisah dari server SIPEKAPS.
+# Jalankan: docker compose -f docker-compose.dev.yml up -d
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: spjan-dev-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: spjan_dev
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - spjan_dev_pgdata:/var/lib/postgresql/data
+
+volumes:
+  spjan_dev_pgdata:
