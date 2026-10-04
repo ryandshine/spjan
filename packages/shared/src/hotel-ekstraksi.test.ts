@@ -7,7 +7,7 @@ import {
   petakanHotelKeUsulan,
 } from "./hotel-ekstraksi.js";
 import type { BerkasDto } from "./berkas.js";
-import type { SuratTugasPayload } from "./types.js";
+import type { SuratTugasPayload } from "./schemas.js";
 
 describe("HasilEkstraksiHotelSchema", () => {
   it("memvalidasi data ekstraksi hotel yang valid", () => {
