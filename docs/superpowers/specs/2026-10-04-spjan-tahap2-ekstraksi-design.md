@@ -20,42 +20,65 @@ Pengguna mengunggah Surat Tugas (ST), invoice hotel, tiket, dan bukti transport;
 - Model data ST sudah menampung semua isian: `EtapeInput.hotelNama/hotelTarif`, `BiayaInput` (TIKET_PERGI, TIKET_KEMBALI, TAKSI_TERMINAL, TRANSPORT_DARAT, KERETA_BUS_LAIN, LAINNYA), `PelaksanaInput`.
 
 ## 1. Data dan penyimpanan
-Migrasi SQL baru (node-pg-migrate), tabel:
+Migrasi SQL baru (node-pg-migrate, `1791126000001_berkas.sql`), tabel `berkas`, `ekstraksi`, dan `model_ai`. Semua `id` berupa `bigserial` dan acuannya `bigint`, sama seperti tabel Tahap 1 (bukan uuid).
 
 `berkas`
 | Kolom | Catatan |
 |---|---|
-| id | uuid |
-| st_id | uuid, boleh kosong selama ST belum dibuat dari unggahan awal |
+| id | bigserial |
+| st_id | bigint, acuan ke `surat_tugas` (hapus berantai); boleh kosong selama ST belum dibuat dari unggahan awal |
 | nama_asli, mime, ukuran | metadata |
-| sha256 | unik per `st_id` (unggahan ulang berkas yang sama tidak membuat baris baru) |
-| jenis | `st`, `hotel`, `tiket`, `transport`, `lainnya`; diisi hasil klasifikasi model |
-| pelaksana_id | uuid, boleh kosong; pelaksana yang dicocokkan |
-| dibuat | timestamptz |
+| sha256 | unik per `st_id` lewat indeks `(coalesce(st_id, 0), sha256)` (unggahan ulang berkas yang sama tidak membuat baris baru, termasuk dua berkas tanpa ST) |
+| jenis | `belum` (bawaan, sebelum diklasifikasi), `st`, `hotel`, `tiket`, `transport`, `lainnya`; diisi hasil klasifikasi model |
+| created_at | timestamptz |
+
+Kolom `pelaksana_id` (pelaksana yang dicocokkan) belum ada di 2A; ditambahkan di 2C bersama pencocokan pelaksana.
 
 `ekstraksi`
 | Kolom | Catatan |
 |---|---|
-| id, berkas_id | |
+| id, berkas_id | bigserial, bigint (acuan ke `berkas`, hapus berantai) |
 | status | `antre`, `berjalan`, `selesai`, `gagal` |
 | model | nama model yang dipakai |
 | hasil | jsonb, sudah lolos validasi zod |
-| galat | teks, kode galat jelas (mis. `MODEL_PENSIUN`, `MODEL_TIDAK_TERSEDIA`, `HASIL_TIDAK_VALID`) |
+| kode_galat | salah satu kode galat di bawah |
+| galat | pesan galat untuk pengguna (bukan isi dokumen) |
+| percobaan | jumlah percobaan worker |
 | usulan_status | `menunggu`, `diterapkan`, `diabaikan` |
-| dibuat, selesai | timestamptz |
+| created_at, mulai_at, selesai_at | timestamptz |
+
+Kode galat (`KODE_GALAT_AI` di `packages/shared/src/berkas.ts`): `MODEL_PENSIUN`, `MODEL_TIDAK_TERSEDIA`, `MODEL_BELUM_DIATUR`, `HASIL_TIDAK_VALID`, `WAKTU_HABIS`, `BERKAS_TIDAK_TERBACA` (PDF rusak/terkunci, gagal dirender, atau isi berkas hilang dari penyimpanan), dan `GALAT_INTERNAL` (galat tak terduga; pesan asli tidak dikirim ke pengguna maupun log).
+
+`model_ai` (pengaturan model, tabel terpisah satu baris, `id = 1`)
+| Kolom | Catatan |
+|---|---|
+| llm_url | boleh kosong; bila kosong dipakai env `OLLAMA_URL` (bawaan `http://172.17.0.1:11434`) |
+| model_teks | awal `gpt-oss:120b-cloud` |
+| model_gambar | kosong sampai dipilih setelah uji model gambar |
+| updated_at | timestamptz |
 
 Penyimpanan berkas: antarmuka `BerkasStore` (`put`, `get`, `delete`) dengan implementasi sistem berkas pada Docker volume `spjan-berkas` (`/data/berkas/<2 hex pertama sha256>/<sha256>`). Ganti ke S3/MinIO nanti hanya menambah implementasi.
 
 Batas unggah: jpg/png/webp/pdf; maksimal 10 MB per berkas dan 30 berkas per ST. Jenis diperiksa dari isi berkas (magic bytes), bukan ekstensi. Nama asli tidak dipakai sebagai jalur berkas. Menghapus ST menghapus berkasnya.
 
+API (semua di belakang sesi login):
+- `POST /api/berkas?stId=` (multipart, satu berkas; `stId` opsional) mengembalikan `{ berkas, duplikat }` (201 baru, 200 ganda).
+- `GET /api/berkas?stId=` daftar berkas beserta ekstraksi terbarunya.
+- `GET /api/berkas/:id/isi` isi berkas (inline, sesuai mime).
+- `DELETE /api/berkas/:id` hapus berkas.
+- `POST /api/berkas/:id/ulang` jadwalkan ulang ekstraksi.
+- `GET /api/model-ai`, `PUT /api/model-ai` baca/ubah pengaturan model; `POST /api/model-ai/uji` uji model teks atau gambar.
+
 ## 2. Alur ekstraksi
-- Worker di proses API: mengambil pekerjaan `antre` dengan `FOR UPDATE SKIP LOCKED`, dua paralel, batas waktu 120 detik per berkas, satu kali coba ulang. Saat API boot, pekerjaan `berjalan` dikembalikan ke `antre`.
+- Worker di proses API: mengambil pekerjaan `antre` dengan `FOR UPDATE SKIP LOCKED`, dua paralel, batas waktu 120 detik per pemanggilan model. Galat `WAKTU_HABIS` dan `MODEL_TIDAK_TERSEDIA` dicoba ulang satu kali (maksimal dua percobaan); galat lain langsung `gagal`. Saat worker mulai (API boot), pekerjaan `berjalan` dikembalikan ke `antre`.
+- Cakupan 2A: worker hanya mengklasifikasi jenis berkas (`st`/`hotel`/`tiket`/`transport`/`lainnya`) dan menyimpan `jenis` serta ringkasan satu kalimat sebagai `hasil`. Ekstraktor per jenis ditambahkan di 2B-2D lewat tipe `Ekstraktor` (`apps/api/src/ekstraksi/worker.ts`); 2A memakai `ekstraktorKlasifikasi`.
 - PDF: `pdftotext -layout` (paket poppler-utils ditambahkan ke image API). Bila teks hampir kosong (PDF hasil pindai), halaman dirender dengan `pdftoppm` ke PNG dan diperlakukan sebagai gambar.
 - Pemanggilan model: `POST {url}/api/chat` Ollama dengan `format` berupa JSON Schema yang diturunkan dari skema zod, `temperature: 0`. Hasil divalidasi zod; bila tidak valid, sekali coba ulang dengan pesan galat validasi, lalu status `gagal` (`HASIL_TIDAK_VALID`).
-- ST memakai model teks. Bukti (hotel/tiket/transport) memakai model gambar dengan satu pemanggilan yang mengembalikan `jenis` beserta bidangnya (skema gabungan berdasarkan `jenis`).
-- Konfigurasi di tabel pengaturan (dapat diubah di UI): `llm_url` (bawaan dari env `OLLAMA_URL`, default `http://172.17.0.1:11434`), `llm_model_teks` (awal `gpt-oss:120b-cloud`), `llm_model_gambar` (diputuskan setelah uji, kandidat di atas). Tombol "Uji model" mengirim permintaan kecil dan melaporkan hasil atau galat. Kode HTTP 410 diterjemahkan menjadi pesan "model sudah dipensiunkan, ganti di Pengaturan".
-- Klien model berupa antarmuka (`Ekstraktor`) sehingga dapat diganti pembaca palsu pada uji.
-- Privasi: log hanya mencatat metadata (id berkas, model, durasi, status), tidak isi dokumen atau nama. Layar menyatakan bahwa berkas dikirim ke ollama.com.
+- Pemilihan model: berkas yang diperlakukan sebagai gambar memakai model gambar, yang berupa teks (PDF berteks) memakai model teks; model yang belum diatur menghasilkan `MODEL_BELUM_DIATUR`.
+- Rencana 2B-2D: ST memakai model teks. Bukti (hotel/tiket/transport) memakai model gambar dengan satu pemanggilan yang mengembalikan `jenis` beserta bidangnya (skema gabungan berdasarkan `jenis`).
+- Konfigurasi di tabel `model_ai` (dapat diubah di UI): `llm_url` (bawaan dari env `OLLAMA_URL`, default `http://172.17.0.1:11434`), `model_teks` (awal `gpt-oss:120b-cloud`), `model_gambar` (kosong sampai diputuskan setelah uji, kandidat di atas). Tombol "Uji model" mengirim permintaan kecil dan melaporkan hasil atau galat. Kode HTTP 410 diterjemahkan menjadi pesan "model sudah dipensiunkan, ganti di Pengaturan".
+- Klien model berupa antarmuka `KlienAi` sehingga dapat diganti klien palsu pada uji; `Ekstraktor` adalah fungsi per jenis dokumen yang menerima klien itu.
+- Privasi: baris log worker hanya memuat id berkas, model, status, kode galat, dan durasi; tidak pernah teks galat, isi dokumen, atau nama. Layar menyatakan bahwa berkas dikirim ke ollama.com.
 
 ## 3. Hasil baca menjadi usulan
 Pemetaan berupa fungsi murni di `packages/shared` (tanpa jaringan), menerima hasil ekstraksi dan keadaan ST saat ini, mengembalikan daftar usulan.
@@ -89,7 +112,7 @@ Aturan penerapan:
 
 ## 6. Pengujian
 - Unit (`packages/shared`): pemetaan usulan dan validasi dengan data sintetis.
-- API (vitest, Postgres nyata `spjan_test`): unggah, dedupe, batas ukuran, jenis salah, antrean dan pemulihan pekerjaan macet, usulan dengan `Ekstraktor` palsu, galat 410 dan tak terjangkau, hapus ST menghapus berkas.
+- API (vitest, Postgres nyata `spjan_test`): unggah, dedupe, batas ukuran, jenis salah, antrean dan pemulihan pekerjaan macet, ekstraksi dengan `KlienAi` palsu (usulan menyusul di 2B-2D), galat 410 dan tak terjangkau, hapus ST menghapus berkas.
 - Frontend: tanpa uji otomatis (konvensi proyek); verifikasi visual dengan playwright seperti Tahap 1.
 - Uji model nyata terhadap ST.226 dan invoice contoh lewat skrip manual `apps/api/scripts/probe-llm.ts`, tidak dijalankan di CI. Dokumen asli (NIP, nama) tidak masuk repo.
 
