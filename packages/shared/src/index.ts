@@ -7,4 +7,5 @@ export * from "./schemas.js";
 export * from "./st-model.js";
 export * from "./berkas.js";
 export * from "./st-ekstraksi.js";
+export * from "./hotel-ekstraksi.js";
 
