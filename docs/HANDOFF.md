@@ -8,24 +8,26 @@ Ditulis 2026-10-05 oleh Claude (sesi 4bd77fb6) atas permintaan pengguna, untuk a
 - **Tahap 1 (inti)**: selesai dan live.
 - **Tahap 2A (fondasi)**: selesai, dimerge ke `main`, dipush, dan telah live di produksi https://spjan.ditpps.com.
 - **Tahap 2B (ST menjadi draf)**: selesai dan LIVE di produksi (`bfe6a61` & `c8b12d5`). Pengguna telah menguji `ST.226.pdf` (ekstraksi AI 3.6 detik, pembentukan ST ID 1 sukses).
-- **Tahap 2C (ekstraksi invoice hotel & panel bukti)**: selesai dikerjakan dan diuji penuh di cabang `tahap-2c` (172 tes vitest lulus: 74 shared, 98 api; lint/build lulus). Memuat migrasi `pelaksana_id` pada berkas, skema ekstraksi & plafon SBM hotel, ekstraktor hotel AI vision (`gemma4:cloud`)/teks (`gpt-oss:120b-cloud`), BuktiPanel & UsulanHotelPanel di UI `/st/:id`. Menunggu persetujuan pengguna untuk merge ke `main`, push, dan deploy.
+- **Tahap 2C (ekstraksi invoice hotel & panel bukti)**: selesai dan LIVE di produksi (`fa30239`, `ba304bf`, `3e6500c`). BuktiPanel & UsulanHotelPanel aktif di editor ST.
+- **Tahap 2D (tiket pesawat & bukti transport)**: selesai dikerjakan dan diuji penuh di cabang `tahap-2d` (186 tes vitest lulus: 80 shared, 106 api; lint/build lulus). Memuat skema ekstraksi tiket & transport di `@spjan/shared`, ekstraktor `ekstrakTiket` & `ekstrakTransport` di `apps/api`, endpoint `GET /api/surat-tugas/:id/usulan-transport`, serta komponen `UsulanTransportPanel` di editor ST. Menunggu persetujuan pengguna untuk merge ke `main`, push, dan deploy.
 
 ## 2. Peta dokumen (sumber kebenaran)
 | Dokumen | Isi |
 |---|---|
 | `CLAUDE.md` | Konvensi repo, perintah, struktur |
 | `docs/superpowers/specs/2026-10-04-spjan-design.md` | Rancangan Tahap 1, aturan hitung SBM (PMK 32/2025) |
-| `docs/superpowers/specs/2026-10-04-spjan-tahap2-ekstraksi-design.md` | **Spec Tahap 2 (otoritas mengikat)**, diselaraskan dengan Tahap 2A, 2B, & 2C |
+| `docs/superpowers/specs/2026-10-04-spjan-tahap2-ekstraksi-design.md` | **Spec Tahap 2 (otoritas mengikat)**, diselaraskan dengan Tahap 2A, 2B, 2C, & 2D |
 | `docs/superpowers/plans/2026-10-04-spjan-tahap2a-fondasi.md` | Rencana 2A (selesai & live di Dokploy) |
 | `docs/superpowers/plans/2026-10-05-spjan-tahap2b-st-ke-draf.md` | Rencana 2B (selesai & live di Dokploy) |
-| `docs/superpowers/plans/2026-10-05-spjan-tahap2c-invoice-hotel.md` | **Rencana 2C** (6 tugas, selesai diuji) |
+| `docs/superpowers/plans/2026-10-05-spjan-tahap2c-invoice-hotel.md` | Rencana 2C (selesai & live di Dokploy) |
+| `docs/superpowers/plans/2026-10-05-spjan-tahap2d-tiket-transport.md` | **Rencana 2D** (5 tugas, selesai diuji) |
 | `docs/deploy.md` | Runbook deploy (Dokploy, env, backup, Cloudflare tunnel) |
 
 ## 3. Keadaan git SAAT INI (penting)
-- Cabang kerja **`tahap-2c`**: memuat migrasi `pelaksana_id` berkas, skema dan fungsi pemetaan hotel SBM di `@spjan/shared`, ekstraktor hotel vision & teks di `apps/api`, rute `GET /api/surat-tugas/:id/usulan-hotel` dan `PATCH /api/berkas/:id/usulan-status`, komponen `BuktiPanel` dan `UsulanHotelPanel` di `apps/web`, serta skrip manual `probe-hotel.ts`.
-- `main` = `c8b12d5` (live di produksi).
-- Tes terakhir: shared 74 lulus, api 98 lulus (Postgres nyata `spjan_test`), total 172 lulus, lint & build monorepo sukses.
-- **Gerbang Persetujuan**: Menggabungkan `tahap-2c` ke `main`, push, dan deploy adalah gerbang yang membutuhkan izin eksplisit pengguna.
+- Cabang kerja **`tahap-2d`**: memuat skema tiket & transport di `@spjan/shared`, ekstraktor tiket & transport di `apps/api`, rute `GET /api/surat-tugas/:id/usulan-transport`, komponen `UsulanTransportPanel` di `apps/web`, serta skrip manual `probe-tiket.ts`.
+- `main` = `3e6500c` (live di produksi).
+- Tes terakhir: shared 80 lulus, api 106 lulus (Postgres nyata `spjan_test`), total 186 lulus, lint & build monorepo sukses.
+- **Gerbang Persetujuan**: Menggabungkan `tahap-2d` ke `main`, push, dan deploy adalah gerbang yang membutuhkan izin eksplisit pengguna.
 
 ## 4. Fakta infrastruktur yang sudah dipelajari dengan susah payah
 - **Dokploy**: proyek `spjan`, compose bernama `app` (composeId `rlO_EjvL20bHhcWdy1eAw`, appName `spjan-app-oeyc0e`). Kontainer: `spjan-app-oeyc0e-spjan-api-1`, `spjan-app-oeyc0e-spjan-web-1`. Dibuat lewat UI oleh pengguna; **env dikelola di UI Dokploy** (DATABASE_URL, ADMIN_USERNAME=`admin`, ADMIN_PASSWORD, SESSION_TTL_DAYS). Kata sandi ada di env Dokploy, **jangan** dicetak atau ditulis ke repo. Berkas bantu sementara di host (`/tmp/claude-1000/spjan-secrets.env`, `spjan-rtk.txt`) mungkin sudah tidak ada; refreshToken webhook dapat dilihat di pengaturan compose Dokploy.

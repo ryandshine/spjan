@@ -47,13 +47,13 @@
 
 ## Rincian Tugas
 
-### Task 1: Skema Ekstraksi Tiket & Transport serta Pemetaan Usulan di Shared
+### Task 1: Skema Ekstraksi Tiket & Transport serta Pemetaan Usulan di Shared [SELESAI - Commit `ed6aa6f`]
 **Files:**
 - Create: `packages/shared/src/transport-ekstraksi.ts`
 - Create: `packages/shared/src/transport-ekstraksi.test.ts`
 - Modify: `packages/shared/src/index.ts`
 
-### Task 2: Ekstraktor Tiket & Transport di API serta Integrasi Worker
+### Task 2: Ekstraktor Tiket & Transport di API serta Integrasi Worker [SELESAI - Commit `355f17a`]
 **Files:**
 - Create: `apps/api/src/ekstraksi/tiket.ts`
 - Create: `apps/api/src/ekstraksi/tiket.test.ts`
@@ -62,20 +62,21 @@
 - Modify: `apps/api/src/ekstraksi/worker.ts`
 - Modify: `apps/api/src/ekstraksi/worker.test.ts`
 
-### Task 3: Endpoint Usulan Transport di API
+### Task 3: Endpoint Usulan Transport di API [SELESAI - Commit `790426b`]
 **Files:**
 - Modify: `apps/api/src/routes/surat-tugas.ts`
 - Modify: `apps/api/src/surat-tugas.test.ts`
 
-### Task 4: Antarmuka Web Panel Usulan Transport di Editor ST
+### Task 4: Antarmuka Web Panel Usulan Transport di Editor ST [SELESAI - Commit `0299f28`]
 **Files:**
 - Modify: `apps/web/src/lib/api.ts`
 - Modify: `apps/web/src/lib/queries.ts`
 - Create: `apps/web/src/components/st/usulan-transport-panel.tsx`
 - Modify: `apps/web/src/pages/st-editor.tsx`
 
-### Task 5: Skrip Probe, Verifikasi Penuh, dan Dokumentasi
+### Task 5: Skrip Probe, Verifikasi Penuh, dan Dokumentasi [SELESAI]
 **Files:**
 - Create: `apps/api/scripts/probe-tiket.ts`
 - Modify: `docs/superpowers/specs/2026-10-04-spjan-tahap2-ekstraksi-design.md`
 - Modify: `docs/HANDOFF.md`
+
