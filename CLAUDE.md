@@ -7,7 +7,7 @@ Arsitektur dan aturan hitung: `docs/superpowers/specs/2026-10-04-spjan-design.md
 ## Struktur monorepo (npm workspaces)
 
 ```
-apps/api/        Fastify + TypeScript + PostgreSQL            (belum ada; rencana tahap berikutnya)
+apps/api/        Fastify 5 + TypeScript + PostgreSQL (pg, node-pg-migrate, zod)
 apps/web/        React + Vite + TypeScript                     (belum ada)
 packages/shared/ Tipe dan mesin hitung SPJ (@spjan/shared)
 scripts/         Skrip bantu (mis. pembuat fixture SBM)
@@ -16,8 +16,18 @@ docs/superpowers/{specs,plans}/
 
 ## Perintah
 
-Dari root: `npm run build`, `npm run test`, `npm run lint`.
+Dari root: `npm run build`, `npm run test`, `npm run lint`, `npm run db:up` (Postgres pengembangan), `npm run dev:api`.
 Di `packages/shared`: `npm run test` (vitest), `npm run lint` (`tsc --noEmit`, termasuk file tes), `npm run build`.
+
+Di `apps/api`: `npm run dev` (tsx watch), `npm run test` (vitest, memakai Postgres sungguhan), `npm run lint`, `npm run migrate:create`.
+
+## Database
+
+- Pengembangan dan tes: container `spjan-dev-postgres` (`docker-compose.dev.yml`, port 127.0.0.1:55432), terpisah dari server SIPEKAPS.
+  Buat sekali: `docker exec spjan-dev-postgres psql -U postgres -c "create database spjan_test"` (dan `spjan_dev` untuk menjalankan server lokal).
+  Tes memakai `TEST_DATABASE_URL` (default `postgres://postgres:postgres@localhost:55432/spjan_test`) dan membuat ulang skema `public` setiap kali dijalankan.
+- Produksi: database `spjan` di server PostgreSQL yang sama dengan SIPEKAPS (dibuat pengguna).
+- Migrasi: `apps/api/migrations/*.sql` (node-pg-migrate), otomatis dijalankan saat server boot. Data SBM disimpan sebagai `jsonb` di `sbm_versi.data` dan diisi `seedSbm()` dari `SBM_2026`.
 
 Setelah mengubah `packages/shared/src`, jalankan `npm run build` di `packages/shared` sebelum
 mengetik/menguji workspace lain (api/web mengimpor dari `dist`).

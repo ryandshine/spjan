@@ -7,8 +7,10 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @spjan/shared",
+    "build": "npm run build -w @spjan/shared && npm run build -w api",
     "test": "npm run test --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present",
+    "dev:api": "npm run dev -w api",
+    "db:up": "docker compose -f docker-compose.dev.yml up -d"
   }
 }
