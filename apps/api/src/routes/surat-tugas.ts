@@ -1,5 +1,11 @@
 import type { FastifyInstance } from "fastify";
-import { hitungSpj, petakanHotelKeUsulan, SuratTugasPayloadSchema, toSpjInput } from "@spjan/shared";
+import {
+  hitungSpj,
+  petakanHotelKeUsulan,
+  petakanTransportKeUsulan,
+  SuratTugasPayloadSchema,
+  toSpjInput,
+} from "@spjan/shared";
 import { z } from "zod";
 
 import type { BerkasStore } from "../berkas/store.js";
@@ -76,4 +82,17 @@ export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; sto
     if (!sbm) throw new HttpError(500, "SBM_HILANG", "Versi SBM yang di-pin surat tugas tidak ditemukan.");
     return petakanHotelKeUsulan(berkasList, st, sbm.data);
   });
+
+  app.get("/:id/usulan-transport", async (req) => {
+    const { id } = IdSchema.parse(req.params);
+    const st = await getSuratTugas(opts.db, id);
+    if (!st) throw notFound("Surat tugas");
+    const [berkasList, sbm] = await Promise.all([
+      listBerkas(opts.db, id),
+      getVersiSbm(opts.db, st.versiSbmId),
+    ]);
+    if (!sbm) throw new HttpError(500, "SBM_HILANG", "Versi SBM yang di-pin surat tugas tidak ditemukan.");
+    return petakanTransportKeUsulan(berkasList, st, sbm.data);
+  });
 }
+

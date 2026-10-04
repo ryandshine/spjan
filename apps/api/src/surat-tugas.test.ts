@@ -142,5 +142,39 @@ describe("surat tugas", () => {
     expect(usulan[0].tarifRiilPerMalam).toBe(850000);
     expect(usulan[0].pelaksanaNama).toContain("Resa Adam");
   });
+
+  it("GET /:id/usulan-transport mengembalikan usulan tiket dan transportasi", async () => {
+    const stId = (await call("POST", "/api/surat-tugas", stResa)).json().id as number;
+    const { rows: rBerkas } = await pool.query<{ id: number }>(
+      "insert into berkas (st_id, nama_asli, mime, ukuran, sha256, jenis) values ($1, 'tiket_garuda.pdf', 'application/pdf', 100, 'ffff1111bbbb2222cccc3333dddd4444', 'tiket') returning id",
+      [stId],
+    );
+    const bId = rBerkas[0]?.id;
+    const hasilTiket = {
+      maskapai: "Garuda Indonesia",
+      kodeBooking: "XYZ999",
+      nomorTiket: "126-1122334455",
+      penumpang: "Resa Adam",
+      asal: "Jakarta (CGK)",
+      tujuan: "Denpasar (DPS)",
+      tanggal: "2026-09-10",
+      tarif: 1650000,
+      arah: "pergi",
+    };
+    await pool.query(
+      "insert into ekstraksi (berkas_id, status, model, hasil, selesai_at) values ($1, 'selesai', 'gpt-oss:120b-cloud', $2, now())",
+      [bId, JSON.stringify(hasilTiket)],
+    );
+
+    const res = await call("GET", `/api/surat-tugas/${stId}/usulan-transport`);
+    expect(res.statusCode).toBe(200);
+    const usulan = res.json();
+    expect(usulan).toHaveLength(1);
+    expect(usulan[0].namaBerkas).toBe("tiket_garuda.pdf");
+    expect(usulan[0].jenisBiaya).toBe("TIKET_PERGI");
+    expect(usulan[0].tarifRiil).toBe(1650000);
+    expect(usulan[0].pelaksanaNama).toContain("Resa Adam");
+  });
 });
+
 
