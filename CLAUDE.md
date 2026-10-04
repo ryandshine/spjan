@@ -41,7 +41,7 @@ mengetik/menguji workspace lain (api/web mengimpor dari `dist`).
 
 Produksi: Dokploy + Traefik di `spjan.ditpps.com` (mesin yang sama dengan SIPEKAPS). `Dockerfile.combined` punya dua target
 (`api`, `web`); `docker-compose.dokploy.yml` menjalankan keduanya dengan label Traefik dan jaringan `dokploy-network`.
-`web` (nginx) melayani berkas statis dan meneruskan `/api/` ke `api:8000`; database `spjan` ada di server PostgreSQL SIPEKAPS.
+`spjan-web` (nginx) melayani berkas statis dan meneruskan `/api/` ke `spjan-api:8000`; database `spjan` ada di server PostgreSQL SIPEKAPS.
 Langkah awal dan verifikasi: `docs/deploy.md`. Migrasi dan seed SBM otomatis saat `api` boot.
 Menguji image secara lokal: `docker build --target api|web -f Dockerfile.combined .`, jalankan pada satu jaringan Docker dengan
 `spjan-dev-postgres` (FRONTEND_ORIGIN harus sama dengan alamat yang dibuka di peramban).

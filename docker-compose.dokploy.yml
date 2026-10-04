@@ -2,8 +2,10 @@
 # Variabel yang wajib diisi di environment Dokploy: DATABASE_URL, ADMIN_USERNAME, ADMIN_PASSWORD
 # (dua yang terakhir hanya dipakai untuk membuat akun pertama saat tabel users masih kosong).
 # Jangan menambahkan domain lewat antarmuka Dokploy: routing Traefik sudah ditulis pada label di bawah.
+# Nama layanan sengaja unik (spjan-api, spjan-web): dokploy-network dipakai bersama banyak proyek, dan nama generik
+# seperti `api` atau `web` akan beralamat ganda sehingga permintaan bisa nyasar ke kontainer proyek lain.
 services:
-  api:
+  spjan-api:
     build:
       context: .
       dockerfile: Dockerfile.combined
@@ -21,16 +23,16 @@ services:
       - default
       - dokploy-network
 
-  web:
+  spjan-web:
     build:
       context: .
       dockerfile: Dockerfile.combined
       target: web
     restart: unless-stopped
     environment:
-      - API_UPSTREAM=http://api:8000
+      - API_UPSTREAM=http://spjan-api:8000
     depends_on:
-      - api
+      - spjan-api
     networks:
       - default
       - dokploy-network
