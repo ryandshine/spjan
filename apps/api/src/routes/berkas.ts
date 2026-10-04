@@ -1,12 +1,15 @@
 import multipart from "@fastify/multipart";
 import type { FastifyInstance } from "fastify";
-import { BATAS_BERKAS } from "@spjan/shared";
+import { BATAS_BERKAS, HasilEkstraksiStSchema, petakanStKeUsulan } from "@spjan/shared";
 import { z } from "zod";
 
 import type { BerkasStore } from "../berkas/store.js";
 import type { Db } from "../db.js";
 import { HttpError, notFound } from "../errors.js";
 import { getBerkas, hapusBerkas, listBerkas, metaBerkas, stAda, tambahBerkas, ulangiEkstraksi } from "../repositories/berkas.js";
+import { listPegawai } from "../repositories/pegawai.js";
+import { getPengaturan } from "../repositories/pengaturan.js";
+import { getVersiSbm, versiAktifTerbaru } from "../repositories/sbm.js";
 
 const IdSchema = z.object({ id: z.coerce.number().int().positive() });
 const StQuerySchema = z.object({ stId: z.coerce.number().int().positive().optional() });
@@ -69,4 +72,35 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
     if (!(await ulangiEkstraksi(opts.db, id))) throw notFound("Berkas");
     return getBerkas(opts.db, id);
   });
+
+  app.get("/:id/usulan-st", async (req) => {
+    const { id } = IdSchema.parse(req.params);
+    const b = await getBerkas(opts.db, id);
+    if (!b) throw notFound("Berkas");
+    if (!b.ekstraksi) {
+      throw new HttpError(400, "BELUM_DIEKSTRAK", "Berkas belum memiliki data ekstraksi.");
+    }
+    if (b.ekstraksi.status !== "selesai") {
+      throw new HttpError(400, "EKSTRAKSI_BELUM_SELESAI", `Ekstraksi berkas masih berstatus "${b.ekstraksi.status}".`);
+    }
+    if (b.jenis !== "st") {
+      throw new HttpError(400, "BUKAN_SURAT_TUGAS", "Berkas ini bukan surat tugas.");
+    }
+    const hasil = HasilEkstraksiStSchema.safeParse(b.ekstraksi.hasil);
+    if (!hasil.success) {
+      throw new HttpError(400, "HASIL_INVALID", "Data ekstraksi surat tugas tidak valid.");
+    }
+    const versiId = await versiAktifTerbaru(opts.db);
+    if (versiId === null) throw new HttpError(500, "SBM_KOSONG", "Belum ada versi SBM aktif.");
+    const [masterPegawai, sbmDetail, pengaturan] = await Promise.all([
+      listPegawai(opts.db, true),
+      getVersiSbm(opts.db, versiId),
+      getPengaturan(opts.db),
+    ]);
+    if (!sbmDetail) throw new HttpError(500, "SBM_HILANG", "Data SBM tidak ditemukan.");
+    const daftarProvinsi = Object.keys(sbmDetail.data.uangHarian);
+    const usulan = petakanStKeUsulan(hasil.data, masterPegawai, daftarProvinsi, pengaturan);
+    return { berkas: b, usulan };
+  });
 }
+

@@ -179,5 +179,47 @@ describe("isi, hapus, dan ulang", () => {
     const { rows: r2 } = await pool.query("select 1 from berkas where id = $1", [b2.id]);
     expect(r2).toHaveLength(0);
   });
+
+  it("GET /:id/usulan-st mengembalikan usulan draf ST dan status pelaksana", async () => {
+    const { berkas } = (await unggah("st.pdf", pngUnik(13))).json();
+    // 400 bila ekstraksi belum selesai / bukan ST
+    const resBelum = await call("GET", `/api/berkas/${berkas.id}/usulan-st`);
+    expect(resBelum.statusCode).toBe(400);
+
+    // Update berkas menjadi ST dengan ekstraksi selesai
+    const hasilSt = {
+      nomor: "ST.226/PPS/2026",
+      tanggal: "2026-09-08",
+      kegiatan: "Rakor KHDPK",
+      pelaksana: [
+        {
+          nama: "Resa Adam",
+          nip: null,
+          jabatan: "Surveyor",
+          etape: [
+            {
+              tujuan: "Bali",
+              tanggalBerangkat: "2026-09-10",
+              tanggalKembali: "2026-09-11",
+            },
+          ],
+        },
+      ],
+    };
+    await pool.query("update berkas set jenis = 'st' where id = $1", [berkas.id]);
+    await pool.query(
+      "update ekstraksi set status = 'selesai', hasil = $2, model = 'm-teks', selesai_at = now() where berkas_id = $1",
+      [berkas.id, JSON.stringify(hasilSt)],
+    );
+
+    const res = await call("GET", `/api/berkas/${berkas.id}/usulan-st`);
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.berkas.id).toBe(berkas.id);
+    expect(body.usulan.payload.nomor).toBe("ST.226/PPS/2026");
+    expect(body.usulan.payload.pelaksana[0].etape[0].provinsi).toBe("BALI");
+    expect(body.usulan.pelaksanaStatus[0].nama).toBe("Resa Adam");
+  });
 });
+
 

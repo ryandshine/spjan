@@ -98,4 +98,18 @@ describe("surat tugas", () => {
     await pool.query("delete from surat_tugas");
     await pool.query("delete from sbm_versi where dasar_hukum = 'Uji'");
   });
+
+  it("POST dengan ?berkasId menautkan berkas ke surat tugas baru", async () => {
+    const { rows } = await pool.query<{ id: number }>(
+      "insert into berkas (nama_asli, mime, ukuran, sha256, jenis) values ('st.pdf', 'application/pdf', 100, 'abcd1234abcd1234', 'st') returning id",
+    );
+    const berkasId = rows[0]?.id;
+    const res = await call("POST", `/api/surat-tugas?berkasId=${berkasId}`, stResa);
+    expect(res.statusCode).toBe(201);
+    const stId = res.json().id;
+
+    const { rows: rBerkas } = await pool.query<{ st_id: number }>("select st_id from berkas where id = $1", [berkasId]);
+    expect(rBerkas[0]?.st_id).toBe(stId);
+  });
 });
+

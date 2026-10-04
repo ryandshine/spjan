@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { BerkasStore } from "../berkas/store.js";
 import type { Db } from "../db.js";
 import { HttpError, notFound } from "../errors.js";
-import { hapusFileYatim, shaBerkasSt } from "../repositories/berkas.js";
+import { hapusFileYatim, shaBerkasSt, tautkanBerkasKeSt } from "../repositories/berkas.js";
 import { getPengaturan } from "../repositories/pengaturan.js";
 import { getVersiSbm, versiAktifTerbaru } from "../repositories/sbm.js";
 import {
@@ -17,15 +17,20 @@ import {
 } from "../repositories/surat-tugas.js";
 
 const IdSchema = z.object({ id: z.coerce.number().int().positive() });
+const PostQuerySchema = z.object({ berkasId: z.coerce.number().int().positive().optional() });
 
 export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; store: BerkasStore }): Promise<void> {
   app.get("/", async () => listSuratTugas(opts.db));
 
   app.post("/", async (req, reply) => {
+    const { berkasId } = PostQuerySchema.parse(req.query);
     const payload = SuratTugasPayloadSchema.parse(req.body);
     const versiId = await versiAktifTerbaru(opts.db);
     if (versiId === null) throw new HttpError(500, "SBM_KOSONG", "Belum ada versi SBM aktif.");
     const id = await createSuratTugas(payload, versiId);
+    if (berkasId) {
+      await tautkanBerkasKeSt(opts.db, opts.store, berkasId, id);
+    }
     return reply.code(201).send(await getSuratTugas(opts.db, id));
   });
 
