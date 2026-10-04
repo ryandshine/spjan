@@ -1,18 +1,10 @@
 import type { PoolClient } from "pg";
-import type { StatusKode, SuratTugasDto, SuratTugasPayload } from "@spjan/shared";
+import type { StatusKode, SuratTugasDto, SuratTugasPayload, SuratTugasRingkasDto } from "@spjan/shared";
 
 import type { Db } from "../db.js";
 import { withTransaction } from "../db.js";
 
-export interface SuratTugasRingkas {
-  id: number;
-  nomor: string;
-  tanggal: string;
-  jumlahPelaksana: number;
-  updatedAt: string;
-}
-
-export async function listSuratTugas(db: Db): Promise<SuratTugasRingkas[]> {
+export async function listSuratTugas(db: Db): Promise<SuratTugasRingkasDto[]> {
   const { rows } = await db.query<{ id: number; nomor: string; tanggal: string; n: number; updated_at: Date }>(
     `select st.id, st.nomor, st.tanggal, st.updated_at,
             (select count(*)::int from pelaksana p where p.st_id = st.id) as n

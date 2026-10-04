@@ -8,7 +8,7 @@ Arsitektur dan aturan hitung: `docs/superpowers/specs/2026-10-04-spjan-design.md
 
 ```
 apps/api/        Fastify 5 + TypeScript + PostgreSQL (pg, node-pg-migrate, zod)
-apps/web/        React + Vite + TypeScript                     (belum ada)
+apps/web/        React 19 + Vite + TypeScript, Tailwind 4, komponen gaya shadcn (ditulis tangan di components/ui), TanStack Query, react-router-dom 7
 packages/shared/ Tipe dan mesin hitung SPJ (@spjan/shared)
 scripts/         Skrip bantu (mis. pembuat fixture SBM)
 docs/superpowers/{specs,plans}/
@@ -16,10 +16,13 @@ docs/superpowers/{specs,plans}/
 
 ## Perintah
 
-Dari root: `npm run build`, `npm run test`, `npm run lint`, `npm run db:up` (Postgres pengembangan), `npm run dev:api`.
+Dari root: `npm run build`, `npm run test`, `npm run lint`, `npm run db:up` (Postgres pengembangan), `npm run dev:api`, `npm run dev:web`.
 Di `packages/shared`: `npm run test` (vitest), `npm run lint` (`tsc --noEmit`, termasuk file tes), `npm run build`.
 
 Di `apps/api`: `npm run dev` (tsx watch), `npm run test` (vitest, memakai Postgres sungguhan), `npm run lint`, `npm run migrate:create`.
+
+Di `apps/web`: `npm run dev` (Vite, port 5173, meneruskan `/api` ke `http://localhost:3001`; ubah dengan `API_PROXY_TARGET`), `npm run build` (`tsc -b && vite build`), `npm run lint` (eslint). Tidak ada tes frontend (konvensi proyek): verifikasi lewat tsc, eslint, build, dan pemeriksaan di peramban.
+`apps/web` memetakan `@spjan/shared` langsung ke `packages/shared/src` (alias Vite + paths tsconfig), jadi tidak perlu build shared untuk pengembangan web.
 
 ## Database
 
