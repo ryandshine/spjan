@@ -1,11 +1,11 @@
 import type { FastifyInstance } from "fastify";
-import { hitungSpj, SuratTugasPayloadSchema, toSpjInput } from "@spjan/shared";
+import { hitungSpj, petakanHotelKeUsulan, SuratTugasPayloadSchema, toSpjInput } from "@spjan/shared";
 import { z } from "zod";
 
 import type { BerkasStore } from "../berkas/store.js";
 import type { Db } from "../db.js";
 import { HttpError, notFound } from "../errors.js";
-import { hapusFileYatim, shaBerkasSt, tautkanBerkasKeSt } from "../repositories/berkas.js";
+import { hapusFileYatim, listBerkas, shaBerkasSt, tautkanBerkasKeSt } from "../repositories/berkas.js";
 import { getPengaturan } from "../repositories/pengaturan.js";
 import { getVersiSbm, versiAktifTerbaru } from "../repositories/sbm.js";
 import {
@@ -63,5 +63,17 @@ export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; sto
     const [pengaturan, sbm] = await Promise.all([getPengaturan(opts.db), getVersiSbm(opts.db, st.versiSbmId)]);
     if (!sbm) throw new HttpError(500, "SBM_HILANG", "Versi SBM yang di-pin surat tugas tidak ditemukan.");
     return { suratTugas: st, pengaturan, hasil: hitungSpj(toSpjInput(st, pengaturan), sbm.data) };
+  });
+
+  app.get("/:id/usulan-hotel", async (req) => {
+    const { id } = IdSchema.parse(req.params);
+    const st = await getSuratTugas(opts.db, id);
+    if (!st) throw notFound("Surat tugas");
+    const [berkasList, sbm] = await Promise.all([
+      listBerkas(opts.db, id),
+      getVersiSbm(opts.db, st.versiSbmId),
+    ]);
+    if (!sbm) throw new HttpError(500, "SBM_HILANG", "Versi SBM yang di-pin surat tugas tidak ditemukan.");
+    return petakanHotelKeUsulan(berkasList, st, sbm.data);
   });
 }

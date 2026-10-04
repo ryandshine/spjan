@@ -229,6 +229,24 @@ describe("isi, hapus, dan ulang", () => {
     expect(body.usulan.payload.pelaksana[0].etape[0].provinsi).toBe("BALI");
     expect(body.usulan.pelaksanaStatus[0].nama).toBe("Resa Adam");
   });
+
+  it("PATCH /:id/usulan-status memperbarui status usulan dan opsional pelaksanaId", async () => {
+    const { berkas } = (await unggah("hotel.png", pngUnik(99))).json();
+    const stId = await buatSt();
+    const { rows: pel } = await pool.query<{ id: number }>("select id from pelaksana where st_id = $1", [stId]);
+    const pelId = pel[0]?.id;
+
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/api/berkas/${berkas.id}/usulan-status`,
+      headers: { cookie },
+      payload: { usulanStatus: "diterapkan", pelaksanaId: pelId },
+    });
+    expect(res.statusCode).toBe(200);
+    const updated = res.json();
+    expect(updated.ekstraksi.usulanStatus).toBe("diterapkan");
+    expect(updated.pelaksanaId).toBe(pelId);
+  });
 });
 
 

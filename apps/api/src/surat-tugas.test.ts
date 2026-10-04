@@ -111,5 +111,36 @@ describe("surat tugas", () => {
     const { rows: rBerkas } = await pool.query<{ st_id: number }>("select st_id from berkas where id = $1", [berkasId]);
     expect(rBerkas[0]?.st_id).toBe(stId);
   });
+
+  it("GET /:id/usulan-hotel mengembalikan daftar usulan hotel yang cocok", async () => {
+    const stId = (await call("POST", "/api/surat-tugas", stResa)).json().id as number;
+    const { rows: rBerkas } = await pool.query<{ id: number }>(
+      "insert into berkas (st_id, nama_asli, mime, ukuran, sha256, jenis) values ($1, 'hotel.jpg', 'image/jpeg', 100, 'aaaa1111bbbb2222cccc3333dddd4444', 'hotel') returning id",
+      [stId],
+    );
+    const bId = rBerkas[0]?.id;
+    const hasilHotel = {
+      namaHotel: "The Royal Alana",
+      nomorInvoice: "INV-123",
+      tamu: "Resa Adam",
+      checkIn: "2026-09-10",
+      checkOut: "2026-09-11",
+      jumlahMalam: 1,
+      tarifPerMalam: 850000,
+      totalBiaya: 850000,
+    };
+    await pool.query(
+      "insert into ekstraksi (berkas_id, status, model, hasil, selesai_at) values ($1, 'selesai', 'gemma4:cloud', $2, now())",
+      [bId, JSON.stringify(hasilHotel)],
+    );
+
+    const res = await call("GET", `/api/surat-tugas/${stId}/usulan-hotel`);
+    expect(res.statusCode).toBe(200);
+    const usulan = res.json();
+    expect(usulan).toHaveLength(1);
+    expect(usulan[0].namaBerkas).toBe("hotel.jpg");
+    expect(usulan[0].tarifRiilPerMalam).toBe(850000);
+    expect(usulan[0].pelaksanaNama).toContain("Resa Adam");
+  });
 });
 

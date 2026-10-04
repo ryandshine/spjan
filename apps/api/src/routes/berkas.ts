@@ -1,12 +1,21 @@
 import multipart from "@fastify/multipart";
 import type { FastifyInstance } from "fastify";
-import { BATAS_BERKAS, HasilEkstraksiStSchema, petakanStKeUsulan } from "@spjan/shared";
+import { BATAS_BERKAS, HasilEkstraksiStSchema, UpdateUsulanBerkasPayloadSchema, petakanStKeUsulan } from "@spjan/shared";
 import { z } from "zod";
 
 import type { BerkasStore } from "../berkas/store.js";
 import type { Db } from "../db.js";
 import { HttpError, notFound } from "../errors.js";
-import { getBerkas, hapusBerkas, listBerkas, metaBerkas, stAda, tambahBerkas, ulangiEkstraksi } from "../repositories/berkas.js";
+import {
+  getBerkas,
+  hapusBerkas,
+  listBerkas,
+  metaBerkas,
+  stAda,
+  tambahBerkas,
+  ulangiEkstraksi,
+  updateUsulanStatus,
+} from "../repositories/berkas.js";
 import { listPegawai } from "../repositories/pegawai.js";
 import { getPengaturan } from "../repositories/pengaturan.js";
 import { getVersiSbm, versiAktifTerbaru } from "../repositories/sbm.js";
@@ -77,6 +86,14 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
   app.post("/:id/ulang", async (req) => {
     const { id } = IdSchema.parse(req.params);
     if (!(await ulangiEkstraksi(opts.db, id))) throw notFound("Berkas");
+    return getBerkas(opts.db, id);
+  });
+
+  app.patch("/:id/usulan-status", async (req) => {
+    const { id } = IdSchema.parse(req.params);
+    const { usulanStatus, pelaksanaId } = UpdateUsulanBerkasPayloadSchema.parse(req.body);
+    const ok = await updateUsulanStatus(opts.db, id, usulanStatus, pelaksanaId);
+    if (!ok) throw notFound("Berkas");
     return getBerkas(opts.db, id);
   });
 
