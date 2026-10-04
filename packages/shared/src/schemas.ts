@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { JENIS_BIAYA, STATUS_KODE } from "./types.js";
-import type { SpjInput } from "./types.js";
+import type { Sbm, SpjHasil, SpjInput } from "./types.js";
 
 const teks = (max: number) => z.string().max(max);
 const rupiah = z.number().int().min(0).max(1_000_000_000_000);
@@ -118,6 +118,26 @@ export interface SbmVersiDto {
   tahunAnggaran: number;
   dasarHukum: string;
   aktif: boolean;
+}
+
+export interface SbmDetailDto {
+  versi: SbmVersiDto;
+  data: Sbm;
+}
+
+export interface SuratTugasRingkasDto {
+  id: number;
+  nomor: string;
+  tanggal: string;
+  jumlahPelaksana: number;
+  updatedAt: string;
+}
+
+/** Respons GET /api/surat-tugas/:id/hasil */
+export interface HasilSuratTugasDto {
+  suratTugas: SuratTugasDto;
+  pengaturan: PengaturanPayload;
+  hasil: SpjHasil;
 }
 
 /** Menyusun masukan mesin hitung dari data surat tugas dan pengaturan. */
