@@ -19,6 +19,9 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME:-}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - SESSION_TTL_DAYS=${SESSION_TTL_DAYS:-7}
+      - OLLAMA_URL=${OLLAMA_URL:-http://172.17.0.1:11434}
+    volumes:
+      - spjan-berkas:/data/berkas
     networks:
       - default
       - dokploy-network
@@ -48,6 +51,9 @@ services:
       traefik.http.routers.spjan-websecure.tls.certresolver: letsencrypt
       traefik.http.services.spjan-web.loadbalancer.server.port: "80"
       traefik.http.services.spjan-websecure.loadbalancer.server.port: "80"
+
+volumes:
+  spjan-berkas:
 
 networks:
   # Jaringan overlay Dokploy: Traefik menjangkau `web` lewat sini, dan `api` menjangkau

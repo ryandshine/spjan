@@ -64,3 +64,13 @@ dengan `ADMIN_PASSWORD` baru, atau minta fitur ubah kata sandi ditambahkan ke ap
 Tunnel mengirim lalu lintas ke Traefik lewat HTTP port 80 (HTTPS diakhiri di Cloudflare). Router `web` karena itu
 melayani langsung dan TIDAK boleh memakai `redirect-to-https`, kalau tidak terjadi loop 308. Hostname
 `spjan.ditpps.com` didaftarkan di dashboard Cloudflare Zero Trust (tunnel dikelola dari dashboard), bukan di config.yml lokal.
+
+## Berkas unggahan dan Model AI (Tahap 2)
+- Berkas asli (invoice, tiket, ST) disimpan di Docker volume `spjan-berkas` (di dalam kontainer: `/data/berkas`). Volume ini
+  BUKAN bagian dari database; cadangkan terpisah, mis.:
+  `docker run --rm -v <proyek>_spjan-berkas:/d -v "$PWD":/b alpine tar czf /b/spjan-berkas.tgz -C /d .`
+  (nama volume sebenarnya: `docker volume ls | grep spjan-berkas`).
+- Model dibaca lewat Ollama di host (`OLLAMA_URL`, bawaan `http://172.17.0.1:11434`). Nama model diatur di aplikasi:
+  Pengaturan > Model AI (tombol "Uji model"). Model cloud dapat dipensiunkan tanpa pemberitahuan (HTTP 410), ganti di sana.
+- Isi dokumen yang dibaca model dikirim ke ollama.com (model cloud). Log API hanya mencatat id berkas, model, status, durasi.
+- Image API memasang `poppler-utils`; tanpa itu PDF tidak terbaca.
