@@ -38,6 +38,27 @@ const hotelDetail = JSON.stringify({
   totalBiaya: 850000,
 });
 const tiket = '{"jenis":"tiket","ringkasan":"Tiket pesawat"}';
+const tiketDetail = JSON.stringify({
+  maskapai: "Garuda Indonesia",
+  kodeBooking: "XYZ123",
+  nomorTiket: "126-1234567890",
+  penumpang: "Gunadi Firdaus",
+  asal: "Jakarta (CGK)",
+  tujuan: "Yogyakarta (YIA)",
+  tanggal: "2026-09-12",
+  tarif: 1500000,
+  arah: "pergi",
+});
+const transport = '{"jenis":"transport","ringkasan":"Struk taksi"}';
+const transportDetail = JSON.stringify({
+  kategori: "taksi",
+  penyedia: "Blue Bird",
+  nomorKuitansi: "KUIT-01",
+  tanggal: "2026-09-12",
+  uraian: "Taksi Bandara ke Hotel",
+  totalBiaya: 175000,
+});
+const lainnya = '{"jenis":"lainnya","ringkasan":"Dokumen lainnya"}';
 const tambah = (data: Buffer, nama = "x") => tambahBerkas(pool, store, { stId: null, namaAsli: nama, data }).then((r) => r.dto);
 const ekstraksiTerakhir = async (berkasId: number) =>
   (await pool.query("select * from ekstraksi where berkas_id = $1 order by id desc limit 1", [berkasId])).rows[0];
@@ -142,8 +163,28 @@ describe("worker ekstraksi", () => {
     expect(await worker.jalankanSekali()).toBe(0);
   });
 
+  it("tiket: otomatis menjalankan ekstrakTiket bila klasifikasi berkas adalah tiket", async () => {
+    const klien = klienPalsu((_p, ke) => (ke === 1 ? tiket : tiketDetail));
+    const worker = bikinWorker({ db: pool, store, klien });
+    const berkas = await tambah(pngUnik(90));
+    expect(await worker.jalankanSekali()).toBe(1);
+    const e = await ekstraksiTerakhir(berkas.id);
+    expect(e).toMatchObject({ status: "selesai", model: "m-gambar", kode_galat: null });
+    expect(e.hasil).toMatchObject({ maskapai: "Garuda Indonesia", tarif: 1500000 });
+  });
+
+  it("transport: otomatis menjalankan ekstrakTransport bila klasifikasi berkas adalah transport", async () => {
+    const klien = klienPalsu((_p, ke) => (ke === 1 ? transport : transportDetail));
+    const worker = bikinWorker({ db: pool, store, klien });
+    const berkas = await tambah(pngUnik(91));
+    expect(await worker.jalankanSekali()).toBe(1);
+    const e = await ekstraksiTerakhir(berkas.id);
+    expect(e).toMatchObject({ status: "selesai", model: "m-gambar", kode_galat: null });
+    expect(e.hasil).toMatchObject({ kategori: "taksi", totalBiaya: 175000 });
+  });
+
   it("pulihkan mengembalikan pekerjaan 'berjalan' yang macet ke antrean", async () => {
-    const worker = bikinWorker({ db: pool, store, klien: klienPalsu(() => tiket) });
+    const worker = bikinWorker({ db: pool, store, klien: klienPalsu(() => lainnya) });
     const berkas = await tambah(pngUnik(9));
     await pool.query("update ekstraksi set status = 'berjalan' where berkas_id = $1", [berkas.id]);
     expect(await worker.jalankanSekali()).toBe(0);
@@ -153,7 +194,7 @@ describe("worker ekstraksi", () => {
   });
 
   it("dua worker tidak memproses pekerjaan yang sama (SKIP LOCKED)", async () => {
-    const klien = klienPalsu(() => tiket);
+    const klien = klienPalsu(() => lainnya);
     const a = bikinWorker({ db: pool, store, klien, paralel: 1 });
     const b = bikinWorker({ db: pool, store, klien, paralel: 1 });
     await tambah(pngUnik(10));
@@ -163,7 +204,7 @@ describe("worker ekstraksi", () => {
   });
 
   it("mulai/henti menjalankan putaran latar dan berhenti bersih", async () => {
-    const worker = bikinWorker({ db: pool, store, klien: klienPalsu(() => tiket), jedaMs: 20 });
+    const worker = bikinWorker({ db: pool, store, klien: klienPalsu(() => lainnya), jedaMs: 20 });
     const berkas = await tambah(pngUnik(11));
     worker.mulai();
     for (let i = 0; i < 100 && (await ekstraksiTerakhir(berkas.id)).status !== "selesai"; i += 1) {

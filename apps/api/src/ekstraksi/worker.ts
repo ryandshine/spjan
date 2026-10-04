@@ -8,6 +8,8 @@ import { bacaIsi, type IsiBerkas } from "./baca-berkas.js";
 import { klasifikasiBerkas } from "./klasifikasi.js";
 import { ekstrakSt } from "./st.js";
 import { ekstrakHotel } from "./hotel.js";
+import { ekstrakTiket } from "./tiket.js";
+import { ekstrakTransport } from "./transport.js";
 
 export type Ekstraktor = (ctx: {
   berkas: { id: number; mime: MimeBerkas; sha256: string; jenis?: JenisBerkas };
@@ -22,7 +24,7 @@ export const ekstraktorKlasifikasi: Ekstraktor = async ({ klien, konf, isi }) =>
   return { model, hasil, jenis: hasil.jenis };
 };
 
-/** Ekstraktor cerdas: jalankan ekstraksi detail sesuai jenis berkas (ST atau Hotel). */
+/** Ekstraktor cerdas: jalankan ekstraksi detail sesuai jenis berkas (ST, Hotel, Tiket, atau Transport). */
 export const ekstraktorOtomatis: Ekstraktor = async ({ berkas, klien, konf, isi }) => {
   if (berkas.jenis === "st") {
     const { model, hasil } = await ekstrakSt(klien, konf, isi);
@@ -32,6 +34,14 @@ export const ekstraktorOtomatis: Ekstraktor = async ({ berkas, klien, konf, isi 
     const { model, hasil } = await ekstrakHotel(klien, konf, isi);
     return { model, hasil, jenis: "hotel" };
   }
+  if (berkas.jenis === "tiket") {
+    const { model, hasil } = await ekstrakTiket(klien, konf, isi);
+    return { model, hasil, jenis: "tiket" };
+  }
+  if (berkas.jenis === "transport") {
+    const { model, hasil } = await ekstrakTransport(klien, konf, isi);
+    return { model, hasil, jenis: "transport" };
+  }
   const { model: mKlas, hasil: hKlas } = await klasifikasiBerkas(klien, konf, isi);
   if (hKlas.jenis === "st" && isi.teks && isi.teks.trim().length > 0) {
     const { model, hasil } = await ekstrakSt(klien, konf, isi);
@@ -40,6 +50,14 @@ export const ekstraktorOtomatis: Ekstraktor = async ({ berkas, klien, konf, isi 
   if (hKlas.jenis === "hotel") {
     const { model, hasil } = await ekstrakHotel(klien, konf, isi);
     return { model, hasil, jenis: "hotel" };
+  }
+  if (hKlas.jenis === "tiket") {
+    const { model, hasil } = await ekstrakTiket(klien, konf, isi);
+    return { model, hasil, jenis: "tiket" };
+  }
+  if (hKlas.jenis === "transport") {
+    const { model, hasil } = await ekstrakTransport(klien, konf, isi);
+    return { model, hasil, jenis: "transport" };
   }
   return { model: mKlas, hasil: hKlas, jenis: hKlas.jenis };
 };
