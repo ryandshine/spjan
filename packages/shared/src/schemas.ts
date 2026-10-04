@@ -51,6 +51,9 @@ export const SuratTugasPayloadSchema = z.object({
   catatan: teks(2000),
   pelaksana: z.array(PelaksanaPayloadSchema).max(30),
 });
+export type EtapePayload = z.infer<typeof EtapePayloadSchema>;
+export type BiayaPayload = z.infer<typeof BiayaPayloadSchema>;
+export type PelaksanaPayload = z.infer<typeof PelaksanaPayloadSchema>;
 export type SuratTugasPayload = z.infer<typeof SuratTugasPayloadSchema>;
 
 export const PengaturanSchema = z.object({
