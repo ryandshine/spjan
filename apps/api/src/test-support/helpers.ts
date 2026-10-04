@@ -91,8 +91,17 @@ export function bodyMultipart(nama: string, isi: Buffer): { payload: Buffer; hea
 }
 
 /** PDF satu halaman. Teks kosong menghasilkan halaman tanpa lapisan teks (meniru hasil pindai). Teks hanya ASCII. */
-export function pdfSederhana(teks: string): Buffer {
-  const isi = teks ? `BT /F1 12 Tf 50 750 Td (${teks.replace(/[()\\]/g, "")}) Tj ET` : "";
+export function pdfSederhana(teks: string, ukuranFont?: number): Buffer {
+  const bersih = teks.replace(/[()\\]/g, "");
+  let isi = "";
+  if (bersih && ukuranFont === undefined) {
+    isi = `BT /F1 12 Tf 50 750 Td (${bersih}) Tj ET`;
+  } else if (bersih && ukuranFont !== undefined) {
+    // Teks panjang dibungkus per baris agar tidak terpotong di tepi halaman (pdftotext memangkas yang di luar halaman).
+    const perBaris = Math.floor(500 / (ukuranFont * 0.55));
+    const baris = bersih.match(new RegExp(`.{1,${perBaris}}`, "g")) ?? [];
+    isi = `BT /F1 ${ukuranFont} Tf ${ukuranFont * 1.2} TL 50 800 Td ${baris.map((b) => `(${b}) '`).join(" ")} ET`;
+  }
   const objek = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
