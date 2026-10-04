@@ -13,6 +13,8 @@ export async function siapkanApp(): Promise<FastifyInstance> {
 
 export async function bersihkanData(): Promise<void> {
   await pool.query("truncate surat_tugas, pegawai restart identity cascade");
+  await pool.query("truncate berkas, ekstraksi restart identity cascade");
+  await pool.query("update model_ai set llm_url = null, model_teks = 'gpt-oss:120b-cloud', model_gambar = null where id = 1");
   await pool.query(
     `update pengaturan set kode_satker = '', nama_satker = '', ppk_nama = '', kota_kedudukan = 'Jakarta',
        provinsi_kedudukan = 'D.K.I. JAKARTA', pembuat_daftar_nama = null, pembuat_daftar_nip = null where id = 1`,
