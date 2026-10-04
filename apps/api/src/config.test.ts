@@ -27,4 +27,15 @@ describe("config", () => {
     expect(config.ADMIN_PASSWORD).toBe("rahasia-panjang-123");
     expect(config.SESSION_TTL_DAYS).toBe(7);
   });
+
+  it("BERKAS_DIR dan OLLAMA_URL punya nilai bawaan dan dapat diganti", async () => {
+    let config = await muatConfig();
+    expect(config.BERKAS_DIR).toBe("./data/berkas");
+    expect(config.OLLAMA_URL).toBe("http://172.17.0.1:11434");
+    vi.stubEnv("BERKAS_DIR", "/data/berkas");
+    vi.stubEnv("OLLAMA_URL", "http://ollama:11434");
+    config = await muatConfig();
+    expect(config.BERKAS_DIR).toBe("/data/berkas");
+    expect(config.OLLAMA_URL).toBe("http://ollama:11434");
+  });
 });

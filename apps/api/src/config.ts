@@ -17,6 +17,8 @@ const envSchema = z.object({
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(7),
   STARTUP_DB_MAX_RETRIES: z.coerce.number().int().min(0).default(10),
   STARTUP_DB_RETRY_DELAY_MS: z.coerce.number().int().min(100).default(3000),
+  BERKAS_DIR: z.string().min(1).default("./data/berkas"),
+  OLLAMA_URL: z.string().min(1).default("http://172.17.0.1:11434"),
 });
 
 export const config = envSchema.parse(process.env);
