@@ -7,6 +7,7 @@ import { konfigurasiAi } from "../repositories/model-ai.js";
 import { bacaIsi, type IsiBerkas } from "./baca-berkas.js";
 import { klasifikasiBerkas } from "./klasifikasi.js";
 import { ekstrakSt } from "./st.js";
+import { ekstrakHotel } from "./hotel.js";
 
 export type Ekstraktor = (ctx: {
   berkas: { id: number; mime: MimeBerkas; sha256: string; jenis?: JenisBerkas };
@@ -21,16 +22,24 @@ export const ekstraktorKlasifikasi: Ekstraktor = async ({ klien, konf, isi }) =>
   return { model, hasil, jenis: hasil.jenis };
 };
 
-/** Ekstraktor cerdas: jika jenis berkas st (atau baru terklasifikasi st), jalankan ekstraksi detail ST. */
+/** Ekstraktor cerdas: jalankan ekstraksi detail sesuai jenis berkas (ST atau Hotel). */
 export const ekstraktorOtomatis: Ekstraktor = async ({ berkas, klien, konf, isi }) => {
   if (berkas.jenis === "st") {
     const { model, hasil } = await ekstrakSt(klien, konf, isi);
     return { model, hasil, jenis: "st" };
   }
+  if (berkas.jenis === "hotel") {
+    const { model, hasil } = await ekstrakHotel(klien, konf, isi);
+    return { model, hasil, jenis: "hotel" };
+  }
   const { model: mKlas, hasil: hKlas } = await klasifikasiBerkas(klien, konf, isi);
   if (hKlas.jenis === "st" && isi.teks && isi.teks.trim().length > 0) {
     const { model, hasil } = await ekstrakSt(klien, konf, isi);
     return { model, hasil, jenis: "st" };
+  }
+  if (hKlas.jenis === "hotel") {
+    const { model, hasil } = await ekstrakHotel(klien, konf, isi);
+    return { model, hasil, jenis: "hotel" };
   }
   return { model: mKlas, hasil: hKlas, jenis: hKlas.jenis };
 };

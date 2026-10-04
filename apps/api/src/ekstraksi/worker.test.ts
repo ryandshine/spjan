@@ -27,6 +27,17 @@ beforeEach(async () => {
 });
 
 const hotel = '{"jenis":"hotel","ringkasan":"Invoice hotel"}';
+const hotelDetail = JSON.stringify({
+  namaHotel: "The Royal Alana",
+  nomorInvoice: "INV-001",
+  tamu: "Gunadi Firdaus",
+  checkIn: "2026-09-12",
+  checkOut: "2026-09-13",
+  jumlahMalam: 1,
+  tarifPerMalam: 850000,
+  totalBiaya: 850000,
+});
+const tiket = '{"jenis":"tiket","ringkasan":"Tiket pesawat"}';
 const tambah = (data: Buffer, nama = "x") => tambahBerkas(pool, store, { stId: null, namaAsli: nama, data }).then((r) => r.dto);
 const ekstraksiTerakhir = async (berkasId: number) =>
   (await pool.query("select * from ekstraksi where berkas_id = $1 order by id desc limit 1", [berkasId])).rows[0];
@@ -51,13 +62,13 @@ describe("worker ekstraksi", () => {
   });
 
   it("gambar: memakai model gambar, menyimpan hasil, dan mengisi jenis berkas", async () => {
-    const klien = klienPalsu(() => hotel);
+    const klien = klienPalsu((_p, ke) => (ke === 1 ? hotel : hotelDetail));
     const worker = bikinWorker({ db: pool, store, klien });
     const berkas = await tambah(pngUnik(1));
     expect(await worker.jalankanSekali()).toBe(1);
     const e = await ekstraksiTerakhir(berkas.id);
     expect(e).toMatchObject({ status: "selesai", model: "m-gambar", kode_galat: null, percobaan: 1 });
-    expect(e.hasil).toEqual({ jenis: "hotel", ringkasan: "Invoice hotel" });
+    expect(e.hasil).toMatchObject({ namaHotel: "The Royal Alana", totalBiaya: 850000 });
     expect(e.selesai_at).not.toBeNull();
     expect((await pool.query("select jenis from berkas where id = $1", [berkas.id])).rows[0].jenis).toBe("hotel");
     expect(await worker.jalankanSekali()).toBe(0);
@@ -132,7 +143,7 @@ describe("worker ekstraksi", () => {
   });
 
   it("pulihkan mengembalikan pekerjaan 'berjalan' yang macet ke antrean", async () => {
-    const worker = bikinWorker({ db: pool, store, klien: klienPalsu(() => hotel) });
+    const worker = bikinWorker({ db: pool, store, klien: klienPalsu(() => tiket) });
     const berkas = await tambah(pngUnik(9));
     await pool.query("update ekstraksi set status = 'berjalan' where berkas_id = $1", [berkas.id]);
     expect(await worker.jalankanSekali()).toBe(0);
@@ -142,7 +153,7 @@ describe("worker ekstraksi", () => {
   });
 
   it("dua worker tidak memproses pekerjaan yang sama (SKIP LOCKED)", async () => {
-    const klien = klienPalsu(() => hotel);
+    const klien = klienPalsu(() => tiket);
     const a = bikinWorker({ db: pool, store, klien, paralel: 1 });
     const b = bikinWorker({ db: pool, store, klien, paralel: 1 });
     await tambah(pngUnik(10));
@@ -152,7 +163,7 @@ describe("worker ekstraksi", () => {
   });
 
   it("mulai/henti menjalankan putaran latar dan berhenti bersih", async () => {
-    const worker = bikinWorker({ db: pool, store, klien: klienPalsu(() => hotel), jedaMs: 20 });
+    const worker = bikinWorker({ db: pool, store, klien: klienPalsu(() => tiket), jedaMs: 20 });
     const berkas = await tambah(pngUnik(11));
     worker.mulai();
     for (let i = 0; i < 100 && (await ekstraksiTerakhir(berkas.id)).status !== "selesai"; i += 1) {
