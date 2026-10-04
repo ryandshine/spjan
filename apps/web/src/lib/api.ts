@@ -1,5 +1,7 @@
 import type {
   HasilSuratTugasDto,
+  ModelAiDto,
+  ModelAiPayload,
   PegawaiDto,
   PegawaiPayload,
   PengaturanPayload,
@@ -10,6 +12,7 @@ import type {
   SuratTugasDto,
   SuratTugasPayload,
   SuratTugasRingkasDto,
+  UjiModelHasil,
 } from '@spjan/shared'
 
 export class ApiError extends Error {
@@ -61,6 +64,12 @@ export const api = {
   pengaturan: {
     get: () => request<PengaturanPayload>('GET', '/api/pengaturan'),
     save: (p: PengaturanPayload) => request<PengaturanPayload>('PUT', '/api/pengaturan', p),
+  },
+
+  modelAi: {
+    get: () => request<ModelAiDto>('GET', '/api/model-ai'),
+    save: (p: ModelAiPayload) => request<ModelAiDto>('PUT', '/api/model-ai', p),
+    uji: (jenis: 'teks' | 'gambar') => request<UjiModelHasil>('POST', '/api/model-ai/uji', { jenis }),
   },
 
   sbm: {

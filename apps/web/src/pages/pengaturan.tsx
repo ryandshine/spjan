@@ -2,6 +2,7 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { PengaturanSchema, type PengaturanPayload } from '@spjan/shared'
 
+import { ModelAiCard } from '@/components/model-ai-card'
 import { PageHeader } from '@/components/page-header'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -129,6 +130,9 @@ export default function PengaturanPage() {
       {data.isError ? <Alert variant="destructive">{pesanGalat(data.error)}</Alert> : null}
       {data.isPending ? <p className="text-sm text-muted-foreground">Memuat...</p> : null}
       {data.data ? <FormPengaturan awal={data.data} /> : null}
+      <div className="mt-5">
+        <ModelAiCard />
+      </div>
     </div>
   )
 }

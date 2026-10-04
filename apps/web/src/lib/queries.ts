@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { PegawaiPayload, PengaturanPayload, StatusKode, StatusKonfigurasi, SuratTugasPayload } from '@spjan/shared'
+import type { ModelAiPayload, PegawaiPayload, PengaturanPayload, StatusKode, StatusKonfigurasi, SuratTugasPayload } from '@spjan/shared'
 
 import { api, ApiError } from '@/lib/api'
 
@@ -7,6 +7,7 @@ export const keys = {
   me: ['me'] as const,
   pegawai: (aktif: boolean) => ['pegawai', aktif] as const,
   pengaturan: ['pengaturan'] as const,
+  modelAi: ['model-ai'] as const,
   sbmVersi: ['sbm', 'versi'] as const,
   sbm: (id: number) => ['sbm', id] as const,
   stList: ['st', 'list'] as const,
@@ -125,4 +126,20 @@ export function useHasilSuratTugas(id: number | undefined) {
     enabled: id !== undefined,
     staleTime: 0,
   })
+}
+
+export function useModelAi() {
+  return useQuery({ queryKey: keys.modelAi, queryFn: api.modelAi.get })
+}
+
+export function useSimpanModelAi() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (p: ModelAiPayload) => api.modelAi.save(p),
+    onSuccess: (data) => qc.setQueryData(keys.modelAi, data),
+  })
+}
+
+export function useUjiModelAi() {
+  return useMutation({ mutationFn: (jenis: 'teks' | 'gambar') => api.modelAi.uji(jenis) })
 }
