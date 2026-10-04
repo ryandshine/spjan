@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { PegawaiPayload, PengaturanPayload, StatusKode, StatusKonfigurasi } from '@spjan/shared'
+import type { PegawaiPayload, PengaturanPayload, StatusKode, StatusKonfigurasi, SuratTugasPayload } from '@spjan/shared'
 
 import { api, ApiError } from '@/lib/api'
 
@@ -97,6 +97,23 @@ export function useHapusSuratTugas() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: number) => api.suratTugas.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['st'] }),
+  })
+}
+
+export function useSuratTugas(id: number | undefined) {
+  return useQuery({
+    queryKey: keys.st(id ?? 0),
+    queryFn: () => api.suratTugas.get(id as number),
+    enabled: id !== undefined,
+  })
+}
+
+export function useSimpanSuratTugas() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: number | null; payload: SuratTugasPayload }) =>
+      v.id === null ? api.suratTugas.create(v.payload) : api.suratTugas.replace(v.id, v.payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['st'] }),
   })
 }
