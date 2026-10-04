@@ -6,18 +6,33 @@ import type { Db } from "../db.js";
 import { konfigurasiAi } from "../repositories/model-ai.js";
 import { bacaIsi, type IsiBerkas } from "./baca-berkas.js";
 import { klasifikasiBerkas } from "./klasifikasi.js";
+import { ekstrakSt } from "./st.js";
 
 export type Ekstraktor = (ctx: {
-  berkas: { id: number; mime: MimeBerkas; sha256: string };
+  berkas: { id: number; mime: MimeBerkas; sha256: string; jenis?: JenisBerkas };
   isi: IsiBerkas;
   konf: KonfigurasiAi;
   klien: KlienAi;
 }) => Promise<{ model: string; hasil: unknown; jenis?: JenisBerkas }>;
 
-/** 2A: hanya klasifikasi jenis. 2B-2D menggantinya dengan pemilih ekstraktor per jenis. */
+/** Hanya klasifikasi jenis berkas. */
 export const ekstraktorKlasifikasi: Ekstraktor = async ({ klien, konf, isi }) => {
   const { model, hasil } = await klasifikasiBerkas(klien, konf, isi);
   return { model, hasil, jenis: hasil.jenis };
+};
+
+/** Ekstraktor cerdas: jika jenis berkas st (atau baru terklasifikasi st), jalankan ekstraksi detail ST. */
+export const ekstraktorOtomatis: Ekstraktor = async ({ berkas, klien, konf, isi }) => {
+  if (berkas.jenis === "st") {
+    const { model, hasil } = await ekstrakSt(klien, konf, isi);
+    return { model, hasil, jenis: "st" };
+  }
+  const { model: mKlas, hasil: hKlas } = await klasifikasiBerkas(klien, konf, isi);
+  if (hKlas.jenis === "st" && isi.teks && isi.teks.trim().length > 0) {
+    const { model, hasil } = await ekstrakSt(klien, konf, isi);
+    return { model, hasil, jenis: "st" };
+  }
+  return { model: mKlas, hasil: hKlas, jenis: hKlas.jenis };
 };
 
 export interface WorkerOpsi {
@@ -43,7 +58,7 @@ const namaGalat = (error: unknown): string => (error instanceof Error ? error.na
 
 export function bikinWorker(opsi: WorkerOpsi) {
   const { db, store, klien } = opsi;
-  const ekstrak = opsi.ekstrak ?? ekstraktorKlasifikasi;
+  const ekstrak = opsi.ekstrak ?? ekstraktorOtomatis;
   const paralel = opsi.paralel ?? 2;
   const jedaMs = opsi.jedaMs ?? 2000;
 
@@ -60,8 +75,8 @@ export function bikinWorker(opsi: WorkerOpsi) {
     const mulai = Date.now();
     let model: string | null = null;
     try {
-      const { rows } = await db.query<{ id: number; mime: MimeBerkas; sha256: string }>(
-        "select id, mime, sha256 from berkas where id = $1",
+      const { rows } = await db.query<{ id: number; mime: MimeBerkas; sha256: string; jenis: JenisBerkas }>(
+        "select id, mime, sha256, jenis from berkas where id = $1",
         [k.berkasId],
       );
       const berkas = rows[0];

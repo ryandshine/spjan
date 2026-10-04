@@ -64,11 +64,22 @@ describe("worker ekstraksi", () => {
   });
 
   it("PDF berteks: memakai model teks dan teks dokumen masuk ke prompt", async () => {
-    const klien = klienPalsu(() => '{"jenis":"st","ringkasan":"Surat tugas"}');
+    const validSt = JSON.stringify({
+      nomor: "ST.226/PPS/2026",
+      tanggal: "2026-09-08",
+      kegiatan: "Tugas",
+      pelaksana: [{ nama: "Resa", nip: null, jabatan: null, etape: [{ tujuan: "Bali", tanggalBerangkat: "2026-09-10", tanggalKembali: "2026-09-11" }] }],
+    });
+    const klien = klienPalsu((p) =>
+      p.prompt.includes("pelaksana") ? validSt : '{"jenis":"st","ringkasan":"Surat tugas"}',
+    );
     const worker = bikinWorker({ db: pool, store, klien });
     const berkas = await tambah(pdfSederhana("SURAT TUGAS Nomor ST.226 Direktur Pengendalian Perhutanan Sosial memberi tugas"));
     await worker.jalankanSekali();
-    expect((await ekstraksiTerakhir(berkas.id)).model).toBe("m-teks");
+    const e = await ekstraksiTerakhir(berkas.id);
+    expect(e.status).toBe("selesai");
+    expect(e.model).toBe("m-teks");
+    expect(e.hasil).toMatchObject({ nomor: "ST.226/PPS/2026" });
     expect(klien.panggilan[0]?.prompt).toContain("ST.226");
   });
 
