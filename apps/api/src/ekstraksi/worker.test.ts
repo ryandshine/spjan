@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AiGalat } from "../ai/klien.js";
 import { FileBerkasStore } from "../berkas/store.js";
@@ -31,7 +31,25 @@ const tambah = (data: Buffer, nama = "x") => tambahBerkas(pool, store, { stId: n
 const ekstraksiTerakhir = async (berkasId: number) =>
   (await pool.query("select * from ekstraksi where berkas_id = $1 order by id desc limit 1", [berkasId])).rows[0];
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("worker ekstraksi", () => {
+  it("log worker tidak memuat isi galat (pesan, stack, atau properti)", async () => {
+    const spies = [vi.spyOn(console, "log"), vi.spyOn(console, "warn"), vi.spyOn(console, "error")];
+    for (const s of spies) s.mockImplementation(() => undefined);
+    const klien = klienPalsu(() => {
+      throw new Error("rahasia internal jangan bocor");
+    });
+    const worker = bikinWorker({ db: pool, store, klien });
+    await tambah(pngUnik(12));
+    await worker.jalankanSekali();
+    const semua = spies.flatMap((s) => s.mock.calls).map((args) => args.map((a) => JSON.stringify(a) + String(a)).join(" "));
+    expect(semua.length).toBeGreaterThan(0);
+    expect(semua.join("\n")).not.toContain("rahasia");
+  });
+
   it("gambar: memakai model gambar, menyimpan hasil, dan mengisi jenis berkas", async () => {
     const klien = klienPalsu(() => hotel);
     const worker = bikinWorker({ db: pool, store, klien });

@@ -38,6 +38,9 @@ interface Klaim {
 const DAPAT_DIULANG = new Set(["WAKTU_HABIS", "MODEL_TIDAK_TERSEDIA"]);
 const MAKS_PERCOBAAN = 2;
 
+/** Hanya nama jenis galat yang boleh dilog; pesan/stack/properti bisa memuat isi dokumen. */
+const namaGalat = (error: unknown): string => (error instanceof Error ? error.name : typeof error);
+
 export function bikinWorker(opsi: WorkerOpsi) {
   const { db, store, klien } = opsi;
   const ekstrak = opsi.ekstrak ?? ekstraktorKlasifikasi;
@@ -79,7 +82,9 @@ export function bikinWorker(opsi: WorkerOpsi) {
       console.log(`[ekstraksi] berkas=${k.berkasId} model=${model} status=selesai durasi=${Date.now() - mulai}ms`);
     } catch (error) {
       const galat = error instanceof AiGalat ? error : new AiGalat("GALAT_INTERNAL", "Terjadi kesalahan saat membaca dokumen.");
-      if (!(error instanceof AiGalat)) console.error("[ekstraksi] galat tak terduga", error);
+      if (!(error instanceof AiGalat)) {
+        console.error(`[ekstraksi] berkas=${k.berkasId} kode=GALAT_INTERNAL jenis=${namaGalat(error)} durasi=${Date.now() - mulai}ms`);
+      }
       const ulang = DAPAT_DIULANG.has(galat.kode) && k.percobaan < MAKS_PERCOBAAN;
       await db.query(
         `update ekstraksi set status = $2::text, kode_galat = $3, galat = $4,
@@ -120,7 +125,7 @@ export function bikinWorker(opsi: WorkerOpsi) {
         try {
           n = await jalankanSekali();
         } catch (error) {
-          console.error("[ekstraksi] putaran worker gagal", (error as Error).message);
+          console.error(`[ekstraksi] putaran worker gagal jenis=${namaGalat(error)}`);
         }
         if (n === 0 && !berhenti) await new Promise((r) => setTimeout(r, jedaMs));
       }
