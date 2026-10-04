@@ -12,6 +12,7 @@ import { authRoutes } from "./routes/auth.js";
 import { pegawaiRoutes } from "./routes/pegawai.js";
 import { pengaturanRoutes } from "./routes/pengaturan.js";
 import { sbmRoutes } from "./routes/sbm.js";
+import { suratTugasRoutes } from "./routes/surat-tugas.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -73,5 +74,6 @@ export async function buildApp(db: Db, opts: { logger?: boolean } = {}): Promise
   await app.register(pengaturanRoutes, { prefix: "/api/pengaturan", db });
   await app.register(pegawaiRoutes, { prefix: "/api/pegawai", db });
   await app.register(sbmRoutes, { prefix: "/api/sbm", db });
+  await app.register(suratTugasRoutes, { prefix: "/api/surat-tugas", db });
   return app;
 }
