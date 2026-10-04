@@ -1,7 +1,7 @@
 # Deploy SPJAN ke Dokploy (spjan.ditpps.com)
 
 Server produksi adalah mesin yang sama dengan SIPEKAPS: Docker + Dokploy + Traefik. SPJAN berupa dua kontainer
-(`api` dan `web`, lihat `docker-compose.dokploy.yml`) dan memakai database `spjan` di server PostgreSQL SIPEKAPS
+(`spjan-api` dan `spjan-web`, lihat `docker-compose.dokploy.yml`) dan memakai database `spjan` di server PostgreSQL SIPEKAPS
 (kontainer `gealgeolgeo-postgis`, alias di jaringan `dokploy-network`).
 
 ## Sekali di awal
@@ -38,7 +38,7 @@ tidak ada langkah migrasi manual.
 ## Verifikasi setelah deploy
 
 ```bash
-docker ps --format '{{.Names}} {{.Status}}' | grep spjan        # api (healthy) dan web Up
+docker ps --format '{{.Names}} {{.Status}}' | grep spjan        # spjan-api (healthy) dan spjan-web Up
 docker logs --since 4m <kontainer api spjan> | grep -E "migrate|startup|listening|error"
 curl -s https://spjan.ditpps.com/api/health                    # {"status":"ok"}
 curl -s -o /dev/null -w "%{http_code}\n" https://spjan.ditpps.com/api/pegawai   # 401 (bukan 404/500)
