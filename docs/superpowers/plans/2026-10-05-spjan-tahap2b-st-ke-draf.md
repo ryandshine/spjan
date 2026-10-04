@@ -154,11 +154,11 @@ Sesuai dengan `docs/superpowers/specs/2026-10-04-spjan-tahap2-ekstraksi-design.m
 
 ---
 
-### Task 5: Antarmuka Web "Buat dari ST"
+### Task 5: Antarmuka Web "Buat dari ST" [SELESAI]
 
 **Files:**
 - Create: `apps/web/src/pages/buat-dari-st.tsx`
-- Modify: `apps/web/src/pages/surat-tugas-list.tsx`
+- Modify: `apps/web/src/pages/st-list.tsx`
 - Modify: `apps/web/src/App.tsx`
 - Modify: `apps/web/src/lib/api.ts`
 - Modify: `apps/web/src/lib/queries.ts`
@@ -181,16 +181,16 @@ Sesuai dengan `docs/superpowers/specs/2026-10-04-spjan-tahap2-ekstraksi-design.m
      - Aksi tombol:
        - "Buat Draf ST": memanggil API dan langsung navigasi ke `/surat-tugas/:id` untuk melengkapi rincian biaya / cetak.
        - "Batal / Unggah Ulang".
-3. Di `apps/web/src/pages/surat-tugas-list.tsx`:
+3. Di `apps/web/src/pages/st-list.tsx`:
    - Tambahkan tombol "Buat dari ST" di samping tombol "Surat Tugas Baru".
 4. Di `apps/web/src/App.tsx`:
-   - Daftarkan rute `/surat-tugas/buat-dari-st`.
+   - Daftarkan rute `/st/buat-dari-st`.
 5. Jalankan `npm run lint` dan `npm run build` di root.
 6. Commit: `feat(web): halaman buat Surat Tugas dari unggahan ST dengan pratinjau usulan`.
 
 ---
 
-### Task 6: Verifikasi Penuh, Uji Manual Dokumen Asli, dan Dokumentasi
+### Task 6: Verifikasi Penuh, Uji Manual Dokumen Asli, dan Dokumentasi [SELESAI]
 
 **Files:**
 - Modify: `docs/superpowers/specs/2026-10-04-spjan-tahap2-ekstraksi-design.md`
@@ -198,7 +198,9 @@ Sesuai dengan `docs/superpowers/specs/2026-10-04-spjan-tahap2-ekstraksi-design.m
 
 **Langkah:**
 1. Buat skrip verifikasi manual `apps/api/scripts/probe-st.ts` untuk menguji ekstraksi ST langsung terhadap berkas contoh `~/spj/2026/diy/ST.226.pdf`.
+   - *Hasil uji*: model `gpt-oss:120b-cloud` berhasil mengekstrak seluruh informasi dalam 4.1 detik (3 pelaksana, 2 etape, nomor dan tanggal ST akurat).
 2. Jalankan seluruh test suite di root: `npm test && npm run lint && npm run build`.
-3. Verifikasi build produksi Docker: pastikan seluruh target (`api`, `web`) tetap dapat di-build dengan bersih.
+   - *Hasil uji*: 156 tests lulus 100% (88 api, 68 shared), lint clean, build sukses untuk semua workspace.
+3. Verifikasi build produksi Docker: `docker build -f Dockerfile.combined -t spjan-test:latest .` lulus dan terverifikasi bersih.
 4. Perbarui dokumentasi spec dan catat perkembangan Tahap 2B.
 5. Commit: `docs: selaraskan spec dan rencana verifikasi akhir Tahap 2B`.

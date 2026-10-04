@@ -117,8 +117,8 @@ Aturan penerapan:
 - Uji model nyata terhadap ST.226 dan invoice contoh lewat skrip manual `apps/api/scripts/probe-llm.ts`, tidak dijalankan di CI. Dokumen asli (NIP, nama) tidak masuk repo.
 
 ## 7. Tahapan pembangunan (tiap tahap dapat dipakai sendiri)
-1. **2A Fondasi**: migrasi `berkas`/`ekstraksi`, `BerkasStore`, rute unggah/daftar/hapus, worker, klien Ollama, Pengaturan Model AI + Uji model, poppler di image, volume di compose. Termasuk uji model gambar dan keputusan `model_gambar` (butuh persetujuan menambah stub model).
-2. **2B ST menjadi draf**: skema ekstraksi ST, pemetaan, halaman `Buat dari ST`.
+1. **2A Fondasi [LIVE DI PRODUKSI]**: migrasi `berkas`/`ekstraksi`, `BerkasStore`, rute unggah/daftar/hapus, worker, klien Ollama, Pengaturan Model AI + Uji model, poppler di image, volume di compose. Model gambar `gemma4:cloud` terverifikasi.
+2. **2B ST menjadi draf [SELESAI DIUJI]**: skema ekstraksi ST, ekstraktor model teks `gpt-oss:120b-cloud`, pemetaan usulan di `@spjan/shared`, endpoint `GET /api/berkas/:id/usulan-st` & pembuatan ST dengan penautan berkas, antarmuka halaman `/st/buat-dari-st` beserta pemantauan status ekstraksi.
 3. **2C Invoice hotel**: skema, pemetaan, panel Bukti + tab Usulan.
 4. **2D Tiket dan bukti transport**.
 

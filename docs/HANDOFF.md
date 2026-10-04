@@ -5,23 +5,25 @@ Ditulis 2026-10-05 oleh Claude (sesi 4bd77fb6) atas permintaan pengguna, untuk a
 ## 1. Gambaran singkat
 - **Produk**: web app SPJAN untuk menyusun SPJ perjalanan dinas (SPTB, Rincian Biaya, Kuitansi) Direktorat Pengendalian Perhutanan Sosial, Kemenhut. **Satu pengguna** (akun admin tunggal). Bahasa antarmuka dan komunikasi dengan pengguna: **Indonesia**.
 - **Repo**: `~/spjan` (GitHub `ryandshine/spjan`). Produksi: https://spjan.ditpps.com (aktif, pengguna sudah berhasil login).
-- **Tahap 1 (inti)**: selesai dan live. Tahap 2 (ekstraksi dokumen: unggah ST, invoice, tiket lalu isian SPJ terisi otomatis) dipecah 2A-2D. **2A selesai dikodekan dan diuji, tetapi BELUM di-merge/di-push/di-deploy** (lihat bagian 3).
+- **Tahap 1 (inti)**: selesai dan live.
+- **Tahap 2A (fondasi)**: selesai, dimerge ke `main`, dipush, dan telah live di produksi https://spjan.ditpps.com.
+- **Tahap 2B (ST menjadi draf)**: selesai dikerjakan dan diuji penuh di cabang `tahap-2b` (156 tes vitest lulus, lint/build lulus, probe `ST.226.pdf` sukses 4.1s). Menunggu persetujuan pengguna untuk merge ke `main`, push, dan deploy.
 
 ## 2. Peta dokumen (sumber kebenaran)
 | Dokumen | Isi |
 |---|---|
 | `CLAUDE.md` | Konvensi repo, perintah, struktur |
 | `docs/superpowers/specs/2026-10-04-spjan-design.md` | Rancangan Tahap 1, aturan hitung SBM (PMK 32/2025) |
-| `docs/superpowers/specs/2026-10-04-spjan-tahap2-ekstraksi-design.md` | **Spec Tahap 2 (otoritas mengikat)**, sudah diselaraskan dengan kode 2A |
-| `docs/superpowers/plans/2026-10-04-spjan-tahap2a-fondasi.md` | Rencana 2A (11 tugas, sudah dieksekusi, kecuali gerbang pengguna) |
-| `docs/superpowers/plans/2026-10-04-spjan-tahap2b-catatan.md` | **Daftar temuan tertunda + catatan wajib untuk 2B**; baca sebelum menulis rencana 2B |
+| `docs/superpowers/specs/2026-10-04-spjan-tahap2-ekstraksi-design.md` | **Spec Tahap 2 (otoritas mengikat)**, diselaraskan dengan Tahap 2A & 2B |
+| `docs/superpowers/plans/2026-10-04-spjan-tahap2a-fondasi.md` | Rencana 2A (selesai & live di Dokploy) |
+| `docs/superpowers/plans/2026-10-05-spjan-tahap2b-st-ke-draf.md` | **Rencana 2B** (6 tugas, selesai diuji) |
 | `docs/deploy.md` | Runbook deploy (Dokploy, env, backup, Cloudflare tunnel) |
 
 ## 3. Keadaan git SAAT INI (penting)
-- Cabang kerja **`tahap-2a`** (HEAD `33733bb`+ commit catatan ini), 13-14 commit di atas `main@bec3b47`. Isi: tipe shared, migrasi `berkas/ekstraksi/model_ai`, `BerkasStore`, rute unggah `/api/berkas`, klien Ollama + `/api/model-ai`, pembaca PDF/gambar (poppler), worker antrean + klasifikasi jenis berkas, kartu Model AI di Pengaturan, Docker/compose, skrip probe, spec/docs.
-- `main` lokal maju 2 commit dari `origin/main` (`8c882ca` spec Tahap 2, `bec3b47` rencana 2A): **belum di-push**. `origin/main` = `33b1dc3` = yang sedang berjalan di produksi.
-- **Tidak ada yang di-push dan tidak ada yang di-deploy untuk Tahap 2.** Menggabungkan `tahap-2a` ke `main`, push, dan deploy adalah **gerbang yang butuh persetujuan eksplisit pengguna** (lihat bagian 6). Branch lain di daftar (`feat/*`, `fix/*`) adalah sisa kerja Tahap 1, tidak perlu disentuh.
-- Tes terakhir: shared 64 lulus, api 78 lulus (Postgres nyata), lint dan build lulus (web tanpa tes, sesuai konvensi).
+- Cabang kerja **`tahap-2b`**: memuat pengerasan worker, skema ekstraksi ST, pemetaan usulan di `@spjan/shared`, ekstraktor ST di `apps/api`, endpoint `GET /api/berkas/:id/usulan-st` & buat ST dari berkas, serta antarmuka web `/st/buat-dari-st`.
+- `main` = `1fefaf3` (live di produksi).
+- Tes terakhir: shared 68 lulus, api 88 lulus (Postgres nyata `spjan_test`), total 156 lulus, lint & build monorepo sukses, image Docker `Dockerfile.combined` lulus build.
+- **Gerbang Persetujuan**: Menggabungkan `tahap-2b` ke `main`, push, dan deploy adalah gerbang yang membutuhkan izin eksplisit pengguna.
 
 ## 4. Fakta infrastruktur yang sudah dipelajari dengan susah payah
 - **Dokploy**: proyek `spjan`, compose bernama `app` (composeId `rlO_EjvL20bHhcWdy1eAw`, appName `spjan-app-oeyc0e`). Kontainer: `spjan-app-oeyc0e-spjan-api-1`, `spjan-app-oeyc0e-spjan-web-1`. Dibuat lewat UI oleh pengguna; **env dikelola di UI Dokploy** (DATABASE_URL, ADMIN_USERNAME=`admin`, ADMIN_PASSWORD, SESSION_TTL_DAYS). Kata sandi ada di env Dokploy, **jangan** dicetak atau ditulis ke repo. Berkas bantu sementara di host (`/tmp/claude-1000/spjan-secrets.env`, `spjan-rtk.txt`) mungkin sudah tidak ada; refreshToken webhook dapat dilihat di pengaturan compose Dokploy.
