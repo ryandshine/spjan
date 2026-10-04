@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom'
 
 import { AppShell } from '@/components/app-shell'
 import { RequireAuth } from '@/components/require-auth'
+import BuatDariStPage from '@/pages/buat-dari-st'
 import LoginPage from '@/pages/login'
 import PegawaiPage from '@/pages/pegawai'
 import PengaturanPage from '@/pages/pengaturan'
@@ -22,6 +23,7 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route index element={<SuratTugasListPage />} />
           <Route path="st/baru" element={<StEditorPage />} />
+          <Route path="st/buat-dari-st" element={<BuatDariStPage />} />
           <Route path="st/:id" element={<StEditorPage />} />
           <Route
             path="st/:id/dokumen"

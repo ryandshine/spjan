@@ -143,3 +143,43 @@ export function useSimpanModelAi() {
 export function useUjiModelAi() {
   return useMutation({ mutationFn: (jenis: 'teks' | 'gambar') => api.modelAi.uji(jenis) })
 }
+
+export function useBerkas(id: number | null) {
+  return useQuery({
+    queryKey: ['berkas', id] as const,
+    queryFn: () => api.berkas.get(id as number),
+    enabled: id !== null,
+    refetchInterval: (query) => {
+      const data = query.state.data
+      if (!data) return 1500
+      const status = data.ekstraksi?.status
+      if (status === 'antre' || status === 'berjalan') return 1500
+      return false
+    },
+  })
+}
+
+export function useUsulanSt(berkasId: number | null, enabled = true) {
+  return useQuery({
+    queryKey: ['berkas', berkasId, 'usulan-st'] as const,
+    queryFn: () => api.berkas.usulanSt(berkasId as number),
+    enabled: berkasId !== null && enabled,
+    retry: (count, error) => {
+      if (error instanceof ApiError && (error.code === 'EKSTRAKSI_BELUM_SELESAI' || error.code === 'BELUM_DIEKSTRAK')) {
+        return true
+      }
+      return count < 3
+    },
+    retryDelay: 2000,
+  })
+}
+
+export function useBuatStDariBerkas() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { berkasId: number; payload: SuratTugasPayload }) =>
+      api.suratTugas.create(v.payload, v.berkasId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['st'] }),
+  })
+}
+

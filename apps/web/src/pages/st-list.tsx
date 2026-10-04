@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PlusIcon, Trash2Icon } from 'lucide-react'
+import { FileUpIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -62,9 +62,14 @@ export default function SuratTugasListPage() {
         title="Surat Tugas"
         description="Satu surat tugas berisi semua pelaksana; SPTB, Rincian, dan Kuitansi dibuat darinya."
         actions={
-          <Link to="/st/baru" className={buttonVariants()}>
-            <PlusIcon className="size-4" /> Surat tugas baru
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/st/buat-dari-st" className={buttonVariants({ variant: 'outline' })}>
+              <FileUpIcon className="size-4" /> Buat dari ST
+            </Link>
+            <Link to="/st/baru" className={buttonVariants()}>
+              <PlusIcon className="size-4" /> Surat tugas baru
+            </Link>
+          </div>
         }
       />
       {daftar.isError ? (

@@ -1,4 +1,5 @@
 import type {
+  BerkasDto,
   HasilSuratTugasDto,
   ModelAiDto,
   ModelAiPayload,
@@ -13,6 +14,7 @@ import type {
   SuratTugasPayload,
   SuratTugasRingkasDto,
   UjiModelHasil,
+  UsulanStHasil,
 } from '@spjan/shared'
 
 export class ApiError extends Error {
@@ -79,10 +81,32 @@ export const api = {
       request<Record<StatusKode, StatusKonfigurasi>>('PATCH', `/api/sbm/versi/${id}/status-konfigurasi`, konfigurasi),
   },
 
+  berkas: {
+    unggah: async (file: File, stId?: number): Promise<{ berkas: BerkasDto; duplikat: boolean }> => {
+      const form = new FormData()
+      form.append('file', file)
+      const url = stId !== undefined ? `/api/berkas?stId=${stId}` : '/api/berkas'
+      const res = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: form,
+      })
+      const data: unknown = await res.json().catch(() => null)
+      if (!res.ok) {
+        const d = (data ?? {}) as { error?: string; pesan?: string; rincian?: unknown }
+        throw new ApiError(res.status, d.error ?? 'GALAT', d.pesan ?? res.statusText, d.rincian)
+      }
+      return data as { berkas: BerkasDto; duplikat: boolean }
+    },
+    get: (id: number) => request<BerkasDto>('GET', `/api/berkas/${id}`),
+    usulanSt: (id: number) => request<{ berkas: BerkasDto; usulan: UsulanStHasil }>('GET', `/api/berkas/${id}/usulan-st`),
+  },
+
   suratTugas: {
     list: () => request<SuratTugasRingkasDto[]>('GET', '/api/surat-tugas'),
     get: (id: number) => request<SuratTugasDto>('GET', `/api/surat-tugas/${id}`),
-    create: (p: SuratTugasPayload) => request<SuratTugasDto>('POST', '/api/surat-tugas', p),
+    create: (p: SuratTugasPayload, berkasId?: number) =>
+      request<SuratTugasDto>('POST', berkasId ? `/api/surat-tugas?berkasId=${berkasId}` : '/api/surat-tugas', p),
     replace: (id: number, p: SuratTugasPayload) => request<SuratTugasDto>('PUT', `/api/surat-tugas/${id}`, p),
     remove: (id: number) => request<void>('DELETE', `/api/surat-tugas/${id}`),
     hasil: (id: number) => request<HasilSuratTugasDto>('GET', `/api/surat-tugas/${id}/hasil`),
