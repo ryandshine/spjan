@@ -9,6 +9,9 @@ import { config } from "./config.js";
 import type { Db } from "./db.js";
 import { HttpError } from "./errors.js";
 import { authRoutes } from "./routes/auth.js";
+import { pegawaiRoutes } from "./routes/pegawai.js";
+import { pengaturanRoutes } from "./routes/pengaturan.js";
+import { sbmRoutes } from "./routes/sbm.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -67,5 +70,8 @@ export async function buildApp(db: Db, opts: { logger?: boolean } = {}): Promise
     return { status: "ok" };
   });
   await app.register(authRoutes, { prefix: "/api/auth", db });
+  await app.register(pengaturanRoutes, { prefix: "/api/pengaturan", db });
+  await app.register(pegawaiRoutes, { prefix: "/api/pegawai", db });
+  await app.register(sbmRoutes, { prefix: "/api/sbm", db });
   return app;
 }
