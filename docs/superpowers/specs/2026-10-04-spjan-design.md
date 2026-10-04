@@ -115,3 +115,4 @@ Dokumen PDF diperiksa manual terhadap berkas SPJ yang ada.
 - Skema zod (`SuratTugasPayloadSchema`, `PegawaiPayloadSchema`, `PengaturanSchema`, ...) dan `toSpjInput` berada di `@spjan/shared` (satu-satunya dependensi runtime shared: `zod`).
 - `SESSION_SECRET` dihapus dari env: token sesi acak disimpan sebagai hash sha256 di tabel `sessions`, tidak ada penandatanganan.
 - Perlindungan CSRF: cookie SameSite=Strict + penolakan `Origin` selain `FRONTEND_ORIGIN` pada metode non-GET.
+- Deploy: `api` menjangkau PostgreSQL lewat `dokploy-network` (alias `gealgeolgeo-postgis` pada jaringan overlay itu), bukan `gealgeolgeo-db` (bridge lokal). `web` meneruskan `/api/` ke `api:8000` dengan resolver Docker (resolusi saat permintaan). Image `api` hanya berisi dependensi produksi.

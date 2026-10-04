@@ -27,6 +27,10 @@ async function start() {
   await denganRetry("migrasi database", () => runMigrations(config.DATABASE_URL));
   await seedSbm(pool);
   if (await ensureAdmin(pool)) console.log("[startup] akun pertama dibuat dari ADMIN_USERNAME/ADMIN_PASSWORD");
+  const { rows: pengguna } = await pool.query<{ n: number }>("select count(*)::int as n from users");
+  if ((pengguna[0]?.n ?? 0) === 0) {
+    console.warn("[startup] PERINGATAN: belum ada akun. Isi ADMIN_USERNAME dan ADMIN_PASSWORD lalu mulai ulang api.");
+  }
   await purgeExpiredSessions(pool);
   const app = await buildApp(pool);
   await app.listen({ host: config.HOST, port: config.PORT });

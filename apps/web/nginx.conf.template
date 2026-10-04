@@ -1,0 +1,52 @@
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Resolver Docker: nama layanan API dicari saat permintaan, bukan saat nginx start,
+    # sehingga web tetap bisa naik walau API belum siap.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    resolver_timeout 5s;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml font/ttf;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header X-Frame-Options SAMEORIGIN always;
+
+    location /api/ {
+        set $upstream ${API_UPSTREAM};
+        proxy_pass $upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 2m;
+    }
+
+    # Berkas hasil build Vite bernama berdasarkan hash isinya: aman di-cache lama.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header X-Content-Type-Options nosniff always;
+        try_files $uri =404;
+    }
+
+    location /fonts/ {
+        default_type font/ttf;
+        expires 30d;
+        add_header Cache-Control "public";
+        add_header X-Content-Type-Options nosniff always;
+        try_files $uri =404;
+    }
+
+    # SPA: semua rute lain ke index.html, yang tidak boleh di-cache agar klien selalu mendapat bundel terbaru.
+    location / {
+        add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+        add_header X-Content-Type-Options nosniff always;
+        try_files $uri $uri/ /index.html;
+    }
+}
