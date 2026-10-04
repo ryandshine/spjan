@@ -40,7 +40,6 @@ services:
       traefik.docker.network: dokploy-network
       traefik.enable: "true"
       traefik.http.routers.spjan-web.entrypoints: web
-      traefik.http.routers.spjan-web.middlewares: redirect-to-https@file
       traefik.http.routers.spjan-web.rule: Host(`spjan.ditpps.com`)
       traefik.http.routers.spjan-web.service: spjan-web
       traefik.http.routers.spjan-websecure.entrypoints: websecure

@@ -59,3 +59,8 @@ Pulihkan dengan `pg_restore` ke database `spjan` yang kosong.
 
 Akun dibuat hanya bila tabel `users` kosong. Untuk mengganti kata sandi, hapus baris pengguna lalu boot ulang `api`
 dengan `ADMIN_PASSWORD` baru, atau minta fitur ubah kata sandi ditambahkan ke aplikasi.
+
+## Catatan Cloudflare Tunnel
+Tunnel mengirim lalu lintas ke Traefik lewat HTTP port 80 (HTTPS diakhiri di Cloudflare). Router `web` karena itu
+melayani langsung dan TIDAK boleh memakai `redirect-to-https`, kalau tidak terjadi loop 308. Hostname
+`spjan.ditpps.com` didaftarkan di dashboard Cloudflare Zero Trust (tunnel dikelola dari dashboard), bukan di config.yml lokal.
