@@ -117,3 +117,12 @@ export function useSimpanSuratTugas() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['st'] }),
   })
 }
+
+export function useHasilSuratTugas(id: number | undefined) {
+  return useQuery({
+    queryKey: keys.hasil(id ?? 0),
+    queryFn: () => api.suratTugas.hasil(id as number),
+    enabled: id !== undefined,
+    staleTime: 0,
+  })
+}
