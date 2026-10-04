@@ -39,33 +39,33 @@
 
 ## Rincian Tugas
 
-### Task 1: Migrasi Database & Skema Berkas
+### Task 1: Migrasi Database & Skema Berkas [SELESAI - Commit `7f1f586`]
 **Files:**
 - Create: `apps/api/migrations/1791126000002_berkas_pelaksana.sql`
 - Modify: `packages/shared/src/berkas.ts`
 - Modify: `apps/api/src/repositories/berkas.ts`
 
-### Task 2: Skema Ekstraksi Hotel & Pemetaan Plafon SBM di Shared
+### Task 2: Skema Ekstraksi Hotel & Pemetaan Plafon SBM di Shared [SELESAI - Commit `64a5095`]
 **Files:**
 - Create: `packages/shared/src/hotel-ekstraksi.ts`
 - Create: `packages/shared/src/hotel-ekstraksi.test.ts`
 - Modify: `packages/shared/src/index.ts`
 
-### Task 3: Ekstraktor Hotel di API (Vision & Teks) & Integrasi Worker
+### Task 3: Ekstraktor Hotel di API (Vision & Teks) & Integrasi Worker [SELESAI - Commit `7c8292b`]
 **Files:**
 - Create: `apps/api/src/ekstraksi/hotel.ts`
 - Create: `apps/api/src/ekstraksi/hotel.test.ts`
 - Modify: `apps/api/src/ekstraksi/worker.ts`
 - Modify: `apps/api/src/ekstraksi/worker.test.ts`
 
-### Task 4: Endpoint Usulan Hotel & Update Status Usulan di API
+### Task 4: Endpoint Usulan Hotel & Update Status Usulan di API [SELESAI - Commit `b06d6f3`]
 **Files:**
 - Modify: `apps/api/src/routes/berkas.ts`
 - Modify: `apps/api/src/routes/surat-tugas.ts`
 - Modify: `apps/api/src/berkas.test.ts`
 - Modify: `apps/api/src/surat-tugas.test.ts`
 
-### Task 5: Antarmuka Web Panel Bukti & Usulan Hotel di Editor ST
+### Task 5: Antarmuka Web Panel Bukti & Usulan Hotel di Editor ST [SELESAI - Commit `fa30239`]
 **Files:**
 - Create: `apps/web/src/components/st/bukti-panel.tsx`
 - Create: `apps/web/src/components/st/usulan-hotel-panel.tsx`
@@ -73,8 +73,9 @@
 - Modify: `apps/web/src/lib/api.ts`
 - Modify: `apps/web/src/lib/queries.ts`
 
-### Task 6: Verifikasi Penuh, Uji Invoice Nyata (The Royal Alana), dan Dokumentasi
+### Task 6: Verifikasi Penuh, Uji Invoice Nyata (The Royal Alana), dan Dokumentasi [SELESAI]
 **Files:**
 - Create: `apps/api/scripts/probe-hotel.ts`
 - Modify: `docs/superpowers/specs/2026-10-04-spjan-tahap2-ekstraksi-design.md`
 - Modify: `docs/HANDOFF.md`
+
