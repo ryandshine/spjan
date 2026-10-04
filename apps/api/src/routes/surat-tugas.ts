@@ -2,8 +2,10 @@ import type { FastifyInstance } from "fastify";
 import { hitungSpj, SuratTugasPayloadSchema, toSpjInput } from "@spjan/shared";
 import { z } from "zod";
 
+import type { BerkasStore } from "../berkas/store.js";
 import type { Db } from "../db.js";
 import { HttpError, notFound } from "../errors.js";
+import { hapusFileYatim, shaBerkasSt } from "../repositories/berkas.js";
 import { getPengaturan } from "../repositories/pengaturan.js";
 import { getVersiSbm, versiAktifTerbaru } from "../repositories/sbm.js";
 import {
@@ -16,7 +18,7 @@ import {
 
 const IdSchema = z.object({ id: z.coerce.number().int().positive() });
 
-export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db }): Promise<void> {
+export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; store: BerkasStore }): Promise<void> {
   app.get("/", async () => listSuratTugas(opts.db));
 
   app.post("/", async (req, reply) => {
@@ -43,7 +45,9 @@ export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db }): 
 
   app.delete("/:id", async (req, reply) => {
     const { id } = IdSchema.parse(req.params);
+    const shas = await shaBerkasSt(opts.db, id);
     if (!(await deleteSuratTugas(opts.db, id))) throw notFound("Surat tugas");
+    await hapusFileYatim(opts.db, opts.store, shas);
     return reply.code(204).send();
   });
 

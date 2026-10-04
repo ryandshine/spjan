@@ -1,0 +1,72 @@
+import multipart from "@fastify/multipart";
+import type { FastifyInstance } from "fastify";
+import { BATAS_BERKAS } from "@spjan/shared";
+import { z } from "zod";
+
+import type { BerkasStore } from "../berkas/store.js";
+import type { Db } from "../db.js";
+import { HttpError, notFound } from "../errors.js";
+import { getBerkas, hapusBerkas, listBerkas, metaBerkas, stAda, tambahBerkas, ulangiEkstraksi } from "../repositories/berkas.js";
+
+const IdSchema = z.object({ id: z.coerce.number().int().positive() });
+const StQuerySchema = z.object({ stId: z.coerce.number().int().positive().optional() });
+
+export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: BerkasStore }): Promise<void> {
+  // multipart dibaca sebagai aliran sehingga tidak terkena bodyLimit JSON (1 MB) di app.ts.
+  await app.register(multipart, { limits: { fileSize: BATAS_BERKAS.maksUkuranMb * 1024 * 1024, files: 1, fields: 0 } });
+
+  app.post("/", async (req, reply) => {
+    const { stId } = StQuerySchema.parse(req.query);
+    if (stId !== undefined && !(await stAda(opts.db, stId))) throw notFound("Surat tugas");
+    const file = await req.file();
+    if (!file) throw new HttpError(400, "BERKAS_KOSONG", "Tidak ada berkas pada permintaan.");
+    let data: Buffer;
+    try {
+      data = await file.toBuffer();
+    } catch (error) {
+      if ((error as { code?: string }).code === "FST_REQ_FILE_TOO_LARGE") {
+        throw new HttpError(413, "BERKAS_TERLALU_BESAR", `Berkas melebihi ${BATAS_BERKAS.maksUkuranMb} MB.`);
+      }
+      throw error;
+    }
+    const { dto, duplikat } = await tambahBerkas(opts.db, opts.store, { stId: stId ?? null, namaAsli: file.filename, data });
+    return reply.code(duplikat ? 200 : 201).send({ berkas: dto, duplikat });
+  });
+
+  app.get("/", async (req) => {
+    const { stId } = StQuerySchema.parse(req.query);
+    return listBerkas(opts.db, stId ?? null);
+  });
+
+  app.get("/:id/isi", async (req, reply) => {
+    const { id } = IdSchema.parse(req.params);
+    const meta = await metaBerkas(opts.db, id);
+    if (!meta) throw notFound("Berkas");
+    let data: Buffer;
+    try {
+      data = await opts.store.get(meta.sha256);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new HttpError(404, "BERKAS_HILANG", "Isi berkas tidak ada di penyimpanan.");
+      }
+      throw error;
+    }
+    return reply
+      .header("content-type", meta.mime)
+      .header("content-disposition", `inline; filename*=UTF-8''${encodeURIComponent(meta.namaAsli)}`)
+      .header("cache-control", "private, max-age=3600")
+      .send(data);
+  });
+
+  app.delete("/:id", async (req, reply) => {
+    const { id } = IdSchema.parse(req.params);
+    if (!(await hapusBerkas(opts.db, opts.store, id))) throw notFound("Berkas");
+    return reply.code(204).send();
+  });
+
+  app.post("/:id/ulang", async (req) => {
+    const { id } = IdSchema.parse(req.params);
+    if (!(await ulangiEkstraksi(opts.db, id))) throw notFound("Berkas");
+    return getBerkas(opts.db, id);
+  });
+}
