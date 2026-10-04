@@ -17,6 +17,7 @@ import type {
   UpdateUsulanBerkasPayload,
   UsulanHotelItem,
   UsulanStHasil,
+  UsulanTransportItem,
 } from '@spjan/shared'
 
 export class ApiError extends Error {
@@ -118,5 +119,6 @@ export const api = {
     remove: (id: number) => request<void>('DELETE', `/api/surat-tugas/${id}`),
     hasil: (id: number) => request<HasilSuratTugasDto>('GET', `/api/surat-tugas/${id}/hasil`),
     usulanHotel: (id: number) => request<UsulanHotelItem[]>('GET', `/api/surat-tugas/${id}/usulan-hotel`),
+    usulanTransport: (id: number) => request<UsulanTransportItem[]>('GET', `/api/surat-tugas/${id}/usulan-transport`),
   },
 }

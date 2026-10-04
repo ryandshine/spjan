@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { BerkasDto, StatusUsulan } from "./berkas.js";
-import type { EtapePayload, PelaksanaPayload, SuratTugasDto, SuratTugasPayload } from "./schemas.js";
+import type { PelaksanaPayload, SuratTugasDto, SuratTugasPayload } from "./schemas.js";
 import { bersihkanGelarNama } from "./st-ekstraksi.js";
 import { parseTanggal, selisihHari } from "./teks.js";
 import type { JenisBiaya, Sbm } from "./types.js";

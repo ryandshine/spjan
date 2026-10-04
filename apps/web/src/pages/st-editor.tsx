@@ -9,6 +9,7 @@ import {
   pelaksanaKosong,
   stKosong,
   toSpjInput,
+  type BiayaPayload,
   type PelaksanaPayload,
   type PengaturanPayload,
   type Sbm,
@@ -21,6 +22,7 @@ import { BuktiPanel } from '@/components/st/bukti-panel'
 import { PelaksanaCard } from '@/components/st/pelaksana-card'
 import { RingkasanPanel } from '@/components/st/ringkasan'
 import { UsulanHotelPanel } from '@/components/st/usulan-hotel-panel'
+import { UsulanTransportPanel } from '@/components/st/usulan-transport-panel'
 import { Alert } from '@/components/ui/alert'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -80,6 +82,13 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
           malamOverride: usulan.malam,
         }
       }),
+    }))
+  }
+
+  const terapkanUsulanTransport = (pIdx: number, biayaBaru: BiayaPayload) => {
+    ubahPelaksana(pIdx, (p) => ({
+      ...p,
+      biaya: [...p.biaya, biayaBaru],
     }))
   }
 
@@ -191,6 +200,11 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
                 stId={id}
                 pelaksanaList={st.pelaksana}
                 onTerapkan={terapkanUsulanHotel}
+              />
+              <UsulanTransportPanel
+                stId={id}
+                pelaksanaList={st.pelaksana}
+                onTerapkan={terapkanUsulanTransport}
               />
             </>
           ) : null}

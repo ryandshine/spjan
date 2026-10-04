@@ -202,12 +202,14 @@ export function useUsulanHotelSt(stId: number | null) {
     queryKey: ['st', stId, 'usulan-hotel'] as const,
     queryFn: () => api.suratTugas.usulanHotel(stId as number),
     enabled: stId !== null,
-    refetchInterval: (query) => {
-      // Refresh jika daftar usulan hotel berubah atau masih ada ekstraksi hotel yang berjalan
-      const list = query.state.data
-      if (!list) return false
-      return false
-    },
+  })
+}
+
+export function useUsulanTransportSt(stId: number | null) {
+  return useQuery({
+    queryKey: ['st', stId, 'usulan-transport'] as const,
+    queryFn: () => api.suratTugas.usulanTransport(stId as number),
+    enabled: stId !== null,
   })
 }
 
