@@ -5,6 +5,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { ZodError } from "zod";
 
 import type { KlienAi } from "./ai/klien.js";
+import { klienOllama } from "./ai/ollama.js";
 import { SESSION_COOKIE, type SessionUser, userFromToken } from "./auth.js";
 import { FileBerkasStore, type BerkasStore } from "./berkas/store.js";
 import { config } from "./config.js";
@@ -12,6 +13,7 @@ import type { Db } from "./db.js";
 import { HttpError } from "./errors.js";
 import { authRoutes } from "./routes/auth.js";
 import { berkasRoutes } from "./routes/berkas.js";
+import { modelAiRoutes } from "./routes/model-ai.js";
 import { pegawaiRoutes } from "./routes/pegawai.js";
 import { pengaturanRoutes } from "./routes/pengaturan.js";
 import { sbmRoutes } from "./routes/sbm.js";
@@ -32,6 +34,7 @@ export async function buildApp(db: Db, opts: { logger?: boolean; store?: BerkasS
     bodyLimit: 1_000_000,
   });
   const store = opts.store ?? new FileBerkasStore(config.BERKAS_DIR);
+  const klien = opts.klien ?? klienOllama;
 
   await app.register(helmet);
   await app.register(cookie);
@@ -80,5 +83,6 @@ export async function buildApp(db: Db, opts: { logger?: boolean; store?: BerkasS
   await app.register(sbmRoutes, { prefix: "/api/sbm", db });
   await app.register(suratTugasRoutes, { prefix: "/api/surat-tugas", db, store });
   await app.register(berkasRoutes, { prefix: "/api/berkas", db, store });
+  await app.register(modelAiRoutes, { prefix: "/api/model-ai", db, klien });
   return app;
 }
