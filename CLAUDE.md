@@ -22,6 +22,8 @@ Di `packages/shared`: `npm run test` (vitest), `npm run lint` (`tsc --noEmit`, t
 Di `apps/api`: `npm run dev` (tsx watch), `npm run test` (vitest, memakai Postgres sungguhan), `npm run lint`, `npm run migrate:create`.
 
 Di `apps/web`: `npm run dev` (Vite, port 5173, meneruskan `/api` ke `http://localhost:3001`; ubah dengan `API_PROXY_TARGET`), `npm run build` (`tsc -b && vite build`), `npm run lint` (eslint). Tidak ada tes frontend (konvensi proyek): verifikasi lewat tsc, eslint, build, dan pemeriksaan di peramban.
+Dokumen PDF (SPTB, Rincian, Kuitansi) dibuat di peramban dengan `@react-pdf/renderer` (`apps/web/src/pdf/`). Font: Liberation Sans (metrik sama dengan Arial, lisensi SIL OFL) di `apps/web/public/fonts/` beserta berkas lisensinya.
+Untuk memeriksa tata letak tanpa peramban: `npm run pdf:contoh -w web -- /tmp/spjan-pdf` (data contoh di `apps/web/scripts/sample-data.ts`), lalu `pdftoppm -r 70 -png /tmp/spjan-pdf/semua.pdf /tmp/spjan-pdf/p` untuk melihat halamannya. File `pdf/*.tsx` memakai impor relatif (bukan alias `@/`) agar skrip Node bisa menjalankannya.
 `apps/web` memetakan `@spjan/shared` langsung ke `packages/shared/src` (alias Vite + paths tsconfig), jadi tidak perlu build shared untuk pengembangan web.
 
 ## Database
