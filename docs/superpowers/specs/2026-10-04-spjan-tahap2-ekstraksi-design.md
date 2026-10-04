@@ -15,8 +15,8 @@ Pengguna mengunggah Surat Tugas (ST), invoice hotel, tiket, dan bukti transport;
 ## Fakta lingkungan (diverifikasi 2026-10-04)
 - Ollama v0.16.2 di host, `OLLAMA_HOST=0.0.0.0:11434`; container API menjangkau `http://172.17.0.1:11434`. Server tanpa GPU, 8 vCPU, RAM 15 GB (dipakai bersama SIPEKAPS) sehingga model lokal tidak dipakai.
 - Model terpasang di Ollama lokal hanya stub cloud: `gpt-oss:20b-cloud`, `gpt-oss:120b-cloud` (teks, berfungsi), `kimi-k2.5:cloud` (**pensiun 2026-07-31, HTTP 410**), `glm-5:cloud`.
-- Model cloud berkemampuan vision di katalog ollama.com: `kimi-k3`, `kimi-k2.6`, `gemma4:31b`, `glm-5.3-flash`, `deepseek-v4.1-flash`, `minimax-m3`. Belum diuji membaca foto invoice nyata; menguji berarti menambah stub model di Ollama bersama (butuh persetujuan pengguna, dapat dihapus dengan `ollama rm`).
-- ST.226.pdf berteks digital (ditandatangani BSrE), terbaca penuh oleh `pdftotext -layout`. Invoice hotel contoh berupa foto WhatsApp miring berlatar buram.
+- Model cloud berkemampuan vision di katalog ollama.com: diuji pada foto invoice hotel (The Royal Alana Yogyakarta). `gemma4:31b-cloud` (alias `gemma4:cloud`) berhasil dan konsisten (~1.2-2.3 detik, jenis `hotel`), gratis pada akun Ollama. Model lain (`kimi-k3`, `kimi-k2.6`, `glm-5.3-flash`, `deepseek-v4.1-flash`, `minimax-m3`) mengembalikan HTTP 402 (butuh kuota berbayar).
+- ST.226.pdf berteks digital (ditandatangani BSrE), terbaca penuh oleh `pdftotext -layout` dan diklasifikasikan dengan cepat oleh `gpt-oss:120b-cloud` (~1.1 detik). Invoice hotel contoh berupa foto WhatsApp miring berlatar buram.
 - Model data ST sudah menampung semua isian: `EtapeInput.hotelNama/hotelTarif`, `BiayaInput` (TIKET_PERGI, TIKET_KEMBALI, TAKSI_TERMINAL, TRANSPORT_DARAT, KERETA_BUS_LAIN, LAINNYA), `PelaksanaInput`.
 
 ## 1. Data dan penyimpanan
@@ -54,7 +54,7 @@ Kode galat (`KODE_GALAT_AI` di `packages/shared/src/berkas.ts`): `MODEL_PENSIUN`
 |---|---|
 | llm_url | boleh kosong; bila kosong dipakai env `OLLAMA_URL` (bawaan `http://172.17.0.1:11434`) |
 | model_teks | awal `gpt-oss:120b-cloud` |
-| model_gambar | kosong sampai dipilih setelah uji model gambar |
+| model_gambar | rekomendasi bawaan `gemma4:cloud` (atau `gemma4:31b-cloud`), dapat diatur lewat UI Pengaturan |
 | updated_at | timestamptz |
 
 Penyimpanan berkas: antarmuka `BerkasStore` (`put`, `get`, `delete`) dengan implementasi sistem berkas pada Docker volume `spjan-berkas` (`/data/berkas/<2 hex pertama sha256>/<sha256>`). Ganti ke S3/MinIO nanti hanya menambah implementasi.
@@ -76,7 +76,7 @@ API (semua di belakang sesi login):
 - Pemanggilan model: `POST {url}/api/chat` Ollama dengan `format` berupa JSON Schema yang diturunkan dari skema zod, `temperature: 0`. Hasil divalidasi zod; bila tidak valid, sekali coba ulang dengan pesan galat validasi, lalu status `gagal` (`HASIL_TIDAK_VALID`).
 - Pemilihan model: berkas yang diperlakukan sebagai gambar memakai model gambar, yang berupa teks (PDF berteks) memakai model teks; model yang belum diatur menghasilkan `MODEL_BELUM_DIATUR`.
 - Rencana 2B-2D: ST memakai model teks. Bukti (hotel/tiket/transport) memakai model gambar dengan satu pemanggilan yang mengembalikan `jenis` beserta bidangnya (skema gabungan berdasarkan `jenis`).
-- Konfigurasi di tabel `model_ai` (dapat diubah di UI): `llm_url` (bawaan dari env `OLLAMA_URL`, default `http://172.17.0.1:11434`), `model_teks` (awal `gpt-oss:120b-cloud`), `model_gambar` (kosong sampai diputuskan setelah uji, kandidat di atas). Tombol "Uji model" mengirim permintaan kecil dan melaporkan hasil atau galat. Kode HTTP 410 diterjemahkan menjadi pesan "model sudah dipensiunkan, ganti di Pengaturan".
+- Konfigurasi di tabel `model_ai` (dapat diubah di UI): `llm_url` (bawaan dari env `OLLAMA_URL`, default `http://172.17.0.1:11434`), `model_teks` (awal `gpt-oss:120b-cloud`), `model_gambar` (`gemma4:cloud` atau `gemma4:31b-cloud`). Tombol "Uji model" mengirim permintaan kecil dan melaporkan hasil atau galat. Kode HTTP 410 diterjemahkan menjadi pesan "model sudah dipensiunkan, ganti di Pengaturan".
 - Klien model berupa antarmuka `KlienAi` sehingga dapat diganti klien palsu pada uji; `Ekstraktor` adalah fungsi per jenis dokumen yang menerima klien itu.
 - Privasi: baris log worker hanya memuat id berkas, model, status, kode galat, dan durasi; tidak pernah teks galat, isi dokumen, atau nama. Layar menyatakan bahwa berkas dikirim ke ollama.com.
 

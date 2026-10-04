@@ -2412,16 +2412,16 @@ try {
 }
 ```
 
-- [ ] **Step 2: Uji dengan model teks yang sudah terpasang (tanpa mengubah Ollama)**
+- [x] **Step 2: Uji dengan model teks yang sudah terpasang (tanpa mengubah Ollama)**
 
 Run: `cd ~/spjan/apps/api && npx tsx scripts/probe-llm.ts "/home/ryandshinevps/spj/2026/diy/ST.226.pdf" --model gpt-oss:120b-cloud`
 Expected: `mime=application/pdf teks=<ratusan> karakter gambar=0`, hasil `{"jenis":"st", ...}`.
 
-- [ ] **Step 3: GERBANG: minta persetujuan pengguna sebelum mengubah Ollama bersama**
+- [x] **Step 3: GERBANG: minta persetujuan pengguna sebelum mengubah Ollama bersama**
 
 Menguji model gambar membutuhkan menambah satu stub model cloud (sekitar 300 byte) ke Ollama server ini (`ollama pull kimi-k3:cloud`), yang dipakai layanan lain. **Tanyakan dulu kepada pengguna** (AskUserQuestion): boleh menambah stub untuk kandidat `kimi-k3`, `gemma4:31b`, `glm-5.3-flash`, dan menghapusnya (`ollama rm`) bila tidak dipakai. Jangan lanjut tanpa persetujuan. Foto invoice contoh akan dikirim ke ollama.com (sudah disetujui pengguna untuk semua dokumen).
 
-- [ ] **Step 4: Uji kandidat model gambar pada foto invoice**
+- [x] **Step 4: Uji kandidat model gambar pada foto invoice**
 
 Setelah disetujui, untuk tiap kandidat:
 ```bash
@@ -2430,11 +2430,11 @@ cd ~/spjan/apps/api && npx tsx scripts/probe-llm.ts "/home/ryandshinevps/spj/202
 ```
 Ulangi untuk `gemma4:31b`, `glm-5.3-flash`. Kriteria memilih: jenis `hotel`, durasi di bawah 60 detik, hasil konsisten pada dua kali jalan. Catat tabel hasil (model, jenis, detik) di pesan commit.
 
-- [ ] **Step 5: Tetapkan model gambar**
+- [x] **Step 5: Tetapkan model gambar**
 
 Minta pengguna mengisi **Pengaturan > Model AI > Model gambar** dengan pemenang dan menekan "Uji model gambar" (di produksi, setelah deploy Task 11). Stub kandidat yang tidak dipilih dihapus: `ollama rm <nama>`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 ```bash
 git add apps/api/scripts/probe-llm.ts
 git commit -m "chore(api): skrip uji manual model terhadap dokumen asli"
@@ -2447,11 +2447,11 @@ git commit -m "chore(api): skrip uji manual model terhadap dokumen asli"
 **Files:**
 - Modify: `docs/superpowers/specs/2026-10-04-spjan-tahap2-ekstraksi-design.md`
 
-- [ ] **Step 1: Selaraskan spec dengan implementasi 2A**
+- [x] **Step 1: Selaraskan spec dengan implementasi 2A**
 
 Di spec, bagian 1: ganti "uuid" pada kolom `id`/`st_id`/`pelaksana_id` menjadi `bigserial`/`bigint`; catat bahwa `pelaksana_id` belum ada di 2A (ditambahkan 2C bersama pencocokan); catat bahwa pengaturan model ada di tabel terpisah `model_ai` (satu baris), URL bawaan dari env `OLLAMA_URL`; tambahkan kode galat `BERKAS_TIDAK_TERBACA`; tambahkan di bagian 2: "2A hanya mengklasifikasi jenis; ekstraktor per jenis ditambahkan 2B-2D lewat `Ekstraktor`".
 
-- [ ] **Step 2: Verifikasi penuh**
+- [x] **Step 2: Verifikasi penuh**
 
 Run:
 ```bash
@@ -2459,7 +2459,7 @@ cd ~/spjan && npm run build && npm test && npm run lint
 ```
 Expected: semua lulus (shared, api, web lint/build). Catat jumlah tes untuk laporan.
 
-- [ ] **Step 3: Commit spec**
+- [x] **Step 3: Commit spec**
 ```bash
 git add docs/superpowers/specs/2026-10-04-spjan-tahap2-ekstraksi-design.md docs/superpowers/plans/2026-10-04-spjan-tahap2a-fondasi.md
 git commit -m "docs: selaraskan spec Tahap 2 dengan 2A dan simpan rencana implementasi"

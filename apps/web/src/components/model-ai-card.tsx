@@ -51,6 +51,7 @@ function FormModelAi({ awal }: { awal: ModelAiDto }) {
   }
 
   async function ujiModel(jenis: 'teks' | 'gambar') {
+    setGalat(null)
     setHasilUji(null)
     try {
       setHasilUji({ jenis, hasil: await uji.mutateAsync(jenis) })
@@ -70,17 +71,17 @@ function FormModelAi({ awal }: { awal: ModelAiDto }) {
           <Input id="modelTeks" value={teks} onChange={(e) => setTeks(e.target.value)} placeholder="gpt-oss:120b-cloud" />
         </Field>
         <Field label="Model gambar" htmlFor="modelGambar" hint="Harus mendukung gambar (vision), untuk foto invoice, tiket, dan struk.">
-          <Input id="modelGambar" value={gambar} onChange={(e) => setGambar(e.target.value)} placeholder="mis. kimi-k3:cloud" />
+          <Input id="modelGambar" value={gambar} onChange={(e) => setGambar(e.target.value)} placeholder="mis. gemma4:cloud" />
         </Field>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" disabled={simpan.isPending}>
+        <Button type="submit" disabled={simpan.isPending || uji.isPending}>
           {simpan.isPending ? 'Menyimpan...' : 'Simpan model'}
         </Button>
-        <Button type="button" variant="outline" disabled={uji.isPending} onClick={() => ujiModel('teks')}>
+        <Button type="button" variant="outline" disabled={simpan.isPending || uji.isPending} onClick={() => ujiModel('teks')}>
           Uji model teks
         </Button>
-        <Button type="button" variant="outline" disabled={uji.isPending} onClick={() => ujiModel('gambar')}>
+        <Button type="button" variant="outline" disabled={simpan.isPending || uji.isPending} onClick={() => ujiModel('gambar')}>
           Uji model gambar
         </Button>
       </div>
