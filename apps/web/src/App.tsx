@@ -4,6 +4,7 @@ import { AppShell } from '@/components/app-shell'
 import { RequireAuth } from '@/components/require-auth'
 import LoginPage from '@/pages/login'
 import PegawaiPage from '@/pages/pegawai'
+import SuratTugasListPage from '@/pages/st-list'
 import { NotFoundPage, SegeraPage } from '@/pages/placeholder'
 
 export default function App() {
@@ -12,7 +13,9 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
-          <Route index element={<SegeraPage judul="Surat Tugas" />} />
+          <Route index element={<SuratTugasListPage />} />
+          <Route path="st/baru" element={<SegeraPage judul="Surat tugas baru" />} />
+          <Route path="st/:id" element={<SegeraPage judul="Editor surat tugas" />} />
           <Route path="pegawai" element={<PegawaiPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
