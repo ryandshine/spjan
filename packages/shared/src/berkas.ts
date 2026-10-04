@@ -51,6 +51,8 @@ export interface BerkasDto {
   id: number;
   /** null = belum terkait surat tugas (mis. ST yang baru diunggah untuk dijadikan draf). */
   stId: number | null;
+  /** null = belum/tidak dikaitkan ke pelaksana tertentu. */
+  pelaksanaId: number | null;
   namaAsli: string;
   mime: MimeBerkas;
   ukuran: number;
@@ -60,6 +62,12 @@ export interface BerkasDto {
   /** Ekstraksi terbaru; null bila belum pernah dijadwalkan. */
   ekstraksi: EkstraksiDto | null;
 }
+
+export const UpdateUsulanBerkasPayloadSchema = z.object({
+  usulanStatus: z.enum(STATUS_USULAN),
+  pelaksanaId: z.number().int().positive().nullable().optional(),
+});
+export type UpdateUsulanBerkasPayload = z.infer<typeof UpdateUsulanBerkasPayloadSchema>;
 
 export const ModelAiPayloadSchema = z.object({
   llmUrl: z.url().max(200).nullable(),

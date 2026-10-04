@@ -9,6 +9,7 @@ import { HttpError } from "../errors.js";
 interface Row {
   id: number;
   st_id: number | null;
+  pelaksana_id: number | null;
   nama_asli: string;
   mime: MimeBerkas;
   ukuran: number;
@@ -27,7 +28,7 @@ interface Row {
 }
 
 const SELECT_BERKAS = `
-  select b.id, b.st_id, b.nama_asli, b.mime, b.ukuran, b.sha256, b.jenis, b.created_at,
+  select b.id, b.st_id, b.pelaksana_id, b.nama_asli, b.mime, b.ukuran, b.sha256, b.jenis, b.created_at,
          e.id as e_id, e.status as e_status, e.model as e_model, e.hasil as e_hasil,
          e.kode_galat as e_kode_galat, e.galat as e_galat, e.usulan_status as e_usulan_status,
          e.created_at as e_created_at, e.selesai_at as e_selesai_at
@@ -38,6 +39,7 @@ function map(r: Row): BerkasDto {
   return {
     id: r.id,
     stId: r.st_id,
+    pelaksanaId: r.pelaksana_id,
     namaAsli: r.nama_asli,
     mime: r.mime,
     ukuran: r.ukuran,
@@ -171,5 +173,22 @@ export async function tautkanBerkasKeSt(db: Db, store: BerkasStore, berkasId: nu
     return;
   }
   await db.query("update berkas set st_id = $1 where id = $2", [stId, berkasId]);
+}
+
+export async function updateUsulanStatus(
+  db: Db,
+  berkasId: number,
+  usulanStatus: StatusUsulan,
+  pelaksanaId?: number | null,
+): Promise<boolean> {
+  const { rowCount } = await db.query(
+    `update ekstraksi set usulan_status = $1
+      where id = (select id from ekstraksi where berkas_id = $2 order by id desc limit 1)`,
+    [usulanStatus, berkasId],
+  );
+  if (pelaksanaId !== undefined) {
+    await db.query("update berkas set pelaksana_id = $1 where id = $2", [pelaksanaId, berkasId]);
+  }
+  return (rowCount ?? 0) > 0;
 }
 
