@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { ModelAiPayload, PegawaiPayload, PengaturanPayload, StatusKode, StatusKonfigurasi, SuratTugasPayload } from '@spjan/shared'
+import type { ModelAiPayload, PegawaiPayload, PengaturanPayload, StatusKode, StatusKonfigurasi, SuratTugasPayload, UpdateUsulanBerkasPayload } from '@spjan/shared'
 
 import { api, ApiError } from '@/lib/api'
 
@@ -180,6 +180,68 @@ export function useBuatStDariBerkas() {
     mutationFn: (v: { berkasId: number; payload: SuratTugasPayload }) =>
       api.suratTugas.create(v.payload, v.berkasId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['st'] }),
+  })
+}
+
+export function useDaftarBerkas(stId: number | null) {
+  return useQuery({
+    queryKey: ['berkas', 'list', stId] as const,
+    queryFn: () => api.berkas.list(stId ?? undefined),
+    enabled: stId !== null,
+    refetchInterval: (query) => {
+      const list = query.state.data
+      if (!list) return false
+      const adaProses = list.some((b) => b.ekstraksi?.status === 'antre' || b.ekstraksi?.status === 'berjalan')
+      return adaProses ? 2000 : false
+    },
+  })
+}
+
+export function useUsulanHotelSt(stId: number | null) {
+  return useQuery({
+    queryKey: ['st', stId, 'usulan-hotel'] as const,
+    queryFn: () => api.suratTugas.usulanHotel(stId as number),
+    enabled: stId !== null,
+    refetchInterval: (query) => {
+      // Refresh jika daftar usulan hotel berubah atau masih ada ekstraksi hotel yang berjalan
+      const list = query.state.data
+      if (!list) return false
+      return false
+    },
+  })
+}
+
+export function useUpdateUsulanBerkas() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: number; payload: UpdateUsulanBerkasPayload }) =>
+      api.berkas.updateUsulan(v.id, v.payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['berkas'] })
+      qc.invalidateQueries({ queryKey: ['st'] })
+    },
+  })
+}
+
+export function useHapusBerkas() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.berkas.hapus(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['berkas'] })
+      qc.invalidateQueries({ queryKey: ['st'] })
+    },
+  })
+}
+
+export function useUlangiEkstraksiBerkas() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.berkas.ulang(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['berkas'] })
+      qc.invalidateQueries({ queryKey: ['st'] })
+    },
   })
 }
 

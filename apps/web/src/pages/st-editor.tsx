@@ -13,11 +13,14 @@ import {
   type PengaturanPayload,
   type Sbm,
   type SuratTugasPayload,
+  type UsulanHotelItem,
 } from '@spjan/shared'
 
 import { PageHeader } from '@/components/page-header'
+import { BuktiPanel } from '@/components/st/bukti-panel'
 import { PelaksanaCard } from '@/components/st/pelaksana-card'
 import { RingkasanPanel } from '@/components/st/ringkasan'
+import { UsulanHotelPanel } from '@/components/st/usulan-hotel-panel'
 import { Alert } from '@/components/ui/alert'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -64,6 +67,21 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
   const ubahSt = (patch: Partial<SuratTugasPayload>) => setSt((s) => ({ ...s, ...patch }))
   const ubahPelaksana = (i: number, fn: (p: PelaksanaPayload) => PelaksanaPayload) =>
     setSt((s) => ({ ...s, pelaksana: s.pelaksana.map((p, j) => (j === i ? fn(p) : p)) }))
+
+  const terapkanUsulanHotel = (pIdx: number, eIdx: number, usulan: UsulanHotelItem) => {
+    ubahPelaksana(pIdx, (p) => ({
+      ...p,
+      etape: p.etape.map((e, ei) => {
+        if (ei !== eIdx) return e
+        return {
+          ...e,
+          hotelNama: usulan.ekstraksi.namaHotel,
+          hotelTarif: usulan.tarifRiilPerMalam,
+          malamOverride: usulan.malam,
+        }
+      }),
+    }))
+  }
 
   async function kirim() {
     const cek = SuratTugasPayloadSchema.safeParse(st)
@@ -165,6 +183,17 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
               </Field>
             </CardContent>
           </Card>
+
+          {id !== null ? (
+            <>
+              <BuktiPanel stId={id} />
+              <UsulanHotelPanel
+                stId={id}
+                pelaksanaList={st.pelaksana}
+                onTerapkan={terapkanUsulanHotel}
+              />
+            </>
+          ) : null}
 
           {st.pelaksana.map((p, i) => (
             <PelaksanaCard

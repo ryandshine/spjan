@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { BerkasDto } from "./berkas.js";
+import type { BerkasDto, StatusUsulan } from "./berkas.js";
 import type { EtapePayload, PelaksanaPayload, SuratTugasDto, SuratTugasPayload } from "./schemas.js";
 import { bersihkanGelarNama } from "./st-ekstraksi.js";
 import { norm, parseTanggal, selisihHari } from "./teks.js";
@@ -24,6 +24,7 @@ export interface UsulanHotelItem {
   berkasId: number;
   namaBerkas: string;
   ekstraksi: HasilEkstraksiHotel;
+  usulanStatus: StatusUsulan;
   pelaksanaId: number | null;
   pelaksanaIndex: number;
   etapeIndex: number;
@@ -167,6 +168,7 @@ export function petakanHotelKeUsulan(
       berkasId: b.id,
       namaBerkas: b.namaAsli,
       ekstraksi: h,
+      usulanStatus: b.ekstraksi?.usulanStatus ?? "menunggu",
       pelaksanaId: pelId,
       pelaksanaIndex,
       etapeIndex,

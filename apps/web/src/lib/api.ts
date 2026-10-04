@@ -14,6 +14,8 @@ import type {
   SuratTugasPayload,
   SuratTugasRingkasDto,
   UjiModelHasil,
+  UpdateUsulanBerkasPayload,
+  UsulanHotelItem,
   UsulanStHasil,
 } from '@spjan/shared'
 
@@ -99,6 +101,11 @@ export const api = {
       return data as { berkas: BerkasDto; duplikat: boolean }
     },
     get: (id: number) => request<BerkasDto>('GET', `/api/berkas/${id}`),
+    list: (stId?: number) => request<BerkasDto[]>('GET', stId !== undefined ? `/api/berkas?stId=${stId}` : '/api/berkas'),
+    hapus: (id: number) => request<void>('DELETE', `/api/berkas/${id}`),
+    ulang: (id: number) => request<BerkasDto>('POST', `/api/berkas/${id}/ulang`),
+    updateUsulan: (id: number, payload: UpdateUsulanBerkasPayload) =>
+      request<BerkasDto>('PATCH', `/api/berkas/${id}/usulan-status`, payload),
     usulanSt: (id: number) => request<{ berkas: BerkasDto; usulan: UsulanStHasil }>('GET', `/api/berkas/${id}/usulan-st`),
   },
 
@@ -110,5 +117,6 @@ export const api = {
     replace: (id: number, p: SuratTugasPayload) => request<SuratTugasDto>('PUT', `/api/surat-tugas/${id}`, p),
     remove: (id: number) => request<void>('DELETE', `/api/surat-tugas/${id}`),
     hasil: (id: number) => request<HasilSuratTugasDto>('GET', `/api/surat-tugas/${id}/hasil`),
+    usulanHotel: (id: number) => request<UsulanHotelItem[]>('GET', `/api/surat-tugas/${id}/usulan-hotel`),
   },
 }
