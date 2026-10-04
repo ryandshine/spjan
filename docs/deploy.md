@@ -72,5 +72,5 @@ melayani langsung dan TIDAK boleh memakai `redirect-to-https`, kalau tidak terja
   (nama volume sebenarnya: `docker volume ls | grep spjan-berkas`).
 - Model dibaca lewat Ollama di host (`OLLAMA_URL`, bawaan `http://172.17.0.1:11434`). Nama model diatur di aplikasi:
   Pengaturan > Model AI (tombol "Uji model"). Model cloud dapat dipensiunkan tanpa pemberitahuan (HTTP 410), ganti di sana.
-- Isi dokumen yang dibaca model dikirim ke ollama.com (model cloud). Log API hanya mencatat id berkas, model, status, durasi.
+- Isi dokumen yang dibaca model dikirim ke ollama.com (model cloud). Log worker ekstraksi hanya mencatat id berkas, model, status, kode galat, durasi (tanpa isi dokumen atau pesan galat).
 - Image API memasang `poppler-utils`; tanpa itu PDF tidak terbaca.

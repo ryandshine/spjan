@@ -12,3 +12,6 @@ apps/*/dist
 apps/*/node_modules
 packages/*/dist
 packages/*/node_modules
+
+# Unggahan berkas lokal (invoice/ST asli) tidak boleh masuk repo
+apps/api/data/
