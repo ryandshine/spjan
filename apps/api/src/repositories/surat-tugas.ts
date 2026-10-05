@@ -52,6 +52,7 @@ interface EtapeRow {
   dinas_jabatan: boolean;
   fullboard_dates: string[] | null;
   hotel_30_persen: boolean;
+  dalam_kota_8_jam: boolean;
 }
 interface BiayaRow {
   pelaksana_id: number;
@@ -119,6 +120,7 @@ export async function getSuratTugas(db: Db, id: number): Promise<SuratTugasDto |
           dinasJabatan: e.dinas_jabatan,
           fullboardDates: e.fullboard_dates ?? [],
           hotel30Persen: e.hotel_30_persen ?? false,
+          dalamKota8Jam: e.dalam_kota_8_jam ?? false,
         })),
       biaya: biaya
         .filter((b) => b.pelaksana_id === p.id)
@@ -147,12 +149,12 @@ async function sisipkanPelaksana(client: PoolClient, stId: number, pelaksana: Su
     const pelId = (rows[0] as { id: number }).id;
     for (const [j, e] of p.etape.entries()) {
       await client.query(
-        `insert into etape (pelaksana_id, urutan, provinsi, kota, kegiatan, berangkat, pulang, malam_override, hotel_nama, hotel_tarif, dinas_jabatan, fullboard_dates, hotel_30_persen)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+        `insert into etape (pelaksana_id, urutan, provinsi, kota, kegiatan, berangkat, pulang, malam_override, hotel_nama, hotel_tarif, dinas_jabatan, fullboard_dates, hotel_30_persen, dalam_kota_8_jam)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
         [
           pelId, j, e.provinsi, e.kota, e.kegiatan, e.berangkat || null, e.pulang || null,
           e.malamOverride ?? null, e.hotelNama ?? null, e.hotelTarif ?? null, e.dinasJabatan ?? false,
-          e.fullboardDates ?? [], e.hotel30Persen ?? false,
+          e.fullboardDates ?? [], e.hotel30Persen ?? false, e.dalamKota8Jam ?? false,
         ],
       );
     }

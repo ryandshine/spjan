@@ -136,9 +136,15 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
     return { peringatan };
   }
   const prov = norm(e.provinsi);
-  const tarifHarian = sbm.uangHarian[prov]?.luarKota;
+  const tarifLuarKota = sbm.uangHarian[prov]?.luarKota;
+  const tarifDalamKota = sbm.uangHarian[prov]?.dalamKota8Jam;
+  const tarifHarian = e.dalamKota8Jam ? tarifDalamKota : tarifLuarKota;
   if (tarifHarian === undefined) {
-    peringatan.push({ kode: "DATA_BELUM_LENGKAP", pesan: `${nomor}: provinsi "${e.provinsi}" tidak ada di tabel SBM.`, etape: i });
+    peringatan.push({
+      kode: "DATA_BELUM_LENGKAP",
+      pesan: `${nomor}: tarif uang harian ${e.dalamKota8Jam ? "dalam kota" : "luar kota"} untuk provinsi "${e.provinsi}" tidak ada di tabel SBM.`,
+      etape: i,
+    });
     return { peringatan };
   }
 
@@ -152,6 +158,10 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
   const cfg = p.status ? sbm.statusKonfigurasi[p.status] : undefined;
   const hasil: HasilEtape = { peringatan };
 
+  const ketHarian = e.dalamKota8Jam
+    ? `Dalam kota (> 8 jam)/Prov. ${proper(e.provinsi)} Tanggal ${rincian}`
+    : `Lumpsum/Prov. ${proper(e.provinsi)} Tanggal ${rincian}`;
+
   hasil.uangHarian = [];
   if (tglFullboard.length === 0) {
     hasil.uangHarian.push({
@@ -160,7 +170,7 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
       satuan: "hari",
       tarif: tarifHarian,
       jumlah: hari * tarifHarian,
-      keterangan: `Lumpsum/Prov. ${proper(e.provinsi)} Tanggal ${rincian}`,
+      keterangan: ketHarian,
     });
   } else {
     if (tglBiasa.length > 0) {
@@ -170,7 +180,9 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
         satuan: "hari",
         tarif: tarifHarian,
         jumlah: tglBiasa.length * tarifHarian,
-        keterangan: `Lumpsum/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tglBiasa)}`,
+        keterangan: e.dalamKota8Jam
+          ? `Dalam kota (> 8 jam)/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tglBiasa)}`
+          : `Lumpsum/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tglBiasa)}`,
       });
     }
     const tarifSaku = tarifUangSakuFullboard(p.status, true);

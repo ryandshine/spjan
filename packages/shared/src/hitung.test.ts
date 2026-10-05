@@ -259,6 +259,44 @@ describe("hitungSpj - kasus emas", () => {
     expect(h2.teksTanggalSpd).toBe("");
     expect(h2.rute).toBe("Jakarta - Denpasar");
   });
+
+  it("Perjalanan Jakarta ke Bogor 1 hari PP: Uang harian dalam kota > 8 jam (Rp170.000) dan transport PP (2 x Rp270.000)", () => {
+    const p: PelaksanaInput = {
+      ...resa,
+      etape: [
+        {
+          provinsi: "JAWA BARAT",
+          kota: "Kota Bogor",
+          kegiatan: "Koordinasi Pengelolaan Perhutanan Sosial di Kota Bogor",
+          berangkat: "2026-10-15",
+          pulang: "2026-10-15",
+          dalamKota8Jam: true,
+          hotelNama: null,
+          hotelTarif: null,
+          malamOverride: null,
+        },
+      ],
+      biaya: [
+        {
+          jenis: "TRANSPORT_JAKARTA_SEKITAR",
+          uraian: "Kota Bogor",
+          qty: 2,
+          tarif: 270_000,
+        },
+      ],
+    };
+
+    const h = hitungSpj(spj([p]), SBM_2026).pelaksana[0]!;
+    expect(h.peringatan).toEqual([]);
+    expect(h.rute).toBe("Jakarta - Kota Bogor");
+    expect(h.totalUangHarian).toBe(170_000); // Jawa Barat dalam kota > 8 jam
+    expect(h.uangHarian[0]?.uraian).toBe("selama :");
+    expect(h.uangHarian[0]?.keterangan).toContain("Dalam kota (> 8 jam)/Prov. Jawa Barat Tanggal 15 Oktober 2026");
+    expect(h.totalPenginapan).toBe(0); // 1 hari PP tidak ada penginapan
+    expect(h.totalTransport).toBe(540_000); // 2 kali @ 270.000
+    expect(h.transport[0]?.catatan).toBe("Tarif dalam pagu PMK Rp270.000.");
+    expect(h.total).toBe(710_000); // 170.000 + 540.000
+  });
 });
 
 describe("hitungSpj - pagu biaya tambahan", () => {

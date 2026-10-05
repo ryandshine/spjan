@@ -1,6 +1,15 @@
 import { useState } from 'react'
 import { CalendarIcon, CheckIcon, Trash2Icon } from 'lucide-react'
-import { daftarHariIso, parseTanggal, ringkasEtape, selisihHari, type EtapePayload, type Peringatan } from '@spjan/shared'
+import {
+  daftarHariIso,
+  norm,
+  parseTanggal,
+  ringkasEtape,
+  selisihHari,
+  type EtapePayload,
+  type Peringatan,
+  type Sbm,
+} from '@spjan/shared'
 
 import { RupiahInput } from '@/components/st/rupiah-input'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +34,7 @@ export function EtapeForm({
   provinsi,
   bolehRepresentasi,
   batasHotel,
+  sbm,
   peringatan,
   bisaHapus,
   onUbah,
@@ -37,6 +47,7 @@ export function EtapeForm({
   provinsi: string[]
   bolehRepresentasi: boolean
   batasHotel: number | null
+  sbm?: Sbm
   peringatan: Peringatan[]
   bisaHapus: boolean
   onUbah: (patch: Partial<EtapePayload>) => void
@@ -45,6 +56,9 @@ export function EtapeForm({
   const { hari, malam } = ringkasEtape(etape)
   const id = (k: string) => `etape-${idAwal}-${k}`
   const tarif30 = batasHotel !== null ? Math.round(batasHotel * 0.3) : null
+  const provNorm = norm(etape.provinsi)
+  const tarifLuarKota = sbm?.uangHarian[provNorm]?.luarKota
+  const tarifDalamKota = sbm?.uangHarian[provNorm]?.dalamKota8Jam
 
   const tglAwal = parseTanggal(etape.berangkat)
   const tglAkhir = parseTanggal(etape.pulang)
@@ -121,6 +135,31 @@ export function EtapeForm({
         <Field label="Pulang" htmlFor={id('plg')}>
           <Input id={id('plg')} type="date" value={etape.pulang} onChange={(e) => onUbah({ pulang: e.target.value })} />
         </Field>
+      </div>
+
+      <div className="rounded-md border border-dashed border-amber-500/40 bg-amber-500/5 p-3">
+        <label className="flex items-start gap-2.5 text-sm cursor-pointer select-none">
+          <input
+            type="checkbox"
+            className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
+            checked={etape.dalamKota8Jam ?? false}
+            onChange={(e) => {
+              const aktif = e.target.checked
+              onUbah({
+                dalamKota8Jam: aktif,
+                ...(aktif && hari === 1 ? { malamOverride: 0 } : {}),
+              })
+            }}
+          />
+          <div className="grid gap-0.5">
+            <span className="font-medium text-foreground">
+              Perjalanan dinas dalam kota / Jabodetabek &gt; 8 jam (tarif uang harian dalam kota)
+            </span>
+            <p className="text-xs text-muted-foreground">
+              Sesuai PMK 113/PMK.05/2012 Pasal 14 ayat (3), perjalanan dinas di wilayah Jabodetabek (Bogor, Depok, Tangerang, Bekasi, Kep. Seribu) yang lebih dari 8 jam dan tidak menginap dikenakan tarif Uang Harian Dalam Kota{tarifDalamKota ? ` (${rupiah(tarifDalamKota)}/hari, bukan Luar Kota ${tarifLuarKota ? rupiah(tarifLuarKota) : ''})` : ''}.
+            </p>
+          </div>
+        </label>
       </div>
 
       {listHari.length > 0 ? (

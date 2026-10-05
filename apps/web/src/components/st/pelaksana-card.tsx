@@ -161,6 +161,7 @@ export function PelaksanaCard({
               provinsi={provinsi}
               bolehRepresentasi={(cfg?.barisRepresentasi ?? 0) > 0}
               batasHotel={batasHotel(e)}
+              sbm={sbm}
               peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
               bisaHapus={p.etape.length > 1}
               onUbah={(patch) => ubahEtape(i, patch)}
@@ -191,6 +192,7 @@ export function PelaksanaCard({
               etapeLabel={(k) => `Tujuan ${k + 1}${p.etape[k]?.kota ? ` - ${p.etape[k]?.kota}` : ''}`}
               provinsi={provinsi}
               baris={indeks[i] != null ? hasil?.transport[indeks[i] as number] : null}
+              sbm={sbm}
               onUbah={(patch) => ubahBiaya(i, patch)}
               onHapus={() => onUbah((x) => ({ ...x, biaya: x.biaya.filter((_, j) => j !== i) }))}
             />
@@ -204,6 +206,19 @@ export function PelaksanaCard({
             </Button>
             <Button variant="outline" size="sm" onClick={() => tambahBiaya(biayaKosong('TAKSI_KEDUDUKAN'))}>
               <PlusIcon /> Taksi dari kedudukan
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                tambahBiaya({
+                  ...biayaKosong('TRANSPORT_JAKARTA_SEKITAR'),
+                  qty: 2,
+                  keterangan: 'Bukti terlampir',
+                })
+              }
+            >
+              <PlusIcon /> Transport Jakarta - Sekitar (PP)
             </Button>
             <Button variant="outline" size="sm" onClick={() => tambahBiaya(biayaKosong('LAINNYA'))}>
               <PlusIcon /> Biaya lain

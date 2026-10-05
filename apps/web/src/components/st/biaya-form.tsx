@@ -8,6 +8,7 @@ import {
   type BarisBiaya,
   type BiayaPayload,
   type JenisBiaya,
+  type Sbm,
 } from '@spjan/shared'
 
 import { RupiahInput } from '@/components/st/rupiah-input'
@@ -31,6 +32,7 @@ export function BiayaForm({
   etapeLabel,
   provinsi,
   baris,
+  sbm,
   onUbah,
   onHapus,
 }: {
@@ -40,6 +42,7 @@ export function BiayaForm({
   provinsi: string[]
   /** Baris hasil hitung untuk biaya ini (null/undefined bila tarif 0). */
   baris: BarisBiaya | null | undefined
+  sbm?: Sbm
   onUbah: (patch: Partial<BiayaPayload>) => void
   onHapus: () => void
 }) {
@@ -56,7 +59,18 @@ export function BiayaForm({
     <div className="grid gap-2 rounded-lg border bg-card p-3">
       <div className="flex flex-wrap items-end gap-2">
         <Sel label="Jenis biaya">
-          <Select className="w-64" value={biaya.jenis} onChange={(e) => onUbah({ jenis: e.target.value as JenisBiaya })}>
+          <Select
+            className="w-64"
+            value={biaya.jenis}
+            onChange={(e) => {
+              const j = e.target.value as JenisBiaya
+              const isJkt = j === 'TRANSPORT_JAKARTA_SEKITAR'
+              onUbah({
+                jenis: j,
+                ...(isJkt && !biaya.qty ? { qty: 2 } : {}),
+              })
+            }}
+          >
             {JENIS_BIAYA.map((j) => (
               <option key={j} value={j}>
                 {JENIS_LABEL[j]}
@@ -92,7 +106,30 @@ export function BiayaForm({
             </Select>
           </Sel>
         ) : null}
-        {perluUraian ? (
+        {biaya.jenis === 'TRANSPORT_JAKARTA_SEKITAR' ? (
+          <Sel label="Kab/kota sekitar Jakarta">
+            <Select
+              className="w-56"
+              value={biaya.uraian ?? ''}
+              onChange={(e) => {
+                const kota = e.target.value
+                const barisSbm = sbm?.transportJakarta.find((t) => t.kabKota === kota)
+                onUbah({
+                  uraian: kota || null,
+                  ...(barisSbm ? { tarif: barisSbm.besaran } : {}),
+                  ...(!biaya.qty ? { qty: 2 } : {}),
+                })
+              }}
+            >
+              <option value="">- pilih kota sekitar -</option>
+              {(sbm?.transportJakarta ?? []).map((t) => (
+                <option key={t.kabKota} value={t.kabKota}>
+                  {t.kabKota} ({rupiah(t.besaran)})
+                </option>
+              ))}
+            </Select>
+          </Sel>
+        ) : perluUraian ? (
           <Sel label={uraianLabel}>
             <Input
               className={biaya.jenis === 'TIKET_PERGI' || biaya.jenis === 'TIKET_KEMBALI' ? 'w-72' : 'w-56'}

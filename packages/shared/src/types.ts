@@ -89,6 +89,8 @@ export interface EtapeInput {
   fullboardDates?: string[];
   /** Menginap tanpa fasilitas hotel: berhak 30% dari tarif SBM (PMK 113/PMK.05/2012) dan masuk ke DPR */
   hotel30Persen?: boolean | null;
+  /** Perjalanan dinas dalam kota / Jabodetabek lebih dari 8 jam (menggunakan tarif uang harian dalam kota) */
+  dalamKota8Jam?: boolean | null;
 }
 
 export interface BiayaInput {
