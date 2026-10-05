@@ -15,3 +15,5 @@ packages/*/node_modules
 
 # Unggahan berkas lokal (invoice/ST asli) tidak boleh masuk repo
 apps/api/data/
+*.xlsx
+/*.pdf

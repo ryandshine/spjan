@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { FileTextIcon, PlusIcon, SaveIcon, Trash2Icon } from 'lucide-react'
+import { FileTextIcon, PlusIcon, RotateCcwIcon, SaveIcon, Trash2Icon } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
@@ -13,6 +13,7 @@ import {
   type PelaksanaPayload,
   type PengaturanPayload,
   type Sbm,
+  type SumberDana,
   type SuratTugasPayload,
   type UsulanHotelItem,
 } from '@spjan/shared'
@@ -29,6 +30,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { pesanGalat } from '@/lib/format'
 import {
@@ -67,29 +69,58 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
   const provinsi = useMemo(() => Object.keys(sbm.uangHarian), [sbm])
 
   const ubahSt = (patch: Partial<SuratTugasPayload>) => setSt((s) => ({ ...s, ...patch }))
+  const ubahSumberDana = (baru: SumberDana) => {
+    let akun = st.kodeAkun || ''
+    if (/\((RM|PNBP)\)/i.test(akun)) {
+      akun = akun.replace(/\((RM|PNBP)\)/i, `(${baru})`)
+    } else if (/\b(RM|PNBP)\b/i.test(akun)) {
+      akun = akun.replace(/\b(RM|PNBP)\b/i, baru)
+    } else if (akun.trim()) {
+      akun = `${akun.trim()} (${baru})`
+    }
+    ubahSt({ sumberDana: baru, kodeAkun: akun })
+  }
   const ubahPelaksana = (i: number, fn: (p: PelaksanaPayload) => PelaksanaPayload) =>
     setSt((s) => ({ ...s, pelaksana: s.pelaksana.map((p, j) => (j === i ? fn(p) : p)) }))
 
-  const terapkanUsulanHotel = (pIdx: number, eIdx: number, usulan: UsulanHotelItem) => {
-    ubahPelaksana(pIdx, (p) => ({
-      ...p,
-      etape: p.etape.map((e, ei) => {
-        if (ei !== eIdx) return e
+  const terapkanUsulanHotel = async (pIdx: number, eIdx: number, usulan: UsulanHotelItem) => {
+    const stBaru: SuratTugasPayload = {
+      ...st,
+      pelaksana: st.pelaksana.map((p, j) => {
+        if (j !== pIdx) return p
         return {
-          ...e,
-          hotelNama: usulan.ekstraksi.namaHotel,
-          hotelTarif: usulan.tarifRiilPerMalam,
-          malamOverride: usulan.malam,
+          ...p,
+          etape: p.etape.map((e, ei) => {
+            if (ei !== eIdx) return e
+            return {
+              ...e,
+              hotelNama: usulan.ekstraksi.namaHotel,
+              hotelTarif: usulan.tarifRiilPerMalam,
+              malamOverride: usulan.malam,
+            }
+          }),
         }
       }),
-    }))
+    }
+    setSt(stBaru)
+    if (id !== null) {
+      await simpan.mutateAsync({ id, payload: stBaru })
+      setBaseline(JSON.stringify(stBaru))
+    }
   }
 
-  const terapkanUsulanTransport = (pIdx: number, biayaBaru: BiayaPayload) => {
-    ubahPelaksana(pIdx, (p) => ({
-      ...p,
-      biaya: [...p.biaya, biayaBaru],
-    }))
+  const terapkanUsulanTransport = async (pIdx: number, biayaBaru: BiayaPayload) => {
+    const stBaru: SuratTugasPayload = {
+      ...st,
+      pelaksana: st.pelaksana.map((p, j) =>
+        j === pIdx ? { ...p, biaya: [...p.biaya, biayaBaru] } : p
+      ),
+    }
+    setSt(stBaru)
+    if (id !== null) {
+      await simpan.mutateAsync({ id, payload: stBaru })
+      setBaseline(JSON.stringify(stBaru))
+    }
   }
 
   async function kirim() {
@@ -168,8 +199,8 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
         </Alert>
       ) : null}
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="grid gap-6">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 grid gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Surat tugas</CardTitle>
@@ -184,11 +215,133 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
               <Field label="Tanggal SPJ (tanggal dokumen)" htmlFor="st-spj" hint="Boleh kosong; dilengkapi saat dokumen dicetak.">
                 <Input id="st-spj" type="date" value={st.tanggalSpj ?? ''} onChange={(e) => ubahSt({ tanggalSpj: e.target.value || null })} />
               </Field>
+              <Field label="Tahun anggaran" htmlFor="st-tahun" hint={`Bawaan pengaturan: ${pengaturan.tahunAnggaran}`}>
+                <Input
+                  id="st-tahun"
+                  type="number"
+                  inputMode="numeric"
+                  value={st.tahunAnggaran ?? ''}
+                  placeholder={String(pengaturan.tahunAnggaran)}
+                  onChange={(e) => {
+                    const val = e.target.value.trim()
+                    ubahSt({ tahunAnggaran: val === '' ? null : Number(val) })
+                  }}
+                />
+              </Field>
+              <Field label="Sumber dana (mata anggaran)" htmlFor="st-sumber-dana" hint="Pilih RM atau PNBP untuk otomatis menyesuaikan akun">
+                <div className="flex items-center gap-4 pt-1.5">
+                  <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <input
+                      type="radio"
+                      name="sumberDana"
+                      value="RM"
+                      checked={(st.sumberDana ?? 'RM') === 'RM'}
+                      onChange={() => ubahSumberDana('RM')}
+                      className="text-primary focus:ring-primary size-4"
+                    />
+                    Rupiah Murni (RM)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <input
+                      type="radio"
+                      name="sumberDana"
+                      value="PNBP"
+                      checked={st.sumberDana === 'PNBP'}
+                      onChange={() => ubahSumberDana('PNBP')}
+                      className="text-primary focus:ring-primary size-4"
+                    />
+                    PNBP
+                  </label>
+                </div>
+              </Field>
               <Field label="Kode akun (mata anggaran)" htmlFor="st-akun" className="sm:col-span-2">
                 <Input id="st-akun" value={st.kodeAkun} onChange={(e) => ubahSt({ kodeAkun: e.target.value })} />
               </Field>
               <Field label="Catatan" htmlFor="st-catatan" className="sm:col-span-2">
                 <Textarea id="st-catatan" rows={2} value={st.catatan} onChange={(e) => ubahSt({ catatan: e.target.value })} />
+              </Field>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex-row items-center justify-between gap-2">
+              <div>
+                <CardTitle>Pejabat yang Bertanggung Jawab</CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Penandatangan kuitansi: <em>&quot;Barang / pekerjaan tersebut telah diterima / diselesaikan dengan lengkap dan baik&quot;</em>
+                </p>
+              </div>
+              {st.pjNama || st.pjNip || st.pjJabatan ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => ubahSt({ pjNama: null, pjNip: null, pjJabatan: null })}
+                  title="Gunakan pejabat bawaan dari Pengaturan"
+                >
+                  <RotateCcwIcon className="size-3.5 mr-1" /> Reset ke bawaan
+                </Button>
+              ) : null}
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label="Pilih dari daftar pegawai"
+                htmlFor="pj-pegawai"
+                className="sm:col-span-2"
+                hint="Memilih pegawai akan otomatis mengisi nama, NIP, dan jabatan."
+              >
+                <Select
+                  id="pj-pegawai"
+                  value={
+                    (pegawai.data ?? []).find(
+                      (g) => g.nama === st.pjNama || (st.pjNip && (g.nip === st.pjNip || `NIP. ${g.nip}` === st.pjNip))
+                    )?.id ?? ''
+                  }
+                  onChange={(e) => {
+                    const dto = (pegawai.data ?? []).find((g) => g.id === Number(e.target.value))
+                    if (dto) {
+                      ubahSt({
+                        pjNama: dto.nama,
+                        pjNip: dto.nip ? (dto.nip.toUpperCase().startsWith('NIP') ? dto.nip : `NIP. ${dto.nip}`) : '',
+                        pjJabatan: dto.jabatan || null,
+                      })
+                    }
+                  }}
+                >
+                  <option value="">
+                    {st.pjNama || st.pjNip || st.pjJabatan
+                      ? '- Pilih pegawai untuk mengganti -'
+                      : `- Gunakan bawaan Pengaturan (${pengaturan.pjNama || 'Belum diatur'}) -`}
+                  </option>
+                  {(pegawai.data ?? []).map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.nama} {g.nip ? `(${g.nip})` : ''} {g.jabatan ? `- ${g.jabatan}` : ''}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Nama pejabat" htmlFor="pj-nama">
+                <Input
+                  id="pj-nama"
+                  value={st.pjNama ?? ''}
+                  placeholder={pengaturan.pjNama || 'Nama Pejabat'}
+                  onChange={(e) => ubahSt({ pjNama: e.target.value || null })}
+                />
+              </Field>
+              <Field label="NIP pejabat" htmlFor="pj-nip">
+                <Input
+                  id="pj-nip"
+                  value={st.pjNip ?? ''}
+                  placeholder={pengaturan.pjNip || 'NIP. ...'}
+                  onChange={(e) => ubahSt({ pjNip: e.target.value || null })}
+                />
+              </Field>
+              <Field label="Jabatan pejabat" htmlFor="pj-jabatan" className="sm:col-span-2">
+                <Input
+                  id="pj-jabatan"
+                  value={st.pjJabatan ?? ''}
+                  placeholder={pengaturan.pjJabatan || 'Jabatan'}
+                  onChange={(e) => ubahSt({ pjJabatan: e.target.value || null })}
+                />
               </Field>
             </CardContent>
           </Card>
@@ -228,14 +381,16 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
             </Button>
           </div>
         </div>
-        <RingkasanPanel hasil={hasil} />
+        <div className="min-w-0">
+          <RingkasanPanel hasil={hasil} />
+        </div>
       </div>
 
       <Dialog open={dialogHapus} onOpenChange={setDialogHapus}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Hapus surat tugas?</DialogTitle>
-            <DialogDescription>{st.nomor} beserta seluruh pelaksana, etape, dan biayanya akan dihapus permanen.</DialogDescription>
+            <DialogDescription>{st.nomor} beserta seluruh pelaksana, tujuan perjalanan, dan biayanya akan dihapus permanen.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogHapus(false)}>
@@ -268,6 +423,8 @@ export default function StEditorPage() {
   if (!pengaturan.data || !sbm.data || (id !== null && !st.data)) {
     return <p className="text-sm text-muted-foreground">Memuat...</p>
   }
-  const awal: SuratTugasPayload = st.data ? payloadDariDto(st.data) : stKosong(pengaturan.data.kodeAkunDefault)
+  const awal: SuratTugasPayload = st.data
+    ? payloadDariDto(st.data)
+    : stKosong(pengaturan.data.kodeAkunDefault, pengaturan.data.tahunAnggaran)
   return <Editor key={id ?? 'baru'} id={id} awal={awal} sbm={sbm.data.data} pengaturan={pengaturan.data} />
 }

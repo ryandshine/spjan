@@ -1,5 +1,6 @@
-import { Trash2Icon } from 'lucide-react'
-import { ringkasEtape, type EtapePayload, type Peringatan } from '@spjan/shared'
+import { useState } from 'react'
+import { CalendarIcon, CheckIcon, Trash2Icon } from 'lucide-react'
+import { daftarHariIso, parseTanggal, ringkasEtape, selisihHari, type EtapePayload, type Peringatan } from '@spjan/shared'
 
 import { RupiahInput } from '@/components/st/rupiah-input'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +10,13 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { rupiah } from '@/lib/format'
+
+function labelTanggal(iso: string): string {
+  const t = parseTanggal(iso)
+  if (!t) return iso
+  const dt = new Date(Date.UTC(t.y, t.m - 1, t.d))
+  return dt.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })
+}
 
 export function EtapeForm({
   idAwal,
@@ -36,24 +44,63 @@ export function EtapeForm({
 }) {
   const { hari, malam } = ringkasEtape(etape)
   const id = (k: string) => `etape-${idAwal}-${k}`
+
+  const tglAwal = parseTanggal(etape.berangkat)
+  const tglAkhir = parseTanggal(etape.pulang)
+  const listHari = tglAwal && tglAkhir && selisihHari(tglAwal, tglAkhir) >= 0 ? daftarHariIso(tglAwal, tglAkhir) : []
+  const fullboardAktif = (etape.fullboardDates ?? []).filter((t) => listHari.includes(t))
+  const jmlFullboard = fullboardAktif.length
+  const jmlBiasa = listHari.length - jmlFullboard
+
+  const [bukaFullboardManual, setBukaFullboardManual] = useState<boolean | null>(null)
+  const bukaFullboard = bukaFullboardManual ?? ((etape.fullboardDates ?? []).length > 0)
+  const setBukaFullboard = (aktif: boolean) => setBukaFullboardManual(aktif)
+
+  const toggleFullboard = (tgl: string, checked: boolean) => {
+    const prev = new Set(etape.fullboardDates ?? [])
+    if (checked) {
+      prev.add(tgl)
+    } else {
+      prev.delete(tgl)
+    }
+    onUbah({ fullboardDates: Array.from(prev).sort() })
+  }
+
+  const pilihSemuaFullboard = () => {
+    onUbah({ fullboardDates: [...listHari].sort() })
+  }
+
+  const kosongkanFullboard = () => {
+    onUbah({ fullboardDates: [] })
+  }
+
+  const handleToggleSection = (aktif: boolean) => {
+    setBukaFullboard(aktif)
+    if (!aktif) {
+      onUbah({ fullboardDates: [] })
+    }
+  }
+
   return (
-    <div className="grid gap-3 rounded-lg border bg-muted/30 p-4">
+    <div className="grid gap-3.5 rounded-lg border bg-muted/30 p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h4 className="text-sm font-semibold">Etape {nomor}</h4>
+          <h4 className="text-sm font-semibold">Tujuan {nomor}</h4>
           {hari !== null ? (
             <Badge variant="muted">
               {hari} hari / {malam} malam
+              {bukaFullboard && jmlFullboard > 0 ? ` (${jmlFullboard} fullboard)` : ''}
             </Badge>
           ) : null}
         </div>
         {bisaHapus ? (
-          <Button variant="ghost" size="sm" onClick={onHapus} aria-label={`Hapus etape ${nomor}`}>
-            <Trash2Icon className="text-destructive" /> Hapus etape
+          <Button variant="ghost" size="sm" onClick={onHapus} aria-label={`Hapus tujuan ${nomor}`}>
+            <Trash2Icon className="text-destructive" /> Hapus tujuan
           </Button>
         ) : null}
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Field label="Provinsi tujuan" htmlFor={id('prov')}>
           <Select id={id('prov')} value={etape.provinsi} onChange={(e) => onUbah({ provinsi: e.target.value })}>
             <option value="">- pilih provinsi -</option>
@@ -74,11 +121,129 @@ export function EtapeForm({
           <Input id={id('plg')} type="date" value={etape.pulang} onChange={(e) => onUbah({ pulang: e.target.value })} />
         </Field>
       </div>
+
+      {listHari.length > 0 ? (
+        <div className="rounded-lg border border-border/80 bg-background/80 p-3.5 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={bukaFullboard}
+                onChange={(e) => handleToggleSection(e.target.checked)}
+                className="size-4 rounded border-border text-primary focus:ring-primary"
+              />
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-foreground">
+                    Paket Rapat / Pertemuan (Fullboard)
+                  </span>
+                  {bukaFullboard && jmlFullboard > 0 ? (
+                    <Badge variant="default" className="text-[10px] px-1.5 py-0 font-medium">
+                      {jmlFullboard} dari {listHari.length} hari
+                    </Badge>
+                  ) : null}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Centang jika perjalanan dinas ini mencakup paket pertemuan/rapat di hotel.
+                </p>
+              </div>
+            </label>
+
+            {bukaFullboard ? (
+              <div className="flex items-center gap-2 text-xs">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={pilihSemuaFullboard}
+                  className="h-7 px-2.5 text-xs font-medium"
+                >
+                  Pilih Semua
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={kosongkanFullboard}
+                  className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Kosongkan
+                </Button>
+              </div>
+            ) : null}
+          </div>
+
+          {bukaFullboard ? (
+            <div className="space-y-2.5 border-t pt-3">
+              <p className="text-xs font-medium text-foreground">
+                Tandai tanggal kegiatan fullboard:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {listHari.map((tgl) => {
+                  const isChecked = fullboardAktif.includes(tgl)
+                  return (
+                    <button
+                      key={tgl}
+                      type="button"
+                      onClick={() => toggleFullboard(tgl, !isChecked)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                        isChecked
+                          ? 'bg-primary text-primary-foreground border-primary shadow-xs ring-1 ring-primary/30'
+                          : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border hover:border-border/80'
+                      }`}
+                    >
+                      {isChecked ? (
+                        <CheckIcon className="size-3.5 stroke-[2.5]" />
+                      ) : (
+                        <CalendarIcon className="size-3.5 opacity-60" />
+                      )}
+                      <span>{labelTanggal(tgl)}</span>
+                      {isChecked ? (
+                        <span className="ml-0.5 text-[10px] bg-white/20 px-1 py-0.2 rounded font-semibold">
+                          Fullboard
+                        </span>
+                      ) : null}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {jmlFullboard > 0 ? (
+                <div className="grid gap-1.5 sm:grid-cols-2 bg-muted/40 p-2.5 rounded-md border border-border/60 text-xs">
+                  <div className="flex items-center gap-2 text-foreground">
+                    <span className="size-2 rounded-full bg-primary inline-block" />
+                    <span>
+                      <strong>{jmlFullboard} hari</strong> Fullboard (Uang Saku SBM)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span className="size-2 rounded-full bg-muted-foreground/40 inline-block" />
+                    <span>
+                      <strong>{jmlBiasa} hari</strong> Transit PP (Uang Harian Penuh)
+                    </span>
+                  </div>
+                  {jmlFullboard === listHari.length ? (
+                    <p className="sm:col-span-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium pt-0.5">
+                      ✓ Seluruh hari adalah fullboard. Penginapan ditanggung panitia (malam menginap otomatis 0).
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  ⚠️ Belum ada tanggal fullboard yang dipilih. Klik tombol tanggal di atas untuk menandai hari kegiatan rapat.
+                </p>
+              )}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <Field label="Kegiatan / tujuan (untuk uraian SPTB)" htmlFor={id('keg')}>
         <Textarea id={id('keg')} rows={2} value={etape.kegiatan} onChange={(e) => onUbah({ kegiatan: e.target.value })} />
       </Field>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Nama hotel" htmlFor={id('hotel')} className="lg:col-span-2">
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Field label="Nama hotel" htmlFor={id('hotel')} className="xl:col-span-2">
           <Input id={id('hotel')} value={etape.hotelNama ?? ''} onChange={(e) => onUbah({ hotelNama: e.target.value || null })} />
         </Field>
         <Field
@@ -88,7 +253,11 @@ export function EtapeForm({
         >
           <RupiahInput id={id('tarif')} value={etape.hotelTarif} onChange={(v) => onUbah({ hotelTarif: v })} />
         </Field>
-        <Field label="Malam menginap" htmlFor={id('malam')} hint="Kosong = otomatis.">
+        <Field
+          label="Malam menginap"
+          htmlFor={id('malam')}
+          hint={bukaFullboard && jmlFullboard > 0 && jmlFullboard === listHari.length ? 'Otomatis 0 malam (fullboard).' : 'Kosong = otomatis.'}
+        >
           <Input
             id={id('malam')}
             type="number"
@@ -98,6 +267,7 @@ export function EtapeForm({
           />
         </Field>
       </div>
+
       {bolehRepresentasi ? (
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={etape.dinasJabatan ?? false} onChange={(e) => onUbah({ dinasJabatan: e.target.checked })} />

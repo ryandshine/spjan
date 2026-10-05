@@ -32,7 +32,7 @@ const LABEL: Record<string, string> = {
   keterangan: 'Keterangan',
 }
 
-/** Mengubah isu validasi zod menjadi kalimat Indonesia dengan lokasi (Pelaksana 1 > Etape 2 > Tarif hotel). */
+/** Mengubah isu validasi zod menjadi kalimat Indonesia dengan lokasi (Pelaksana 1 > Tujuan 2 > Tarif hotel). */
 export function pesanValidasi(isu: ReadonlyArray<Isu>): string[] {
   return isu.map((i) => {
     const bagian: string[] = []
@@ -41,7 +41,7 @@ export function pesanValidasi(isu: ReadonlyArray<Isu>): string[] {
       const kunci = String(p[k])
       const berikut = p[k + 1]
       if ((kunci === 'pelaksana' || kunci === 'etape' || kunci === 'biaya') && typeof berikut === 'number') {
-        bagian.push(`${kunci === 'pelaksana' ? 'Pelaksana' : kunci === 'etape' ? 'Etape' : 'Biaya'} ${berikut + 1}`)
+        bagian.push(`${kunci === 'pelaksana' ? 'Pelaksana' : kunci === 'etape' ? 'Tujuan' : 'Biaya'} ${berikut + 1}`)
         k += 1
       } else {
         bagian.push(LABEL[kunci] ?? kunci)

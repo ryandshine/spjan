@@ -1,5 +1,5 @@
 import type { PoolClient } from "pg";
-import type { StatusKode, SuratTugasDto, SuratTugasPayload, SuratTugasRingkasDto } from "@spjan/shared";
+import { normalkanUraianTiket, type StatusKode, type SuratTugasDto, type SuratTugasPayload, type SuratTugasRingkasDto } from "@spjan/shared";
 
 import type { Db } from "../db.js";
 import { withTransaction } from "../db.js";
@@ -21,6 +21,11 @@ interface StRow {
   kode_akun: string;
   versi_sbm_id: number;
   catatan: string;
+  tahun_anggaran: number | null;
+  sumber_dana: "RM" | "PNBP" | null;
+  pj_nama: string | null;
+  pj_nip: string | null;
+  pj_jabatan: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -44,6 +49,7 @@ interface EtapeRow {
   hotel_nama: string | null;
   hotel_tarif: number | null;
   dinas_jabatan: boolean;
+  fullboard_dates: string[] | null;
 }
 interface BiayaRow {
   pelaksana_id: number;
@@ -55,6 +61,7 @@ interface BiayaRow {
   tarif: number;
   keterangan: string | null;
   etape_urutan: number | null;
+  pengeluaran_riil: boolean | null;
 }
 
 export async function getSuratTugas(db: Db, id: number): Promise<SuratTugasDto | null> {
@@ -83,6 +90,11 @@ export async function getSuratTugas(db: Db, id: number): Promise<SuratTugasDto |
     tanggalSpj: st.tanggal_spj,
     kodeAkun: st.kode_akun,
     catatan: st.catatan,
+    tahunAnggaran: st.tahun_anggaran ?? null,
+    sumberDana: (st.sumber_dana as "RM" | "PNBP") ?? "RM",
+    pjNama: st.pj_nama ?? null,
+    pjNip: st.pj_nip ?? null,
+    pjJabatan: st.pj_jabatan ?? null,
     pelaksana: pel.map((p) => ({
       pegawaiId: p.pegawai_id,
       nama: p.nama,
@@ -102,18 +114,20 @@ export async function getSuratTugas(db: Db, id: number): Promise<SuratTugasDto |
           hotelNama: e.hotel_nama,
           hotelTarif: e.hotel_tarif,
           dinasJabatan: e.dinas_jabatan,
+          fullboardDates: e.fullboard_dates ?? [],
         })),
       biaya: biaya
         .filter((b) => b.pelaksana_id === p.id)
         .map((b) => ({
           jenis: b.jenis,
           provinsi: b.provinsi,
-          uraian: b.uraian,
+          uraian: b.uraian && (b.jenis === "TIKET_PERGI" || b.jenis === "TIKET_KEMBALI") ? normalkanUraianTiket(b.uraian) : b.uraian,
           qty: b.qty,
           satuan: b.satuan,
           tarif: b.tarif,
           keterangan: b.keterangan,
           etapeIndex: b.etape_urutan,
+          pengeluaranRiil: b.pengeluaran_riil ?? false,
         })),
     })),
   };
@@ -129,19 +143,35 @@ async function sisipkanPelaksana(client: PoolClient, stId: number, pelaksana: Su
     const pelId = (rows[0] as { id: number }).id;
     for (const [j, e] of p.etape.entries()) {
       await client.query(
-        `insert into etape (pelaksana_id, urutan, provinsi, kota, kegiatan, berangkat, pulang, malam_override, hotel_nama, hotel_tarif, dinas_jabatan)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        `insert into etape (pelaksana_id, urutan, provinsi, kota, kegiatan, berangkat, pulang, malam_override, hotel_nama, hotel_tarif, dinas_jabatan, fullboard_dates)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
         [
           pelId, j, e.provinsi, e.kota, e.kegiatan, e.berangkat || null, e.pulang || null,
           e.malamOverride ?? null, e.hotelNama ?? null, e.hotelTarif ?? null, e.dinasJabatan ?? false,
+          e.fullboardDates ?? [],
         ],
       );
     }
     for (const [j, b] of p.biaya.entries()) {
+      const uraianBersih = b.uraian && (b.jenis === "TIKET_PERGI" || b.jenis === "TIKET_KEMBALI")
+        ? normalkanUraianTiket(b.uraian)
+        : b.uraian;
       await client.query(
-        `insert into biaya (pelaksana_id, urutan, jenis, provinsi, uraian, qty, satuan, tarif, keterangan, etape_urutan)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [pelId, j, b.jenis, b.provinsi ?? null, b.uraian ?? null, b.qty ?? null, b.satuan ?? null, b.tarif, b.keterangan ?? null, b.etapeIndex ?? null],
+        `insert into biaya (pelaksana_id, urutan, jenis, provinsi, uraian, qty, satuan, tarif, keterangan, etape_urutan, pengeluaran_riil)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [
+          pelId,
+          j,
+          b.jenis,
+          b.provinsi ?? null,
+          uraianBersih ?? null,
+          b.qty ?? null,
+          b.satuan ?? null,
+          b.tarif,
+          b.keterangan ?? null,
+          b.etapeIndex ?? null,
+          b.pengeluaranRiil ?? false,
+        ],
       );
     }
   }
@@ -150,9 +180,21 @@ async function sisipkanPelaksana(client: PoolClient, stId: number, pelaksana: Su
 export async function createSuratTugas(payload: SuratTugasPayload, versiSbmId: number): Promise<number> {
   return withTransaction(async (client) => {
     const { rows } = await client.query<{ id: number }>(
-      `insert into surat_tugas (nomor, tanggal, tanggal_spj, kode_akun, versi_sbm_id, catatan)
-       values ($1, $2, $3, $4, $5, $6) returning id`,
-      [payload.nomor, payload.tanggal, payload.tanggalSpj ?? null, payload.kodeAkun, versiSbmId, payload.catatan],
+      `insert into surat_tugas (nomor, tanggal, tanggal_spj, kode_akun, versi_sbm_id, catatan, tahun_anggaran, sumber_dana, pj_nama, pj_nip, pj_jabatan)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id`,
+      [
+        payload.nomor,
+        payload.tanggal,
+        payload.tanggalSpj ?? null,
+        payload.kodeAkun,
+        versiSbmId,
+        payload.catatan,
+        payload.tahunAnggaran ?? null,
+        payload.sumberDana ?? "RM",
+        payload.pjNama ?? null,
+        payload.pjNip ?? null,
+        payload.pjJabatan ?? null,
+      ],
     );
     const id = (rows[0] as { id: number }).id;
     await sisipkanPelaksana(client, id, payload.pelaksana);
@@ -164,9 +206,22 @@ export async function createSuratTugas(payload: SuratTugasPayload, versiSbmId: n
 export async function replaceSuratTugas(id: number, payload: SuratTugasPayload): Promise<boolean> {
   return withTransaction(async (client) => {
     const { rowCount } = await client.query(
-      `update surat_tugas set nomor = $2, tanggal = $3, tanggal_spj = $4, kode_akun = $5, catatan = $6, updated_at = now()
+      `update surat_tugas set nomor = $2, tanggal = $3, tanggal_spj = $4, kode_akun = $5, catatan = $6,
+         tahun_anggaran = $7, sumber_dana = $8, pj_nama = $9, pj_nip = $10, pj_jabatan = $11, updated_at = now()
         where id = $1`,
-      [id, payload.nomor, payload.tanggal, payload.tanggalSpj ?? null, payload.kodeAkun, payload.catatan],
+      [
+        id,
+        payload.nomor,
+        payload.tanggal,
+        payload.tanggalSpj ?? null,
+        payload.kodeAkun,
+        payload.catatan,
+        payload.tahunAnggaran ?? null,
+        payload.sumberDana ?? "RM",
+        payload.pjNama ?? null,
+        payload.pjNip ?? null,
+        payload.pjJabatan ?? null,
+      ],
     );
     if (!rowCount) return false;
     await client.query("delete from pelaksana where st_id = $1", [id]);

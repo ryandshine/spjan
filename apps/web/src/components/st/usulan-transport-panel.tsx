@@ -33,7 +33,7 @@ import { useDaftarBerkas, useUpdateUsulanBerkas, useUsulanTransportSt } from '@/
 interface Props {
   stId: number
   pelaksanaList: PelaksanaPayload[]
-  onTerapkan: (pelaksanaIndex: number, biaya: BiayaPayload) => void
+  onTerapkan: (pelaksanaIndex: number, biaya: BiayaPayload) => Promise<void> | void
 }
 
 function UsulanTransportCard({
@@ -43,7 +43,7 @@ function UsulanTransportCard({
 }: {
   item: UsulanTransportItem
   pelaksanaList: PelaksanaPayload[]
-  onTerapkan: (pelaksanaIndex: number, biaya: BiayaPayload) => void
+  onTerapkan: (pelaksanaIndex: number, biaya: BiayaPayload) => Promise<void> | void
 }) {
   const updateUsulan = useUpdateUsulanBerkas()
   const [selectedPelaksana, setSelectedPelaksana] = useState<number>(() => {
@@ -85,7 +85,7 @@ function UsulanTransportCard({
         provinsi: etape?.provinsi ?? item.provinsi,
       }
 
-      onTerapkan(selectedPelaksana, biayaBaru)
+      await onTerapkan(selectedPelaksana, biayaBaru)
       await updateUsulan.mutateAsync({
         id: item.berkasId,
         payload: {
@@ -236,7 +236,7 @@ function UsulanTransportCard({
         </div>
       )}
 
-      {/* Pemilihan Pelaksana, Etape, & Jenis Biaya */}
+      {/* Pemilihan Pelaksana, Tujuan Perjalanan, & Jenis Biaya */}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
         <div className="flex flex-wrap items-center gap-2">
           <label className="text-xs text-muted-foreground">Terapkan ke:</label>
@@ -262,10 +262,10 @@ function UsulanTransportCard({
               value={selectedEtape ?? ''}
               onChange={(e) => setSelectedEtape(e.target.value === '' ? null : Number(e.target.value))}
             >
-              <option value="">Otomatis (Etape Terdekat)</option>
+              <option value="">Otomatis (Tujuan Terdekat)</option>
               {etapeList.map((e, idx) => (
                 <option key={idx} value={idx}>
-                  Etape {idx + 1}: {e.kota || e.provinsi || '-'}
+                  Tujuan {idx + 1}: {e.kota || e.provinsi || '-'}
                 </option>
               ))}
             </Select>

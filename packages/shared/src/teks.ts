@@ -70,6 +70,93 @@ export function tanggalIndonesia(iso: string | null | undefined): string {
   return t ? `${t.d} ${namaBulan(t.m)} ${t.y}` : "";
 }
 
+/** Mengubah Tanggal menjadi string ISO "YYYY-MM-DD" */
+export function toIsoTanggal(t: Tanggal): string {
+  const mm = String(t.m).padStart(2, "0");
+  const dd = String(t.d).padStart(2, "0");
+  return `${t.y}-${mm}-${dd}`;
+}
+
+/** Menghasilkan daftar tanggal ISO berturut-turut dari tanggal a sampai b (inklusif). */
+export function daftarHariIso(a: Tanggal, b: Tanggal): string[] {
+  const list: string[] = [];
+  const cur = new Date(Date.UTC(a.y, a.m - 1, a.d));
+  const end = new Date(Date.UTC(b.y, b.m - 1, b.d));
+  while (cur <= end) {
+    const y = cur.getUTCFullYear();
+    const m = cur.getUTCMonth() + 1;
+    const d = cur.getUTCDate();
+    list.push(toIsoTanggal({ y, m, d }));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return list;
+}
+
+/**
+ * Format daftar tanggal menjadi frasa bahasa Indonesia yang rapi:
+ * - 1 hari: "11 September 2026"
+ * - Berurutan: "11 s.d. 12 September 2026"
+ * - Terpisah: "10 dan 13 September 2026"
+ * - Campuran: "10 s.d. 11 dan 13 September 2026"
+ * - Lintas bulan: "30 September dan 2 Oktober 2026"
+ */
+export function formatDaftarTanggal(isoList: string[]): string {
+  if (isoList.length === 0) return "";
+  const sorted = [...new Set(isoList)].sort();
+  const parsed = sorted.map(parseTanggal).filter((t): t is Tanggal => t !== null);
+  if (parsed.length === 0) return "";
+
+  const segments: Array<{ start: Tanggal; end: Tanggal }> = [];
+  let curStart = parsed[0]!;
+  let curEnd = parsed[0]!;
+
+  for (let i = 1; i < parsed.length; i++) {
+    const next = parsed[i]!;
+    if (selisihHari(curEnd, next) === 1) {
+      curEnd = next;
+    } else {
+      segments.push({ start: curStart, end: curEnd });
+      curStart = next;
+      curEnd = next;
+    }
+  }
+  segments.push({ start: curStart, end: curEnd });
+
+  const allSameMonthYear = segments.every(
+    (s) =>
+      s.start.y === segments[0]!.start.y &&
+      s.start.m === segments[0]!.start.m &&
+      s.end.m === segments[0]!.start.m &&
+      s.end.y === segments[0]!.start.y
+  );
+
+  if (allSameMonthYear) {
+    const m = segments[0]!.start.m;
+    const y = segments[0]!.start.y;
+    const segTexts = segments.map((s) => (s.start.d === s.end.d ? `${s.start.d}` : `${s.start.d} s.d. ${s.end.d}`));
+    let joined = "";
+    if (segTexts.length === 1) {
+      joined = segTexts[0]!;
+    } else if (segTexts.length === 2) {
+      joined = `${segTexts[0]} dan ${segTexts[1]}`;
+    } else {
+      joined = `${segTexts.slice(0, -1).join(", ")} dan ${segTexts[segTexts.length - 1]}`;
+    }
+    return `${joined} ${namaBulan(m)} ${y}`;
+  }
+
+  const segTexts = segments.map((s) => {
+    if (s.start.y === s.end.y && s.start.m === s.end.m && s.start.d === s.end.d) {
+      return `${s.start.d} ${namaBulan(s.start.m)} ${s.start.y}`;
+    }
+    return rentangSptb(s.start, s.end);
+  });
+
+  if (segTexts.length === 1) return segTexts[0]!;
+  if (segTexts.length === 2) return `${segTexts[0]} dan ${segTexts[1]}`;
+  return `${segTexts.slice(0, -1).join(", ")} dan ${segTexts[segTexts.length - 1]}`;
+}
+
 /** Rentang untuk Rincian: "10-13 September 2026", "30 September - 2 Oktober 2026". */
 export function rentangRincian(a: Tanggal, b: Tanggal): string {
   if (a.y === b.y && a.m === b.m && a.d === b.d) return `${a.d} ${namaBulan(a.m)} ${a.y}`;

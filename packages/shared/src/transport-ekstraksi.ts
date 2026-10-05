@@ -80,9 +80,13 @@ function cocokkanPelaksana(
   // 2. Cek kesesuaian nama penumpang/kandidat
   if (namaKandidat && namaKandidat.trim().length > 0) {
     const namaNorm = bersihkanGelarNama(namaKandidat);
+    const nWords = namaNorm.split(/\s+/).filter((w) => w.length > 2);
     const idx = st.pelaksana.findIndex((p: PelaksanaPayload) => {
       const pNama = bersihkanGelarNama(p.nama);
-      return pNama.includes(namaNorm) || namaNorm.includes(pNama);
+      if (pNama.includes(namaNorm) || namaNorm.includes(pNama)) return true;
+      const pWords = pNama.split(/\s+/).filter((w) => w.length > 2);
+      const cocokCount = pWords.filter((pw) => nWords.some((nw) => nw === pw || nw.includes(pw) || pw.includes(nw))).length;
+      return cocokCount >= 2;
     });
     if (idx >= 0) {
       const p = st.pelaksana[idx]!;
@@ -162,23 +166,36 @@ export function petakanTransportKeUsulan(
 
       if (isKeretaOrBus) {
         jenisBiaya = "KERETA_BUS_LAIN";
-      } else if (t.arah === "kembali") {
-        jenisBiaya = "TIKET_KEMBALI";
-      } else if (t.arah === "pergi") {
-        jenisBiaya = "TIKET_PERGI";
-      } else if (etape) {
-        // Deteksi dari tanggal etape
-        const dTiket = parseTanggal(t.tanggal);
-        const dPulang = parseTanggal(etape.pulang);
-        const dBerangkat = parseTanggal(etape.berangkat);
-        if (dTiket && dPulang && dBerangkat) {
-          const bedaPergi = Math.abs(selisihHari(dTiket, dBerangkat));
-          const bedaPulang = Math.abs(selisihHari(dTiket, dPulang));
-          jenisBiaya = bedaPulang < bedaPergi ? "TIKET_KEMBALI" : "TIKET_PERGI";
+      } else {
+        const tujuanKeKedudukan = /jakarta|cgk|hlp|soekarno/i.test(t.tujuan);
+        const asalDariKedudukan = /jakarta|cgk|hlp|soekarno/i.test(t.asal);
+
+        if (tujuanKeKedudukan && !asalDariKedudukan) {
+          jenisBiaya = "TIKET_KEMBALI";
+        } else if (asalDariKedudukan && !tujuanKeKedudukan) {
+          jenisBiaya = "TIKET_PERGI";
+        } else if (t.arah === "kembali") {
+          jenisBiaya = "TIKET_KEMBALI";
+        } else if (t.arah === "pergi") {
+          jenisBiaya = "TIKET_PERGI";
+        } else if (etape) {
+          // Deteksi dari tanggal etape
+          const dTiket = parseTanggal(t.tanggal);
+          const dPulang = parseTanggal(etape.pulang);
+          const dBerangkat = parseTanggal(etape.berangkat);
+          if (dTiket && dPulang && dBerangkat) {
+            const bedaPergi = Math.abs(selisihHari(dTiket, dBerangkat));
+            const bedaPulang = Math.abs(selisihHari(dTiket, dPulang));
+            jenisBiaya = bedaPulang < bedaPergi ? "TIKET_KEMBALI" : "TIKET_PERGI";
+          }
         }
       }
 
-      const uraianBiaya = `Tiket ${t.maskapai} ${t.asal} - ${t.tujuan}${t.nomorPenerbangan ? ` (${t.nomorPenerbangan})` : ""}`;
+      const jenisModa =
+        t.maskapai?.toLowerCase().includes("kereta") || t.maskapai?.toLowerCase().includes("kai")
+          ? "Kereta Api"
+          : "Pesawat";
+      const uraianBiaya = `Tiket ${jenisModa} ${t.asal} - ${t.tujuan}${t.nomorPenerbangan ? ` (${t.nomorPenerbangan})` : ""}`;
       const keterangan = `Tgl: ${t.tanggal}, No. Tiket: ${t.nomorTiket ?? t.kodeBooking ?? "-"}`;
 
       usulan.push({

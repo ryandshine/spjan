@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SBM_2026 } from "./data/sbm-2026.js";
-import { hitungSpj } from "./hitung.js";
+import { bersihkanKegiatanUraian, hitungSpj, normalkanUraianTiket } from "./hitung.js";
 import type { BiayaInput, EtapeInput, PelaksanaInput, SpjInput } from "./types.js";
 
 const NOMOR_ST = "ST.226/PPS/PEMPS/PSL.04.02/B/09/2026";
@@ -51,6 +51,16 @@ const resa: PelaksanaInput = {
   ],
 };
 
+const riandi: PelaksanaInput = {
+  nama: "Riandi Eko Priantoro, S.Kom.",
+  nip: "198404212023211020",
+  jabatan: "Pranata Komputer Ahli Pertama",
+  status: "ESELON_IV_GOL_III_II_I",
+  noSpd: "404/SPD/PPS/2026",
+  etape: [etapeYogya({ hotelNama: "The Royal Alana Yogyakarta Hotel & Convention Center", hotelTarif: 845_000 })],
+  biaya: [],
+};
+
 describe("hitungSpj - kasus emas", () => {
   it("Resa: Bali 10-11 September, total 6.965.979", () => {
     const h = hitungSpj(spj([resa]), SBM_2026).pelaksana[0]!;
@@ -65,7 +75,7 @@ describe("hitungSpj - kasus emas", () => {
       "Tiket Pesawat Denpasar ke Jakarta",
       "Taksi dari tempat kedudukan - Bandara Soekarno Hatta (PP)",
     ]);
-    expect(h.transport[2]).toMatchObject({ qty: 2, satuan: "kali", tarif: 250_000, jumlah: 500_000 });
+    expect(h.transport[2]).toMatchObject({ qty: 2, satuan: "kali", tarif: 250_000, jumlah: 500_000, keterangan: "" });
     expect(h.transport[0]).toMatchObject({ qty: null, satuan: null, tarif: null, keterangan: "Bukti terlampir" });
     expect(h.uangHarian[0]).toMatchObject({
       qty: 2,
@@ -74,7 +84,7 @@ describe("hitungSpj - kasus emas", () => {
     });
     expect(h.penginapan[0]).toMatchObject({ qty: 1, satuan: "malam", keterangan: "Tanggal 10-11 September 2026, Bukti terlampir" });
     expect(h.uraianSptb).toBe(
-      `Biaya Perjalanan dinas dalam rangka ${KEG_BALI} selama 2 (dua) hari pada tanggal 10 s.d. 11 September 2026 sesuai Surat Tugas Nomor: ${NOMOR_ST} tanggal 8 September 2026 dan SPD terlampir.`,
+      `Biaya Perjalanan dinas dalam rangka ${KEG_BALI} selama 2 (dua) hari pada tanggal 10 s.d. 11 September 2026 sesuai Surat Tugas Nomor: ${NOMOR_ST} tanggal 8 September 2026 sesuai dengan rincian terlampir.`,
     );
   });
 
@@ -86,15 +96,6 @@ describe("hitungSpj - kasus emas", () => {
   });
 
   it("Riandi: Yogyakarta 10-13 September, hotel 3 malam sesuai batas, belum ada transport", () => {
-    const riandi: PelaksanaInput = {
-      nama: "Riandi Eko Priantoro, S.Kom.",
-      nip: "198404212023211020",
-      jabatan: "Pranata Komputer Ahli Pertama",
-      status: "ESELON_IV_GOL_III_II_I",
-      noSpd: "404/SPD/PPS/2026",
-      etape: [etapeYogya({ hotelNama: "The Royal Alana Yogyakarta Hotel & Convention Center", hotelTarif: 845_000 })],
-      biaya: [],
-    };
     const h = hitungSpj(spj([riandi]), SBM_2026).pelaksana[0]!;
     expect(h.totalUangHarian).toBe(1_680_000);
     expect(h.totalPenginapan).toBe(2_535_000);
@@ -193,7 +194,7 @@ describe("hitungSpj - kasus emas", () => {
     expect(h.totalPenginapan).toBe(2_500_000);
     expect(h.total).toBe(9_150_000);
     expect(h.uraianSptb).toBe(
-      `Biaya Perjalanan dinas dalam rangka ${KEG_BALI} selama 2 (dua) hari pada tanggal 10 s.d. 11 September 2026 dan ${KEG_YOGYA} selama 2 (dua) hari pada tanggal 12 s.d. 13 September 2026 sesuai Surat Tugas Nomor: ${NOMOR_ST} tanggal 8 September 2026 dan SPD terlampir.`,
+      `Biaya Perjalanan dinas dalam rangka ${KEG_BALI} selama 2 (dua) hari pada tanggal 10 s.d. 11 September 2026 dan ${KEG_YOGYA} selama 2 (dua) hari pada tanggal 12 s.d. 13 September 2026 sesuai Surat Tugas Nomor: ${NOMOR_ST} tanggal 8 September 2026 sesuai dengan rincian terlampir.`,
     );
     expect(h.catatan.some((c) => c.startsWith("Tiket PP"))).toBe(false);
   });
@@ -288,4 +289,182 @@ describe("hitungSpj - peringatan data", () => {
     expect(h.penginapan[0]?.qty).toBe(1);
     expect(h.uraianSptb).toContain("selama 3 (tiga) hari pada tanggal 30 September s.d. 2 Oktober 2026");
   });
+
+  it("normalkanUraianTiket mengubah nama maskapai menjadi Tiket Pesawat", () => {
+    expect(
+      normalkanUraianTiket("Tiket Garuda Indonesia Jakarta (CGK) - Yogyakarta (YIA) (GA 208)"),
+    ).toBe("Tiket Pesawat Jakarta (CGK) - Yogyakarta (YIA) (GA 208)");
+    expect(
+      normalkanUraianTiket("Tiket AirAsia Indonesia Yogyakarta (YIA) - Jakarta (CGK) (IU 313)"),
+    ).toBe("Tiket Pesawat Yogyakarta (YIA) - Jakarta (CGK) (IU 313)");
+    expect(
+      normalkanUraianTiket("Tiket Lion Air Jakarta - Surabaya (JT 123)"),
+    ).toBe("Tiket Pesawat Jakarta - Surabaya (JT 123)");
+    expect(
+      normalkanUraianTiket("Tiket Pesawat Jakarta ke Denpasar"),
+    ).toBe("Tiket Pesawat Jakarta ke Denpasar");
+    expect(
+      normalkanUraianTiket("Tiket Kereta Api Gambir - Tugu"),
+    ).toBe("Tiket Kereta Api Gambir - Tugu");
+  });
+
+  it("hitungSpj menormalkan tiket maskapai menjadi Tiket Pesawat pada baris transport", () => {
+    const p: PelaksanaInput = {
+      ...resa,
+      biaya: [
+        {
+          jenis: "TIKET_PERGI",
+          tarif: 1_749_292,
+          uraian: "Tiket Garuda Indonesia Jakarta (CGK) - Yogyakarta (YIA) (GA 208)",
+        },
+      ],
+    };
+    const h = hitungSpj(spj([p]), SBM_2026).pelaksana[0]!;
+    expect(h.transport[0]!.uraian).toBe("Tiket Pesawat Jakarta (CGK) - Yogyakarta (YIA) (GA 208)");
+  });
 });
+
+describe("hitungSpj - paket pertemuan / fullboard", () => {
+  it("memecah uang harian dan uang saku fullboard dengan tanggal presisi", () => {
+    const p: PelaksanaInput = {
+      ...riandi,
+      etape: [
+        {
+          ...riandi.etape[0]!,
+          fullboardDates: ["2026-09-11", "2026-09-12"],
+        },
+      ],
+    };
+    const h = hitungSpj(spj([p]), SBM_2026).pelaksana[0]!;
+
+    // Ada 2 baris di uangHarian:
+    // 1. Hari transit/biasa: 10 dan 13 September (2 hari @ 420.000 = 840.000)
+    // 2. Hari fullboard: 11 s.d. 12 September (2 hari @ 130.000 = 260.000)
+    expect(h.uangHarian).toHaveLength(2);
+    expect(h.uangHarian[0]!).toMatchObject({
+      uraian: "selama :",
+      qty: 2,
+      satuan: "hari",
+      tarif: 420_000,
+      jumlah: 840_000,
+      keterangan: "Lumpsum/Prov. D.I. Yogyakarta Tanggal 10 dan 13 September 2026",
+    });
+    expect(h.uangHarian[1]!).toMatchObject({
+      uraian: "Uang saku fullboard :",
+      qty: 2,
+      satuan: "hari",
+      tarif: 130_000,
+      jumlah: 260_000,
+      keterangan: "Kegiatan Fullboard Tanggal 11 s.d. 12 September 2026",
+    });
+    expect(h.totalUangHarian).toBe(1_100_000);
+  });
+
+  it("jika seluruh hari adalah fullboard, hanya menghasilkan baris uang saku fullboard dan tidak wajib hotel", () => {
+    const p: PelaksanaInput = {
+      ...riandi,
+      etape: [
+        {
+          provinsi: "D.I. YOGYAKARTA",
+          kota: "Yogyakarta",
+          kegiatan: "Workshop",
+          berangkat: "2026-09-11",
+          pulang: "2026-09-12",
+          fullboardDates: ["2026-09-11", "2026-09-12"],
+          malamOverride: null,
+          hotelNama: null,
+          hotelTarif: null,
+        },
+      ],
+    };
+    const hasil = hitungSpj(spj([p]), SBM_2026);
+    const h = hasil.pelaksana[0]!;
+
+    expect(h.uangHarian).toHaveLength(1);
+    expect(h.uangHarian[0]!).toMatchObject({
+      uraian: "Uang saku fullboard :",
+      qty: 2,
+      tarif: 130_000,
+      jumlah: 260_000,
+      keterangan: "Kegiatan Fullboard Tanggal 11 s.d. 12 September 2026",
+    });
+    // Tidak ada peringatan hotel belum diisi karena seluruh hari fullboard
+    expect(h.peringatan.some((w) => w.kode === "TARIF_HOTEL_KOSONG")).toBe(false);
+  });
+
+  describe("bersihkanKegiatanUraian & format uraian SPTB", () => {
+    it("menghapus awalan 'Melaksanakan perjalanan dinas dalam rangka' agar tidak ada duplikasi", () => {
+      const keg =
+        "Melaksanakan perjalanan dinas dalam rangka Pendampingan Audiensi terkait Rencana Pembongkaran Homestay pada areal kerja Persetujuan Pengelolaan Perhutanan Sosial di Kota Denpasar, Provinsi Bali";
+      expect(bersihkanKegiatanUraian(keg)).toBe(
+        "Pendampingan Audiensi terkait Rencana Pembongkaran Homestay pada areal kerja Persetujuan Pengelolaan Perhutanan Sosial di Kota Denpasar, Provinsi Bali",
+      );
+
+      const p = {
+        ...resa,
+        etape: [
+          {
+            ...resa.etape[0]!,
+            kegiatan: keg,
+          },
+        ],
+      };
+      const h = hitungSpj(spj([p]), SBM_2026).pelaksana[0]!;
+      expect(h.uraianSptb).toBe(
+        `Biaya Perjalanan dinas dalam rangka Pendampingan Audiensi terkait Rencana Pembongkaran Homestay pada areal kerja Persetujuan Pengelolaan Perhutanan Sosial di Kota Denpasar, Provinsi Bali selama 2 (dua) hari pada tanggal 10 s.d. 11 September 2026 sesuai Surat Tugas Nomor: ${NOMOR_ST} tanggal 8 September 2026 sesuai dengan rincian terlampir.`,
+      );
+      // Memastikan hanya ada 1 kemunculan "dalam rangka"
+      expect(h.uraianSptb.match(/dalam rangka/gi)).toHaveLength(1);
+      // Memastikan berakhiran "sesuai dengan rincian terlampir."
+      expect(h.uraianSptb).toContain("sesuai dengan rincian terlampir.");
+      expect(h.uraianSptb).not.toContain("SPD terlampir");
+    });
+
+    it("menghapus awalan 'Dalam rangka' dan 'Perjalanan dinas dalam rangka'", () => {
+      expect(bersihkanKegiatanUraian("Dalam rangka Rapat Koordinasi")).toBe("Rapat Koordinasi");
+      expect(bersihkanKegiatanUraian("perjalanan dinas dalam rangka Bimtek")).toBe("Bimtek");
+      expect(bersihkanKegiatanUraian("Melaksanakan kegiatan dalam rangka Sosialisasi")).toBe("Sosialisasi");
+      expect(bersihkanKegiatanUraian("Workshop Pengelolaan PS")).toBe("Workshop Pengelolaan PS");
+    });
+  });
+
+  describe("pengeluaranRiil (Daftar Pengeluaran Riil)", () => {
+    it("mengumpulkan item biaya yang ditandai pengeluaranRiil dan menghitung total serta terbilangnya", () => {
+      const p: PelaksanaInput = {
+        ...resa,
+        biaya: [
+          ...resa.biaya,
+          {
+            jenis: "TRANSPORT_DARAT",
+            provinsi: "BALI",
+            uraian: "Sewa ojek ke areal kerja KPS",
+            tarif: 150_000,
+            pengeluaranRiil: true,
+          },
+          {
+            jenis: "LAINNYA",
+            uraian: "Perahu getek penyeberangan",
+            tarif: 75_000,
+            pengeluaranRiil: true,
+          },
+        ],
+      };
+      const h = hitungSpj(spj([p]), SBM_2026).pelaksana[0]!;
+      expect(h.pengeluaranRiil).toHaveLength(2);
+      expect(h.pengeluaranRiil[0]!.uraian).toContain("Sewa ojek ke areal kerja KPS");
+      expect(h.pengeluaranRiil[0]!.jumlah).toBe(150_000);
+      expect(h.pengeluaranRiil[1]!.uraian).toBe("Perahu getek penyeberangan");
+      expect(h.pengeluaranRiil[1]!.jumlah).toBe(75_000);
+      expect(h.totalPengeluaranRiil).toBe(225_000);
+      expect(h.terbilangPengeluaranRiil).toBe("Dua Ratus Dua Puluh Lima Ribu Rupiah");
+    });
+
+    it("menghasilkan array kosong dan nol bila tidak ada biaya yang ditandai pengeluaranRiil", () => {
+      const h = hitungSpj(spj([resa]), SBM_2026).pelaksana[0]!;
+      expect(h.pengeluaranRiil).toHaveLength(0);
+      expect(h.totalPengeluaranRiil).toBe(0);
+      expect(h.terbilangPengeluaranRiil).toBe("Nol Rupiah");
+    });
+  });
+});
+

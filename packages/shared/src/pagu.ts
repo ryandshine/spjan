@@ -1,5 +1,5 @@
 import { formatRp, norm } from "./teks.js";
-import type { BiayaInput, Sbm } from "./types.js";
+import type { BiayaInput, Sbm, StatusKode } from "./types.js";
 
 export interface PaguBiaya {
   /** false = jenis ini memang tidak punya pagu di PMK (biaya riil). */
@@ -57,4 +57,40 @@ export function paguTiket(sbm: Sbm, asal: string, tujuan: string, kelas: "Bisnis
   const baris = sbm.tiketPp.find((r) => r.asal === norm(asal) && r.tujuan === norm(tujuan));
   if (!baris) return null;
   return kelas === "Bisnis" ? baris.bisnis : baris.ekonomi;
+}
+
+/**
+ * Tarif uang saku rapat/pertemuan di luar kantor (Fullboard) per hari sesuai SBM PMK 32/2025.
+ * @param status Status / golongan kepegawaian
+ * @param luarKota default true (karena perjalanan dinas luar kota)
+ */
+export function tarifUangSakuFullboard(status: StatusKode | null | undefined, luarKota = true): number {
+  if (luarKota) {
+    switch (status) {
+      case "PEJABAT_NEGARA_WAMEN":
+        return 300_000;
+      case "ESELON_I":
+        return 250_000;
+      case "ESELON_II":
+        return 180_000;
+      case "ESELON_III_GOL_IV":
+      case "ESELON_IV_GOL_III_II_I":
+      default:
+        return 130_000;
+    }
+  } else {
+    // Dalam kota
+    switch (status) {
+      case "PEJABAT_NEGARA_WAMEN":
+        return 200_000;
+      case "ESELON_I":
+        return 170_000;
+      case "ESELON_II":
+        return 150_000;
+      case "ESELON_III_GOL_IV":
+      case "ESELON_IV_GOL_III_II_I":
+      default:
+        return 120_000;
+    }
+  }
 }

@@ -85,6 +85,8 @@ export interface EtapeInput {
   hotelNama?: string | null;
   hotelTarif?: number | null;
   dinasJabatan?: boolean;
+  /** Daftar tanggal (YYYY-MM-DD) pelaksanaan paket rapat/pertemuan fullboard */
+  fullboardDates?: string[];
 }
 
 export interface BiayaInput {
@@ -99,6 +101,8 @@ export interface BiayaInput {
   keterangan?: string | null;
   /** Indeks etape (0-based) untuk TIKET_PERGI / TIKET_KEMBALI. Default: TIKET_PERGI = 0, TIKET_KEMBALI = etape terakhir. */
   etapeIndex?: number | null;
+  /** Ditandai sebagai pengeluaran riil tanpa kuitansi resmi (masuk ke Daftar Pengeluaran Riil Lampiran IX PMK 113). */
+  pengeluaranRiil?: boolean | null;
 }
 
 export interface PelaksanaInput {
@@ -161,10 +165,13 @@ export interface PelaksanaHasil {
   uangHarian: BarisBiaya[];
   representasi: BarisBiaya[];
   penginapan: BarisBiaya[];
+  pengeluaranRiil: BarisBiaya[];
   totalTransport: number;
   totalUangHarian: number;
   totalRepresentasi: number;
   totalPenginapan: number;
+  totalPengeluaranRiil: number;
+  terbilangPengeluaranRiil: string;
   total: number;
   terbilang: string;
   uraianSptb: string;

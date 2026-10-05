@@ -90,7 +90,19 @@ describe("payloadDariDto", () => {
       pelaksana: [pelaksanaKosong()],
     };
     const payload = payloadDariDto(dto);
-    expect(Object.keys(payload).sort()).toEqual(["catatan", "kodeAkun", "nomor", "pelaksana", "tanggal", "tanggalSpj"]);
+    expect(Object.keys(payload).sort()).toEqual([
+      "catatan",
+      "kodeAkun",
+      "nomor",
+      "pelaksana",
+      "pjJabatan",
+      "pjNama",
+      "pjNip",
+      "sumberDana",
+      "tahunAnggaran",
+      "tanggal",
+      "tanggalSpj",
+    ]);
     expect(payload.pelaksana).toHaveLength(1);
   });
 });

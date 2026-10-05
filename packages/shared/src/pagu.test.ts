@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SBM_2026 } from "./data/sbm-2026.js";
-import { catatanBiaya, paguBiaya, paguTiket } from "./pagu.js";
+import { catatanBiaya, paguBiaya, paguTiket, tarifUangSakuFullboard } from "./pagu.js";
 
 const KEDUDUKAN = "D.K.I. JAKARTA";
 
@@ -62,5 +62,24 @@ describe("paguTiket", () => {
 
   it("rute yang tidak ada mengembalikan null", () => {
     expect(paguTiket(SBM_2026, "Jakarta", "Tidak Ada", "Ekonomi")).toBeNull();
+  });
+});
+
+describe("tarifUangSakuFullboard", () => {
+  it("mengembalikan tarif luar kota sesuai tingkat jabatan", () => {
+    expect(tarifUangSakuFullboard("PEJABAT_NEGARA_WAMEN", true)).toBe(300_000);
+    expect(tarifUangSakuFullboard("ESELON_I", true)).toBe(250_000);
+    expect(tarifUangSakuFullboard("ESELON_II", true)).toBe(180_000);
+    expect(tarifUangSakuFullboard("ESELON_III_GOL_IV", true)).toBe(130_000);
+    expect(tarifUangSakuFullboard("ESELON_IV_GOL_III_II_I", true)).toBe(130_000);
+    expect(tarifUangSakuFullboard(null, true)).toBe(130_000);
+  });
+
+  it("mengembalikan tarif dalam kota sesuai tingkat jabatan", () => {
+    expect(tarifUangSakuFullboard("PEJABAT_NEGARA_WAMEN", false)).toBe(200_000);
+    expect(tarifUangSakuFullboard("ESELON_I", false)).toBe(170_000);
+    expect(tarifUangSakuFullboard("ESELON_II", false)).toBe(150_000);
+    expect(tarifUangSakuFullboard("ESELON_III_GOL_IV", false)).toBe(120_000);
+    expect(tarifUangSakuFullboard("ESELON_IV_GOL_III_II_I", false)).toBe(120_000);
   });
 });

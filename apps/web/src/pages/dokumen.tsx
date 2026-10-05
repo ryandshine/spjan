@@ -34,8 +34,12 @@ export default function DokumenPage() {
   const pilihan: Pilihan[] = useMemo(() => {
     const daftar: Pilihan[] = [{ kunci: 'sptb', label: 'SPTB', jenis: 'sptb' }]
     d?.pelaksana.forEach((p, i) => {
-      daftar.push({ kunci: `rincian:${i}`, label: `Rincian - ${p.nama || `Pelaksana ${i + 1}`}`, jenis: 'rincian', indeks: i })
-      daftar.push({ kunci: `kuitansi:${i}`, label: `Kuitansi - ${p.nama || `Pelaksana ${i + 1}`}`, jenis: 'kuitansi', indeks: i })
+      const nama = p.nama || `Pelaksana ${i + 1}`
+      daftar.push({ kunci: `rincian:${i}`, label: `Rincian - ${nama}`, jenis: 'rincian', indeks: i })
+      daftar.push({ kunci: `kuitansi:${i}`, label: `Kuitansi - ${nama}`, jenis: 'kuitansi', indeks: i })
+      if (p.pengeluaranRiil && p.pengeluaranRiil.length > 0) {
+        daftar.push({ kunci: `dpr:${i}`, label: `DPR - ${nama}`, jenis: 'dpr', indeks: i })
+      }
     })
     daftar.push({ kunci: 'semua', label: 'Semua dokumen (satu berkas)', jenis: 'semua' })
     return daftar

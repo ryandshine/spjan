@@ -1,9 +1,21 @@
-import type { BiayaPayload, EtapePayload, PelaksanaPayload, SuratTugasDto, SuratTugasPayload } from "./schemas.js";
+import type { BiayaPayload, EtapePayload, PelaksanaPayload, SumberDana, SuratTugasDto, SuratTugasPayload } from "./schemas.js";
 import { parseTanggal, selisihHari } from "./teks.js";
 import type { BiayaInput, JenisBiaya } from "./types.js";
 
-export function stKosong(kodeAkun = ""): SuratTugasPayload {
-  return { nomor: "", tanggal: "", tanggalSpj: null, kodeAkun, catatan: "", pelaksana: [] };
+export function stKosong(kodeAkun = "", tahunAnggaran: number | null = null, sumberDana: SumberDana = "RM"): SuratTugasPayload {
+  return {
+    nomor: "",
+    tanggal: "",
+    tanggalSpj: null,
+    kodeAkun,
+    catatan: "",
+    pelaksana: [],
+    tahunAnggaran,
+    sumberDana,
+    pjNama: null,
+    pjNip: null,
+    pjJabatan: null,
+  };
 }
 
 export function etapeKosong(): EtapePayload {
@@ -17,6 +29,7 @@ export function etapeKosong(): EtapePayload {
     hotelNama: null,
     hotelTarif: null,
     dinasJabatan: false,
+    fullboardDates: [],
   };
 }
 
@@ -70,13 +83,17 @@ export interface RingkasEtape {
   malam: number | null;
 }
 
-export function ringkasEtape(e: Pick<EtapePayload, "berangkat" | "pulang" | "malamOverride">): RingkasEtape {
+export function ringkasEtape(
+  e: Pick<EtapePayload, "berangkat" | "pulang"> & { malamOverride?: number | null; fullboardDates?: string[] },
+): RingkasEtape {
   const a = parseTanggal(e.berangkat);
   const b = parseTanggal(e.pulang);
   if (!a || !b) return { hari: null, malam: null };
   const hari = selisihHari(a, b) + 1;
   if (hari < 1) return { hari: null, malam: null };
-  return { hari, malam: e.malamOverride != null ? e.malamOverride : Math.max(hari - 1, 0) };
+  const semuaFullboard = (e.fullboardDates ?? []).length >= hari;
+  const defaultMalam = semuaFullboard ? 0 : Math.max(hari - 1, 0);
+  return { hari, malam: e.malamOverride != null ? e.malamOverride : defaultMalam };
 }
 
 /**
@@ -106,5 +123,10 @@ export function payloadDariDto(dto: SuratTugasDto): SuratTugasPayload {
     kodeAkun: dto.kodeAkun,
     catatan: dto.catatan,
     pelaksana: dto.pelaksana,
+    tahunAnggaran: dto.tahunAnggaran ?? null,
+    sumberDana: dto.sumberDana ?? "RM",
+    pjNama: dto.pjNama ?? null,
+    pjNip: dto.pjNip ?? null,
+    pjJabatan: dto.pjJabatan ?? null,
   };
 }

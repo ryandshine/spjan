@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import {
   AlertCircleIcon,
+  CameraIcon,
   CheckCircle2Icon,
   ClockIcon,
   ExternalLinkIcon,
@@ -18,6 +19,7 @@ import {
   type BerkasDto,
 } from '@spjan/shared'
 
+import { AmbilFotoDialog } from '@/components/ambil-foto-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,18 +40,13 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { api } from '@/lib/api'
-import { pesanGalat, tanggalPendek } from '@/lib/format'
+import { formatUkuran, pesanGalat, tanggalPendek } from '@/lib/format'
+import { kompresGambar, type HasilKompresi } from '@/lib/gambar'
 import {
   useDaftarBerkas,
   useHapusBerkas,
   useUlangiEkstraksiBerkas,
 } from '@/lib/queries'
-
-function formatUkuran(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
 
 function ikonBerkas(mime: string) {
   if (mime.startsWith('image/')) {
@@ -60,13 +57,58 @@ function ikonBerkas(mime: string) {
 
 export function BuktiPanel({ stId }: { stId: number }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
   const [sedangUnggah, setSedangUnggah] = useState(false)
   const [berkasAkanDihapus, setBerkasAkanDihapus] = useState<BerkasDto | null>(null)
 
+  const [modalFotoBuka, setModalFotoBuka] = useState(false)
+  const [hasilKompresiFoto, setHasilKompresiFoto] = useState<HasilKompresi | null>(null)
+  const [sedangKompres, setSedangKompres] = useState(false)
+  const [sedangUnggahFoto, setSedangUnggahFoto] = useState(false)
+
   const { data: daftarBerkas, isLoading, refetch } = useDaftarBerkas(stId)
   const hapus = useHapusBerkas()
   const ulangi = useUlangiEkstraksiBerkas()
+
+  function bukaKamera() {
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = ''
+      cameraInputRef.current.click()
+    }
+  }
+
+  async function tanganiFotoDiambil(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setModalFotoBuka(true)
+    setSedangKompres(true)
+    try {
+      const hasil = await kompresGambar(file)
+      setHasilKompresiFoto(hasil)
+    } catch (err) {
+      toast.error(`Gagal memproses foto: ${pesanGalat(err)}`)
+      setModalFotoBuka(false)
+    } finally {
+      setSedangKompres(false)
+    }
+  }
+
+  async function tanganiUnggahFoto(file: File) {
+    setSedangUnggahFoto(true)
+    try {
+      await api.berkas.unggah(file, stId)
+      toast.success('Foto berhasil diunggah. AI akan mengekstrak bukti secara otomatis.')
+      setModalFotoBuka(false)
+      setHasilKompresiFoto(null)
+      void refetch()
+    } catch (err) {
+      toast.error(`Gagal mengunggah foto: ${pesanGalat(err)}`)
+    } finally {
+      setSedangUnggahFoto(false)
+    }
+  }
 
   async function prosesUnggah(files: FileList | File[]) {
     const list = Array.from(files)
@@ -88,14 +130,24 @@ export function BuktiPanel({ stId }: { stId: number }) {
         continue
       }
 
-      if (file.size > BATAS_BERKAS.maksUkuranMb * 1024 * 1024) {
+      let berkasFinal = file
+      if (isGambar) {
+        try {
+          const kompres = await kompresGambar(file)
+          berkasFinal = kompres.file
+        } catch {
+          berkasFinal = file
+        }
+      }
+
+      if (berkasFinal.size > BATAS_BERKAS.maksUkuranMb * 1024 * 1024) {
         toast.error(`Berkas "${file.name}" melebihi batas ${BATAS_BERKAS.maksUkuranMb} MB.`)
         gagal += 1
         continue
       }
 
       try {
-        await api.berkas.unggah(file, stId)
+        await api.berkas.unggah(berkasFinal, stId)
         sukses += 1
       } catch (err) {
         toast.error(`Gagal mengunggah ${file.name}: ${pesanGalat(err)}`)
@@ -162,7 +214,7 @@ export function BuktiPanel({ stId }: { stId: number }) {
             Unggah kuitansi/invoice hotel, tiket pesawat, boarding pass, atau bukti riil lainnya.
           </CardDescription>
         </div>
-        <div>
+        <div className="flex items-center gap-2">
           <input
             ref={fileInputRef}
             type="file"
@@ -173,10 +225,18 @@ export function BuktiPanel({ stId }: { stId: number }) {
               if (e.target.files) void prosesUnggah(e.target.files)
             }}
           />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => void tanganiFotoDiambil(e)}
+          />
           <Button
             variant="outline"
             size="sm"
-            disabled={sedangUnggah}
+            disabled={sedangUnggah || sedangUnggahFoto}
             onClick={() => fileInputRef.current?.click()}
           >
             {sedangUnggah ? (
@@ -188,6 +248,14 @@ export function BuktiPanel({ stId }: { stId: number }) {
                 <UploadCloudIcon className="mr-1 size-4" /> Unggah Berkas
               </>
             )}
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            disabled={sedangUnggah || sedangUnggahFoto}
+            onClick={bukaKamera}
+          >
+            <CameraIcon className="mr-1 size-4" /> Ambil Foto
           </Button>
         </div>
       </CardHeader>
@@ -208,13 +276,37 @@ export function BuktiPanel({ stId }: { stId: number }) {
             dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'
           }`}
         >
-          <UploadCloudIcon className="mb-2 size-8 text-muted-foreground" />
+          <div className="mb-2 flex items-center justify-center gap-2 text-muted-foreground">
+            <UploadCloudIcon className="size-7" />
+            <span className="text-lg font-light text-muted-foreground/40">/</span>
+            <CameraIcon className="size-7 text-primary" />
+          </div>
           <p className="text-sm font-medium">
-            Tarik & lepaskan berkas bukti ke sini, atau klik tombol Unggah di atas
+            Tarik & lepaskan berkas bukti ke sini, atau gunakan tombol di bawah
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 mb-4 text-xs text-muted-foreground">
             Mendukung PDF, JPG, PNG, WebP hingga {BATAS_BERKAS.maksUkuranMb} MB per berkas.
           </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={sedangUnggah || sedangUnggahFoto}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <UploadCloudIcon className="mr-1 size-4" /> Pilih Dokumen / Berkas
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={sedangUnggah || sedangUnggahFoto}
+              onClick={bukaKamera}
+            >
+              <CameraIcon className="mr-1 size-4" /> Ambil Foto Langsung
+            </Button>
+          </div>
         </div>
 
         {/* Tabel Berkas */}
@@ -350,6 +442,19 @@ export function BuktiPanel({ stId }: { stId: number }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AmbilFotoDialog
+        buka={modalFotoBuka}
+        onBukaChange={(buka) => {
+          setModalFotoBuka(buka)
+          if (!buka) setHasilKompresiFoto(null)
+        }}
+        hasilFoto={hasilKompresiFoto}
+        sedangMemproses={sedangKompres}
+        sedangUnggah={sedangUnggahFoto}
+        onFotoUlang={bukaKamera}
+        onKonfirmasiUnggah={tanganiUnggahFoto}
+      />
     </Card>
   )
 }

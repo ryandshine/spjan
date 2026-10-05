@@ -45,9 +45,13 @@ export function BiayaForm({
 }) {
   const perluProvinsi = jenisButuhProvinsi(biaya.jenis)
   const perluEtape = jenisButuhEtape(biaya.jenis) && etapeJumlah > 1
-  const perluUraian = jenisButuhUraian(biaya.jenis)
+  const perluUraian = jenisButuhUraian(biaya.jenis) || !!biaya.uraian
   const uraianLabel =
-    biaya.jenis === 'TRANSPORT_DARAT' || biaya.jenis === 'TRANSPORT_JAKARTA_SEKITAR' ? 'Kab/kota tujuan (persis PMK)' : 'Uraian'
+    biaya.jenis === 'TRANSPORT_DARAT' || biaya.jenis === 'TRANSPORT_JAKARTA_SEKITAR'
+      ? 'Kab/kota tujuan (persis PMK)'
+      : biaya.jenis === 'TIKET_PERGI' || biaya.jenis === 'TIKET_KEMBALI'
+        ? 'Uraian tiket'
+        : 'Uraian'
   return (
     <div className="grid gap-2 rounded-lg border bg-card p-3">
       <div className="flex flex-wrap items-end gap-2">
@@ -61,13 +65,13 @@ export function BiayaForm({
           </Select>
         </Sel>
         {perluEtape ? (
-          <Sel label="Untuk etape">
+          <Sel label="Untuk tujuan">
             <Select
               className="w-44"
               value={biaya.etapeIndex ?? ''}
               onChange={(e) => onUbah({ etapeIndex: e.target.value === '' ? null : Number(e.target.value) })}
             >
-              <option value="">{biaya.jenis === 'TIKET_PERGI' ? 'Etape 1 (otomatis)' : 'Etape terakhir (otomatis)'}</option>
+              <option value="">{biaya.jenis === 'TIKET_PERGI' ? 'Tujuan 1 (otomatis)' : 'Tujuan terakhir (otomatis)'}</option>
               {Array.from({ length: etapeJumlah }, (_, i) => (
                 <option key={i} value={i}>
                   {etapeLabel(i)}
@@ -90,7 +94,11 @@ export function BiayaForm({
         ) : null}
         {perluUraian ? (
           <Sel label={uraianLabel}>
-            <Input className="w-56" value={biaya.uraian ?? ''} onChange={(e) => onUbah({ uraian: e.target.value || null })} />
+            <Input
+              className={biaya.jenis === 'TIKET_PERGI' || biaya.jenis === 'TIKET_KEMBALI' ? 'w-72' : 'w-56'}
+              value={biaya.uraian ?? ''}
+              onChange={(e) => onUbah({ uraian: e.target.value || null })}
+            />
           </Sel>
         ) : null}
         <Sel label="Jumlah">
@@ -109,7 +117,7 @@ export function BiayaForm({
         <Sel label="Keterangan">
           <Input
             className="w-40"
-            placeholder="Bukti terlampir"
+            placeholder={biaya.jenis === 'TAKSI_KEDUDUKAN' ? '' : 'Bukti terlampir'}
             value={biaya.keterangan ?? ''}
             onChange={(e) => onUbah({ keterangan: e.target.value || null })}
           />
@@ -117,6 +125,17 @@ export function BiayaForm({
         <Button variant="ghost" size="icon" onClick={onHapus} aria-label="Hapus biaya">
           <Trash2Icon className="text-destructive" />
         </Button>
+      </div>
+      <div className="flex items-center gap-2 pt-1 border-t border-dashed">
+        <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+          <input
+            type="checkbox"
+            checked={!!biaya.pengeluaranRiil}
+            onChange={(e) => onUbah({ pengeluaranRiil: e.target.checked })}
+            className="size-3.5 rounded border-muted text-primary focus:ring-primary"
+          />
+          <span>Pengeluaran riil tanpa kuitansi resmi (masuk ke lembar Daftar Pengeluaran Riil Lampiran IX PMK 113)</span>
+        </label>
       </div>
       {baris ? (
         <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs">

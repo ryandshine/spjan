@@ -8,7 +8,7 @@ import { rupiah } from '@/lib/format'
 export function RingkasanPanel({ hasil }: { hasil: SpjHasil }) {
   const jumlahPeringatan = hasil.pelaksana.reduce((n, p) => n + p.peringatan.length, 0)
   return (
-    <Card className="lg:sticky lg:top-6">
+    <Card className="xl:sticky xl:top-6 shadow-sm border-border">
       <CardContent className="grid gap-4">
         <div>
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Total SPTB</p>

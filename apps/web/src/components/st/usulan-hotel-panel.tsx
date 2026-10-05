@@ -32,7 +32,7 @@ function UsulanHotelCard({
 }: {
   item: UsulanHotelItem
   pelaksanaList: PelaksanaPayload[]
-  onTerapkan: (pelaksanaIndex: number, etapeIndex: number, usulan: UsulanHotelItem) => void
+  onTerapkan: (pelaksanaIndex: number, etapeIndex: number, usulan: UsulanHotelItem) => Promise<void> | void
 }) {
   const updateUsulan = useUpdateUsulanBerkas()
   const [selectedPelaksana, setSelectedPelaksana] = useState<number>(() => {
@@ -56,7 +56,7 @@ function UsulanHotelCard({
 
   async function handleTerapkan() {
     try {
-      onTerapkan(selectedPelaksana, selectedEtape, item)
+      await onTerapkan(selectedPelaksana, selectedEtape, item)
       await updateUsulan.mutateAsync({
         id: item.berkasId,
         payload: {
@@ -65,7 +65,7 @@ function UsulanHotelCard({
         },
       })
       toast.success(
-        `Biaya penginapan "${item.ekstraksi.namaHotel}" diterapkan ke ${pelaksanaTerpilih?.nama || 'pelaksana'} (Etape ${selectedEtape + 1}).`
+        `Biaya penginapan "${item.ekstraksi.namaHotel}" diterapkan ke ${pelaksanaTerpilih?.nama || 'pelaksana'} (Tujuan ${selectedEtape + 1}).`
       )
     } catch (err) {
       toast.error(`Gagal memperbarui status usulan: ${pesanGalat(err)}`)
@@ -204,7 +204,7 @@ function UsulanHotelCard({
         </div>
       )}
 
-      {/* Pemilihan Pelaksana & Etape Tujuan */}
+      {/* Pemilihan Pelaksana & Tujuan Perjalanan */}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
         <div className="flex flex-wrap items-center gap-2">
           <label className="text-xs text-muted-foreground">Terapkan ke:</label>
@@ -232,7 +232,7 @@ function UsulanHotelCard({
             >
               {etapeList.map((e, idx) => (
                 <option key={idx} value={idx}>
-                  Etape {idx + 1}: {e.kota || e.provinsi || '-'}
+                  Tujuan {idx + 1}: {e.kota || e.provinsi || '-'}
                 </option>
               ))}
             </Select>
@@ -324,7 +324,7 @@ export function UsulanHotelPanel({ stId, pelaksanaList, onTerapkan }: Props) {
           )}
         </div>
         <CardDescription>
-          Hasil pembacaan invoice hotel oleh AI. Klik &quot;Terapkan ke Biaya&quot; untuk mengisi otomatis nama hotel, tarif per malam, dan durasi pada etape pelaksana.
+          Hasil pembacaan invoice hotel oleh AI. Klik &quot;Terapkan ke Biaya&quot; untuk mengisi otomatis nama hotel, tarif per malam, dan durasi pada tujuan perjalanan pelaksana.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

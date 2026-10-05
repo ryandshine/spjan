@@ -87,7 +87,7 @@ export default function SuratTugasListPage() {
           <DialogHeader>
             <DialogTitle>Hapus surat tugas?</DialogTitle>
             <DialogDescription>
-              {target?.nomor} beserta seluruh pelaksana, etape, dan biayanya akan dihapus permanen.
+              {target?.nomor} beserta seluruh pelaksana, tujuan perjalanan, dan biayanya akan dihapus permanen.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

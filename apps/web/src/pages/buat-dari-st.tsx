@@ -305,7 +305,7 @@ export default function BuatDariStPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <UsersIcon className="size-4 text-muted-foreground" />
-                      <CardTitle className="text-base">Daftar Pelaksana & Etape</CardTitle>
+                      <CardTitle className="text-base">Daftar Pelaksana & Tujuan</CardTitle>
                     </div>
                     <span className="text-xs text-muted-foreground font-medium">
                       {usulan.pelaksanaStatus.length} personil terdeteksi

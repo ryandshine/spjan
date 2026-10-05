@@ -19,6 +19,7 @@ export const EtapePayloadSchema = z.object({
   hotelNama: teks(200).nullish(),
   hotelTarif: rupiah.nullish(),
   dinasJabatan: z.boolean().optional(),
+  fullboardDates: z.array(tanggalWajib).optional(),
 });
 
 export const BiayaPayloadSchema = z.object({
@@ -30,6 +31,7 @@ export const BiayaPayloadSchema = z.object({
   tarif: rupiah,
   keterangan: teks(300).nullish(),
   etapeIndex: z.number().int().min(0).max(19).nullish(),
+  pengeluaranRiil: z.boolean().nullish(),
 });
 
 export const PelaksanaPayloadSchema = z.object({
@@ -43,6 +45,9 @@ export const PelaksanaPayloadSchema = z.object({
   biaya: z.array(BiayaPayloadSchema).max(60),
 });
 
+export const SumberDanaSchema = z.enum(["RM", "PNBP"]);
+export type SumberDana = z.infer<typeof SumberDanaSchema>;
+
 export const SuratTugasPayloadSchema = z.object({
   nomor: teks(200).min(1),
   tanggal: tanggalWajib,
@@ -50,6 +55,11 @@ export const SuratTugasPayloadSchema = z.object({
   kodeAkun: teks(100),
   catatan: teks(2000),
   pelaksana: z.array(PelaksanaPayloadSchema).max(30),
+  tahunAnggaran: z.number().int().min(2000).max(2100).nullish(),
+  sumberDana: SumberDanaSchema.nullish(),
+  pjNama: teks(200).nullish(),
+  pjNip: teks(60).nullish(),
+  pjJabatan: teks(200).nullish(),
 });
 export type EtapePayload = z.infer<typeof EtapePayloadSchema>;
 export type BiayaPayload = z.infer<typeof BiayaPayloadSchema>;

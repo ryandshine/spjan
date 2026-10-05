@@ -134,7 +134,7 @@ describe("petakanTransportKeUsulan", () => {
     expect(usulan[0]!.jenisBiaya).toBe("TIKET_PERGI");
     expect(usulan[0]!.pelaksanaIndex).toBe(0);
     expect(usulan[0]!.tarifRiil).toBe(1520000);
-    expect(usulan[0]!.uraianBiaya).toContain("Garuda Indonesia");
+    expect(usulan[0]!.uraianBiaya).toContain("Tiket Pesawat");
   });
 
   it("memetakan tiket penerbangan kembali ke TIKET_KEMBALI berdasarkan tanggal kepulangan", () => {
@@ -220,5 +220,150 @@ describe("petakanTransportKeUsulan", () => {
     expect(usulan[0]!.kategoriBerkas).toBe("transport");
     expect(usulan[0]!.jenisBiaya).toBe("TAKSI_TERMINAL");
     expect(usulan[0]!.tarifRiil).toBe(185000);
+  });
+
+  it("memetakan tiket kepulangan ke Jakarta sebagai TIKET_KEMBALI meskipun model menghasilkan arah 'pergi'", () => {
+    const berkas: BerkasDto[] = [
+      {
+        id: 24,
+        stId: 1,
+        pelaksanaId: null,
+        namaAsli: "WTCWQA_AirAsia.pdf",
+        mime: "application/pdf",
+        ukuran: 54321,
+        sha256: "11223344556677",
+        jenis: "tiket",
+        createdAt: "2026-09-08T10:00:00.000Z",
+        ekstraksi: {
+          id: 24,
+          berkasId: 24,
+          status: "selesai",
+          model: "gpt-oss:120b-cloud",
+          hasil: {
+            maskapai: "AirAsia Indonesia",
+            kodeBooking: "WTCWQA",
+            nomorTiket: "9902149382524",
+            penumpang: "MR Riandi Eko Priantoro",
+            asal: "Yogyakarta (YIA)",
+            tujuan: "Jakarta (CGK)",
+            tanggal: "2026-09-13",
+            nomorPenerbangan: "IU 313",
+            tarif: 1297149,
+            arah: "pergi", // AI keliru mengembalikan arah pergi
+          },
+          kodeGalat: null,
+          galat: null,
+          usulanStatus: "menunggu",
+          createdAt: "2026-09-08T10:00:00.000Z",
+          selesaiAt: "2026-09-08T10:00:03.000Z",
+        },
+      },
+    ];
+
+    const stDuaPelaksana: SuratTugasPayload = {
+      ...dummySt,
+      pelaksana: [
+        ...dummySt.pelaksana,
+        {
+          nama: "Riandi Eko Priantoro, S.Kom.",
+          nip: "198404212023211020",
+          jabatan: "Pranata Komputer",
+          status: "ESELON_IV_GOL_III_II_I",
+          noSpd: null,
+          etape: [
+            {
+              provinsi: "D.I. YOGYAKARTA",
+              kota: "Yogyakarta",
+              kegiatan: "Rakor",
+              berangkat: "2026-09-10",
+              pulang: "2026-09-13",
+              malamOverride: null,
+              hotelNama: null,
+              hotelTarif: null,
+              dinasJabatan: false,
+            },
+          ],
+          biaya: [],
+        },
+      ],
+    };
+
+    const usulan = petakanTransportKeUsulan(berkas, stDuaPelaksana);
+    expect(usulan).toHaveLength(1);
+    expect(usulan[0]!.jenisBiaya).toBe("TIKET_KEMBALI");
+    expect(usulan[0]!.pelaksanaIndex).toBe(1);
+    expect(usulan[0]!.pelaksanaNama).toBe("Riandi Eko Priantoro, S.Kom.");
+  });
+
+  it("mencocokkan nama penumpang dengan gelar depan 'Mr' dan variasi ejaan nama 'Ekko'", () => {
+    const berkas: BerkasDto[] = [
+      {
+        id: 25,
+        stId: 1,
+        pelaksanaId: null,
+        namaAsli: "garuda_ekko.jpg",
+        mime: "image/jpeg",
+        ukuran: 54321,
+        sha256: "99887766554433",
+        jenis: "tiket",
+        createdAt: "2026-09-08T10:00:00.000Z",
+        ekstraksi: {
+          id: 25,
+          berkasId: 25,
+          status: "selesai",
+          model: "gemma4:cloud",
+          hasil: {
+            maskapai: "Garuda Indonesia",
+            kodeBooking: "DKA3NH",
+            nomorTiket: "126-4854411617",
+            penumpang: "Mr Riandi Ekko Priantoro",
+            asal: "Jakarta (CGK)",
+            tujuan: "Yogyakarta (YIA)",
+            tanggal: "2026-09-10",
+            nomorPenerbangan: "GA 208",
+            tarif: 1749292,
+            arah: "pergi",
+          },
+          kodeGalat: null,
+          galat: null,
+          usulanStatus: "menunggu",
+          createdAt: "2026-09-08T10:00:00.000Z",
+          selesaiAt: "2026-09-08T10:00:03.000Z",
+        },
+      },
+    ];
+
+    const stDuaPelaksana: SuratTugasPayload = {
+      ...dummySt,
+      pelaksana: [
+        ...dummySt.pelaksana,
+        {
+          nama: "Riandi Eko Priantoro, S.Kom.",
+          nip: "198404212023211020",
+          jabatan: "Pranata Komputer",
+          status: "ESELON_IV_GOL_III_II_I",
+          noSpd: null,
+          etape: [
+            {
+              provinsi: "D.I. YOGYAKARTA",
+              kota: "Yogyakarta",
+              kegiatan: "Rakor",
+              berangkat: "2026-09-10",
+              pulang: "2026-09-13",
+              malamOverride: null,
+              hotelNama: null,
+              hotelTarif: null,
+              dinasJabatan: false,
+            },
+          ],
+          biaya: [],
+        },
+      ],
+    };
+
+    const usulan = petakanTransportKeUsulan(berkas, stDuaPelaksana);
+    expect(usulan).toHaveLength(1);
+    expect(usulan[0]!.pelaksanaIndex).toBe(1);
+    expect(usulan[0]!.jenisBiaya).toBe("TIKET_PERGI");
   });
 });

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   angkaKata,
+  daftarHariIso,
   formatAngka,
+  formatDaftarTanggal,
   formatRp,
   norm,
   parseTanggal,
@@ -74,6 +76,24 @@ describe("tanggal", () => {
     expect(rentangSptb(t("2026-09-10"), t("2026-09-13"))).toBe("10 s.d. 13 September 2026");
     expect(rentangSptb(t("2026-09-30"), t("2026-10-02"))).toBe("30 September s.d. 2 Oktober 2026");
     expect(rentangSptb(t("2026-12-30"), t("2027-01-02"))).toBe("30 Desember 2026 s.d. 2 Januari 2027");
+  });
+
+  it("daftarHariIso menghasilkan tanggal harian inklusif", () => {
+    expect(daftarHariIso(t("2026-09-10"), t("2026-09-13"))).toEqual([
+      "2026-09-10",
+      "2026-09-11",
+      "2026-09-12",
+      "2026-09-13",
+    ]);
+  });
+
+  it("formatDaftarTanggal memformat daftar tanggal dengan benar", () => {
+    expect(formatDaftarTanggal([])).toBe("");
+    expect(formatDaftarTanggal(["2026-09-11"])).toBe("11 September 2026");
+    expect(formatDaftarTanggal(["2026-09-11", "2026-09-12"])).toBe("11 s.d. 12 September 2026");
+    expect(formatDaftarTanggal(["2026-09-10", "2026-09-13"])).toBe("10 dan 13 September 2026");
+    expect(formatDaftarTanggal(["2026-09-10", "2026-09-11", "2026-09-14"])).toBe("10 s.d. 11 dan 14 September 2026");
+    expect(formatDaftarTanggal(["2026-09-30", "2026-10-02"])).toBe("30 September 2026 dan 2 Oktober 2026");
   });
 });
 

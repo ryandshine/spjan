@@ -45,6 +45,8 @@ export interface UsulanStHasil {
 export function bersihkanGelarNama(nama: string): string {
   let n = nama.split(",")[0] ?? nama;
   n = n.replace(/^(?:Dr|Dra|Drs|Ir|Prof)\.?\s+/i, "");
+  n = n.replace(/^(?:MR|MRS|MS|MSTR)\.?\s+/i, "");
+  n = n.replace(/\s+(?:MR|MRS|MS|MSTR)$/i, "");
   return norm(n);
 }
 
@@ -130,6 +132,7 @@ export function petakanStKeUsulan(
         hotelNama: null,
         hotelTarif: null,
         dinasJabatan: false,
+        fullboardDates: [],
       };
     });
 

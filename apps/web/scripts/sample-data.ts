@@ -57,8 +57,8 @@ export const ST_CONTOH: SuratTugasPayload = {
       status: 'ESELON_III_GOL_IV',
       noSpd: '401/SPD/PPS/2026',
       etape: [
-        { provinsi: 'BALI', kota: 'Denpasar', kegiatan: KEG_BALI, berangkat: '2026-09-10', pulang: '2026-09-11', malamOverride: null, hotelNama: 'Hotel Bali', hotelTarif: 1_500_000, dinasJabatan: false },
-        { provinsi: 'D.I. YOGYAKARTA', kota: 'Yogyakarta', kegiatan: KEG_YOGYA, berangkat: '2026-09-12', pulang: '2026-09-13', malamOverride: null, hotelNama: 'Hotel Yogya', hotelTarif: 1_000_000, dinasJabatan: false },
+        { provinsi: 'BALI', kota: 'Denpasar', kegiatan: KEG_BALI, berangkat: '2026-09-10', pulang: '2026-09-11', malamOverride: null, hotelNama: 'Hotel Bali', hotelTarif: 1_500_000, dinasJabatan: false, fullboardDates: [] },
+        { provinsi: 'D.I. YOGYAKARTA', kota: 'Yogyakarta', kegiatan: KEG_YOGYA, berangkat: '2026-09-12', pulang: '2026-09-13', malamOverride: null, hotelNama: 'Hotel Yogya', hotelTarif: 1_000_000, dinasJabatan: false, fullboardDates: [] },
       ],
       biaya: [
         tiket('TIKET_PERGI', 1_500_000, 0),
@@ -75,13 +75,13 @@ export const ST_CONTOH: SuratTugasPayload = {
       status: 'ESELON_IV_GOL_III_II_I',
       noSpd: '403/SPD/PPS/2026',
       etape: [
-        { provinsi: 'BALI', kota: 'Denpasar', kegiatan: KEG_BALI, berangkat: '2026-09-10', pulang: '2026-09-11', malamOverride: null, hotelNama: 'Kuto Paradiso Hotel', hotelTarif: 1_021_948, dinasJabatan: false },
+        { provinsi: 'BALI', kota: 'Denpasar', kegiatan: KEG_BALI, berangkat: '2026-09-10', pulang: '2026-09-11', malamOverride: null, hotelNama: 'Kuto Paradiso Hotel', hotelTarif: 1_021_948, dinasJabatan: false, fullboardDates: [] },
       ],
       biaya: [
         tiket('TIKET_PERGI', 2_260_940),
         tiket('TIKET_KEMBALI', 2_223_091),
         { jenis: 'TAKSI_KEDUDUKAN', provinsi: null, uraian: null, qty: 2, satuan: null, tarif: 250_000, keterangan: null, etapeIndex: null },
-        { jenis: 'TRANSPORT_DARAT', provinsi: 'BALI', uraian: 'Kab. Gianyar', qty: 2, satuan: null, tarif: 200_000, keterangan: null, etapeIndex: null },
+        { jenis: 'TRANSPORT_DARAT', provinsi: 'BALI', uraian: 'Kab. Gianyar', qty: 2, satuan: null, tarif: 200_000, keterangan: null, etapeIndex: null, pengeluaranRiil: true },
       ],
     },
     {
@@ -92,7 +92,7 @@ export const ST_CONTOH: SuratTugasPayload = {
       status: 'ESELON_II',
       noSpd: '45/SPD/PPS/2026',
       etape: [
-        { provinsi: 'SULAWESI UTARA', kota: 'Manado', kegiatan: 'Pelaksanaan Pemantauan Izin Perhutanan Sosial serta Koordinasi Kunjungan Kerja Menteri Kehutanan ke Kota Manado, Provinsi Sulawesi Utara', berangkat: '2026-04-07', pulang: '2026-04-10', malamOverride: null, hotelNama: 'Manado Quality Hotel', hotelTarif: 650_000, dinasJabatan: true },
+        { provinsi: 'SULAWESI UTARA', kota: 'Manado', kegiatan: 'Pelaksanaan Pemantauan Izin Perhutanan Sosial serta Koordinasi Kunjungan Kerja Menteri Kehutanan ke Kota Manado, Provinsi Sulawesi Utara', berangkat: '2026-04-07', pulang: '2026-04-10', malamOverride: null, hotelNama: 'Manado Quality Hotel', hotelTarif: 650_000, dinasJabatan: true, fullboardDates: [] },
       ],
       biaya: [tiket('TIKET_PERGI', 3_689_972), tiket('TIKET_KEMBALI', 4_189_812)],
     },

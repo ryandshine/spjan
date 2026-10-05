@@ -85,7 +85,7 @@ export function PelaksanaCard({
       <CardContent className="grid gap-5">
         <section className="grid gap-3">
           <div className="flex flex-wrap items-end gap-2">
-            <Field label="Pilih dari daftar pegawai" htmlFor={id('pil')} className="min-w-64 flex-1">
+            <Field label="Pilih dari daftar pegawai" htmlFor={id('pil')} className="min-w-48 flex-1">
               <Select
                 id={id('pil')}
                 value={p.pegawaiId ?? ''}
@@ -107,8 +107,8 @@ export function PelaksanaCard({
               <UserPlusIcon /> Pegawai baru
             </Button>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Field label="Nama (dengan gelar)" htmlFor={id('nama')} className="lg:col-span-2">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <Field label="Nama (dengan gelar)" htmlFor={id('nama')} className="xl:col-span-2">
               <Input id={id('nama')} value={p.nama} onChange={(e) => onUbah((x) => ({ ...x, nama: e.target.value }))} />
             </Field>
             <Field label="NIP" htmlFor={id('nip')}>
@@ -117,10 +117,10 @@ export function PelaksanaCard({
             <Field label="No. SPD" htmlFor={id('spd')}>
               <Input id={id('spd')} value={p.noSpd ?? ''} onChange={(e) => onUbah((x) => ({ ...x, noSpd: e.target.value || null }))} />
             </Field>
-            <Field label="Jabatan" htmlFor={id('jab')} className="lg:col-span-2">
+            <Field label="Jabatan" htmlFor={id('jab')} className="xl:col-span-2">
               <Input id={id('jab')} value={p.jabatan} onChange={(e) => onUbah((x) => ({ ...x, jabatan: e.target.value }))} />
             </Field>
-            <Field label="Status / golongan" htmlFor={id('status')} className="lg:col-span-2">
+            <Field label="Status / golongan" htmlFor={id('status')} className="xl:col-span-2">
               <Select
                 id={id('status')}
                 value={p.status ?? ''}
@@ -138,7 +138,7 @@ export function PelaksanaCard({
         </section>
 
         <section className="grid gap-3">
-          <h3 className="text-sm font-semibold">Perjalanan (satu etape per kota tujuan)</h3>
+          <h3 className="text-sm font-semibold">Tujuan Perjalanan (satu tujuan per kota)</h3>
           {p.etape.map((e, i) => (
             <EtapeForm
               key={i}
@@ -162,7 +162,7 @@ export function PelaksanaCard({
           ))}
           <div>
             <Button variant="outline" size="sm" onClick={() => onUbah((x) => ({ ...x, etape: [...x.etape, etapeKosong()] }))}>
-              <PlusIcon /> Tambah etape (kota lain)
+              <PlusIcon /> Tambah tujuan (kota lain)
             </Button>
           </div>
         </section>
@@ -175,7 +175,7 @@ export function PelaksanaCard({
               key={i}
               biaya={b}
               etapeJumlah={p.etape.length}
-              etapeLabel={(k) => `Etape ${k + 1}${p.etape[k]?.kota ? ` - ${p.etape[k]?.kota}` : ''}`}
+              etapeLabel={(k) => `Tujuan ${k + 1}${p.etape[k]?.kota ? ` - ${p.etape[k]?.kota}` : ''}`}
               provinsi={provinsi}
               baris={indeks[i] != null ? hasil?.transport[indeks[i] as number] : null}
               onUbah={(patch) => ubahBiaya(i, patch)}

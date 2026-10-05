@@ -1,6 +1,8 @@
-import { catatanBiaya, paguTiket } from "./pagu.js";
+import { catatanBiaya, paguTiket, tarifUangSakuFullboard } from "./pagu.js";
 import {
   angkaKata,
+  daftarHariIso,
+  formatDaftarTanggal,
   formatRp,
   norm,
   parseTanggal,
@@ -41,6 +43,14 @@ const LABEL_URAIAN: Partial<Record<JenisBiaya, string>> = {
   KERETA_BUS_LAIN: "Kereta api / bus / lainnya",
 };
 
+export function normalkanUraianTiket(uraian: string): string {
+  if (!uraian) return uraian;
+  return uraian.replace(
+    /^Tiket\s+(?:Garuda(?:\s+Indonesia)?|AirAsia(?:\s+Indonesia)?|Lion(?:\s+Air)?|Batik(?:\s+Air)?|Citilink|Super\s+Air\s+Jet|Sriwijaya(?:\s+Air)?|Wings\s+Air|Pelita\s+Air|Nam\s+Air|TransNusa)\b/i,
+    "Tiket Pesawat",
+  );
+}
+
 function ada(s: string | null | undefined): boolean {
   return !!s && s.trim() !== "";
 }
@@ -50,14 +60,14 @@ function uraianBiaya(b: BiayaInput, input: SpjInput, etape: EtapeInput[]): strin
   const kedudukan = input.kotaKedudukan;
   switch (b.jenis) {
     case "TIKET_PERGI": {
-      if (uraian) return uraian;
+      if (uraian) return normalkanUraianTiket(uraian);
       const i = b.etapeIndex ?? 0;
       const tujuan = etape[i]?.kota ?? "";
       const asal = i > 0 ? (etape[i - 1]?.kota ?? kedudukan) : kedudukan;
       return `Tiket Pesawat ${asal} ke ${tujuan}`;
     }
     case "TIKET_KEMBALI": {
-      if (uraian) return uraian;
+      if (uraian) return normalkanUraianTiket(uraian);
       const i = b.etapeIndex ?? etape.length - 1;
       return `Tiket Pesawat ${etape[i]?.kota ?? ""} ke ${kedudukan}`;
     }
@@ -78,23 +88,36 @@ function barisTransport(b: BiayaInput, input: SpjInput, etape: EtapeInput[], sbm
   const tampil = qty > 1;
   const satuanDefault = SEWA.has(b.jenis) ? "hari" : "kali";
   const catatan = catatanBiaya(sbm, b, input.provinsiKedudukan);
+  const keteranganDefault = b.jenis === "TAKSI_KEDUDUKAN" ? "" : KETERANGAN_DEFAULT;
   return {
     uraian: uraianBiaya(b, input, etape),
     qty: tampil ? qty : null,
     satuan: tampil ? ada(b.satuan) ? (b.satuan as string) : satuanDefault : null,
     tarif: tampil ? b.tarif : null,
     jumlah: Math.round(qty * b.tarif),
-    keterangan: ada(b.keterangan) ? (b.keterangan as string) : KETERANGAN_DEFAULT,
+    keterangan: ada(b.keterangan) ? (b.keterangan as string) : keteranganDefault,
     ...(catatan ? { catatan } : {}),
   };
 }
 
 interface HasilEtape {
-  uangHarian?: BarisBiaya;
+  uangHarian?: BarisBiaya[];
   representasi?: BarisBiaya;
   penginapan?: BarisBiaya;
   peringatan: Peringatan[];
   uraianSptb?: string;
+}
+
+/** Membersihkan awalan kegiatan agar tidak terjadi pengulangan "dalam rangka" atau "perjalanan dinas". */
+export function bersihkanKegiatanUraian(kegiatan: string): string {
+  let bersih = kegiatan.trim();
+  bersih = bersih.replace(/^(?:melaksanakan\s+)?(?:tugas\s+|kegiatan\s+)?perjalanan\s+dinas\s+(?:dalam\s+rangka\s+)?/i, "");
+  bersih = bersih.replace(/^(?:melaksanakan\s+)?(?:kegiatan\s+)?dalam\s+rangka\s+/i, "");
+  bersih = bersih.trim();
+  if (bersih.length > 0) {
+    bersih = bersih.charAt(0).toUpperCase() + bersih.slice(1);
+  }
+  return bersih || kegiatan.trim();
 }
 
 function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): HasilEtape {
@@ -117,19 +140,48 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
     peringatan.push({ kode: "DATA_BELUM_LENGKAP", pesan: `${nomor}: provinsi "${e.provinsi}" tidak ada di tabel SBM.`, etape: i });
     return { peringatan };
   }
-  const malam = e.malamOverride != null ? e.malamOverride : Math.max(hari - 1, 0);
+
+  const listHari = daftarHariIso(a, b);
+  const tglFullboard = (e.fullboardDates ?? []).filter((tgl) => listHari.includes(tgl));
+  const tglBiasa = listHari.filter((tgl) => !tglFullboard.includes(tgl));
+  const semuaFullboard = tglFullboard.length >= hari;
+
+  const malam = e.malamOverride != null ? e.malamOverride : semuaFullboard ? 0 : Math.max(hari - 1, 0);
   const rincian = rentangRincian(a, b);
   const cfg = p.status ? sbm.statusKonfigurasi[p.status] : undefined;
   const hasil: HasilEtape = { peringatan };
 
-  hasil.uangHarian = {
-    uraian: "selama :",
-    qty: hari,
-    satuan: "hari",
-    tarif: tarifHarian,
-    jumlah: hari * tarifHarian,
-    keterangan: `Lumpsum/Prov. ${proper(e.provinsi)} Tanggal ${rincian}`,
-  };
+  hasil.uangHarian = [];
+  if (tglFullboard.length === 0) {
+    hasil.uangHarian.push({
+      uraian: "selama :",
+      qty: hari,
+      satuan: "hari",
+      tarif: tarifHarian,
+      jumlah: hari * tarifHarian,
+      keterangan: `Lumpsum/Prov. ${proper(e.provinsi)} Tanggal ${rincian}`,
+    });
+  } else {
+    if (tglBiasa.length > 0) {
+      hasil.uangHarian.push({
+        uraian: "selama :",
+        qty: tglBiasa.length,
+        satuan: "hari",
+        tarif: tarifHarian,
+        jumlah: tglBiasa.length * tarifHarian,
+        keterangan: `Lumpsum/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tglBiasa)}`,
+      });
+    }
+    const tarifSaku = tarifUangSakuFullboard(p.status, true);
+    hasil.uangHarian.push({
+      uraian: "Uang saku fullboard :",
+      qty: tglFullboard.length,
+      satuan: "hari",
+      tarif: tarifSaku,
+      jumlah: tglFullboard.length * tarifSaku,
+      keterangan: `Kegiatan Fullboard Tanggal ${formatDaftarTanggal(tglFullboard)}`,
+    });
+  }
 
   if (cfg && cfg.barisRepresentasi > 0 && e.dinasJabatan) {
     const tarifRep = sbm.representasi[cfg.barisRepresentasi - 1]?.luarKota;
@@ -170,7 +222,7 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
   }
 
   const kata = hari <= 99 ? ` (${angkaKata(hari)})` : "";
-  hasil.uraianSptb = `${e.kegiatan.trim()} selama ${hari}${kata} hari pada tanggal ${rentangSptb(a, b)}`;
+  hasil.uraianSptb = `${bersihkanKegiatanUraian(e.kegiatan)} selama ${hari}${kata} hari pada tanggal ${rentangSptb(a, b)}`;
   return hasil;
 }
 
@@ -192,15 +244,23 @@ function hitungPelaksana(p: PelaksanaInput, input: SpjInput, sbm: Sbm): Pelaksan
   p.etape.forEach((e, i) => {
     const h = hitungEtape(e, i, p, sbm);
     peringatan.push(...h.peringatan);
-    if (h.uangHarian) uangHarian.push(h.uangHarian);
+    if (h.uangHarian) uangHarian.push(...h.uangHarian);
     if (h.representasi) representasi.push(h.representasi);
     if (h.penginapan) penginapan.push(h.penginapan);
     if (h.uraianSptb) segmen.push(h.uraianSptb);
   });
 
-  const transport = p.biaya
-    .map((b) => barisTransport(b, input, p.etape, sbm))
-    .filter((r): r is BarisBiaya => r !== null);
+  const transport: BarisBiaya[] = [];
+  const pengeluaranRiil: BarisBiaya[] = [];
+  for (const b of p.biaya) {
+    const baris = barisTransport(b, input, p.etape, sbm);
+    if (baris) {
+      transport.push(baris);
+      if (b.pengeluaranRiil) {
+        pengeluaranRiil.push(baris);
+      }
+    }
+  }
 
   const cfg = p.status ? sbm.statusKonfigurasi[p.status] : undefined;
   if (cfg) {
@@ -226,10 +286,11 @@ function hitungPelaksana(p: PelaksanaInput, input: SpjInput, sbm: Sbm): Pelaksan
   const totalUangHarian = jumlah(uangHarian);
   const totalRepresentasi = jumlah(representasi);
   const totalPenginapan = jumlah(penginapan);
+  const totalPengeluaranRiil = jumlah(pengeluaranRiil);
   const total = totalTransport + totalUangHarian + totalRepresentasi + totalPenginapan;
   const uraianSptb =
     segmen.length > 0
-      ? `Biaya Perjalanan dinas dalam rangka ${segmen.join(" dan ")} sesuai Surat Tugas Nomor: ${input.nomorSt} tanggal ${tanggalIndonesia(input.tanggalSt)} dan SPD terlampir.`
+      ? `Biaya Perjalanan dinas dalam rangka ${segmen.join(" dan ")} sesuai Surat Tugas Nomor: ${input.nomorSt} tanggal ${tanggalIndonesia(input.tanggalSt)} sesuai dengan rincian terlampir.`
       : "";
 
   return {
@@ -242,10 +303,13 @@ function hitungPelaksana(p: PelaksanaInput, input: SpjInput, sbm: Sbm): Pelaksan
     uangHarian,
     representasi,
     penginapan,
+    pengeluaranRiil,
     totalTransport,
     totalUangHarian,
     totalRepresentasi,
     totalPenginapan,
+    totalPengeluaranRiil,
+    terbilangPengeluaranRiil: totalPengeluaranRiil > 0 ? terbilangRupiah(totalPengeluaranRiil) : "Nol Rupiah",
     total,
     terbilang: terbilangRupiah(total),
     uraianSptb,

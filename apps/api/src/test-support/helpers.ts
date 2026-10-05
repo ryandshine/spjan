@@ -42,6 +42,11 @@ export const stResa = {
   tanggalSpj: null,
   kodeAkun: "7288.QDD.001.052.A.524111",
   catatan: "",
+  tahunAnggaran: null,
+  sumberDana: "RM" as const,
+  pjNama: null,
+  pjNip: null,
+  pjJabatan: null,
   pelaksana: [
     {
       pegawaiId: null,
@@ -61,12 +66,13 @@ export const stResa = {
           hotelNama: "Kuto Paradiso Hotel",
           hotelTarif: 1_021_948,
           dinasJabatan: false,
+          fullboardDates: [],
         },
       ],
       biaya: [
-        { jenis: "TIKET_PERGI" as const, provinsi: null, uraian: null, qty: null, satuan: null, tarif: 2_260_940, keterangan: null, etapeIndex: null },
-        { jenis: "TIKET_KEMBALI" as const, provinsi: null, uraian: null, qty: null, satuan: null, tarif: 2_223_091, keterangan: null, etapeIndex: null },
-        { jenis: "TAKSI_KEDUDUKAN" as const, provinsi: null, uraian: null, qty: 2, satuan: null, tarif: 250_000, keterangan: null, etapeIndex: null },
+        { jenis: "TIKET_PERGI" as const, provinsi: null, uraian: null, qty: null, satuan: null, tarif: 2_260_940, keterangan: null, etapeIndex: null, pengeluaranRiil: false },
+        { jenis: "TIKET_KEMBALI" as const, provinsi: null, uraian: null, qty: null, satuan: null, tarif: 2_223_091, keterangan: null, etapeIndex: null, pengeluaranRiil: false },
+        { jenis: "TAKSI_KEDUDUKAN" as const, provinsi: null, uraian: null, qty: 2, satuan: null, tarif: 250_000, keterangan: null, etapeIndex: null, pengeluaranRiil: false },
       ],
     },
   ],

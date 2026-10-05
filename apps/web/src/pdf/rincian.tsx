@@ -80,7 +80,7 @@ function Bagian({ no, judul, baris, jumlah, tanda }: { no: string; judul: string
       </Baris>
       {baris.map((b, i) => (
         <Baris key={i} jumlah={angka(b.jumlah)} ket={b.keterangan}>
-          <Uraian b={b} tanda={tanda && b.uraian !== 'selama :' && b.uraian !== 'Representasi selama :'} />
+          <Uraian b={b} tanda={tanda && b.uraian !== 'selama :' && b.uraian !== 'Representasi selama :' && !b.uraian.startsWith('Uang saku')} />
         </Baris>
       ))}
       <Baris jumlah={strip(jumlah)}>
@@ -117,9 +117,14 @@ export function RincianPage({ d, p }: { d: DataDokumen; p: PelaksanaHasil }) {
         <Bagian no="2" judul="Uang harian :" baris={uangHarian} jumlah={p.totalUangHarian + p.totalRepresentasi} tanda={false} />
         <Bagian no="3" judul="Biaya Penginapan :" baris={p.penginapan} jumlah={p.totalPenginapan} tanda />
 
-        <View style={[s.baris, { borderTop: B, borderBottom: B, paddingHorizontal: 22, paddingVertical: 2, justifyContent: 'space-between' }]} wrap={false}>
-          <Text>Jumlah    :</Text>
-          <Text style={{ fontWeight: 700 }}>{angka(p.total)}</Text>
+        <View style={[s.baris, { borderTop: B, borderBottom: B }]} wrap={false}>
+          <View style={{ flex: 1, paddingLeft: 22, paddingVertical: 2 }}>
+            <Text>Jumlah    :</Text>
+          </View>
+          <View style={{ width: COL.jumlah, borderLeft: B, paddingHorizontal: 4, paddingVertical: 2 }}>
+            <Text style={[s.kanan, { fontWeight: 700 }]}>{angka(p.total)}</Text>
+          </View>
+          <View style={{ width: COL.ket, borderLeft: B, paddingHorizontal: 4, paddingVertical: 2 }} />
         </View>
         <View style={{ borderBottom: B, paddingHorizontal: 22, paddingVertical: 2 }} wrap={false}>
           <Text>
