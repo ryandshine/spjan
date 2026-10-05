@@ -135,19 +135,20 @@ export function RincianPage({ d, p }: { d: DataDokumen; p: PelaksanaHasil }) {
 
         <View style={{ flexDirection: 'row', paddingHorizontal: 22, paddingTop: 10 }} wrap={false}>
           <View style={{ flex: 1 }}>
-            <Text>Telah dibayar jumlah:</Text>
-            <Text>Rp.   {angka(p.total)}</Text>
+            <Text>{' '}</Text>
+            <Text>Telah dibayar jumlah :</Text>
+            <Text style={{ fontWeight: 700 }}>Rp {angka(p.total)}</Text>
             <Text>Bendahara Pengeluaran Pembantu</Text>
-            <View style={{ height: 44 }} />
+            <View style={{ height: 40 }} />
             <Text>{pp.bendaharaNama}</Text>
-            <Text>{pp.bendaharaNip}</Text>
+            <Text>{nipCetak(pp.bendaharaNip)}</Text>
           </View>
           <View style={{ flex: 1, paddingLeft: 24 }}>
             <Text>{d.tempatTanggal}</Text>
             <Text>Telah menerima uang sebesar :</Text>
             <Text style={{ fontWeight: 700 }}>Rp {angka(p.total)}</Text>
             <Text>Yang Menerima</Text>
-            <View style={{ height: 31 }} />
+            <View style={{ height: 40 }} />
             <Text>{p.nama}</Text>
             <Text>{nipCetak(p.nip)}</Text>
           </View>

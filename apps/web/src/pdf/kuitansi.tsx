@@ -91,14 +91,14 @@ export function KuitansiPage({ d, p }: { d: DataDokumen; p: PelaksanaHasil }) {
             <Text>Pejabat Pembuat Komitmen</Text>
             <View style={{ height: 52 }} />
             <Text style={{ fontWeight: 700 }}>{pp.ppkNama}</Text>
-            <Text style={{ fontWeight: 700 }}>{pp.ppkNip}</Text>
+            <Text style={{ fontWeight: 700 }}>{nipCetak(pp.ppkNip)}</Text>
           </View>
           <View style={{ flex: 1, paddingLeft: 24 }}>
             <Text>Lunas dibayar,</Text>
             <Text>Bendahara Pengeluaran Pembantu</Text>
             <View style={{ height: 66 }} />
             <Text style={{ fontWeight: 700 }}>{pp.bendaharaNama}</Text>
-            <Text style={{ fontWeight: 700 }}>{pp.bendaharaNip}</Text>
+            <Text style={{ fontWeight: 700 }}>{nipCetak(pp.bendaharaNip)}</Text>
           </View>
         </View>
 
@@ -108,7 +108,7 @@ export function KuitansiPage({ d, p }: { d: DataDokumen; p: PelaksanaHasil }) {
           <Text>{pp.pjJabatan}</Text>
           <View style={{ height: 46 }} />
           <Text style={{ fontWeight: 700 }}>{pp.pjNama}</Text>
-          <Text style={{ fontWeight: 700 }}>{pp.pjNip}</Text>
+          <Text style={{ fontWeight: 700 }}>{nipCetak(pp.pjNip)}</Text>
         </View>
       </View>
     </Page>
