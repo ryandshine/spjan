@@ -99,7 +99,7 @@ export default function DokumenPage() {
       ) : null}
       {!d.st.tanggalSpj ? (
         <p className="mb-4 text-sm text-muted-foreground">
-          Tanggal SPJ belum diisi, sehingga tanggal di tanda tangan dibiarkan kosong untuk ditulis tangan. Isi di{' '}
+          Tanggal dokumen otomatis menggunakan tanggal pembuatan ({d.teksTanggalDokumen}). Anda dapat mengubah Tanggal SPJ di{' '}
           <Link to={`/st/${id}`} className="text-primary hover:underline">
             editor surat tugas
           </Link>

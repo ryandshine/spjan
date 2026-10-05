@@ -1,4 +1,11 @@
-import { formatAngka, type HasilSuratTugasDto, type PelaksanaHasil, type PengaturanPayload, type SuratTugasDto } from '@spjan/shared'
+import {
+  formatAngka,
+  tanggalIndonesia,
+  type HasilSuratTugasDto,
+  type PelaksanaHasil,
+  type PengaturanPayload,
+  type SuratTugasDto,
+} from '@spjan/shared'
 
 export interface DataDokumen {
   st: SuratTugasDto
@@ -7,8 +14,9 @@ export interface DataDokumen {
   total: number
   terbilang: string
   teksTanggalSt: string
-  /** "Jakarta, 21 September 2026" atau "Jakarta,          2026" bila tanggal SPJ belum diisi. */
+  /** Contoh: "Jakarta, 5 Oktober 2026" */
   tempatTanggal: string
+  teksTanggalDokumen: string
   kodeAkun: string
   pembuatDaftar: { nama: string; nip: string }
 }
@@ -19,6 +27,17 @@ export const nipCetak = (nip: string): string => {
   if (!nip) return ''
   const s = nip.trim()
   return s.toUpperCase().startsWith('NIP') ? s : `NIP. ${s}`
+}
+
+function tanggalKeIso(tgl?: string | Date | null): string {
+  if (!tgl) return ''
+  if (typeof tgl === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(tgl)) return tgl
+  const d = typeof tgl === 'string' ? new Date(tgl) : tgl
+  if (isNaN(d.getTime())) return ''
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 /** Menyusun data siap cetak dari respons GET /api/surat-tugas/:id/hasil. */
@@ -39,7 +58,10 @@ export function siapkanDokumen(dto: HasilSuratTugasDto): DataDokumen {
     pjJabatan,
   }
 
-  const tanggal = hasil.teksTanggalSpj || `${' '.repeat(14)}${tahunAnggaran}`
+  // Tanggal dokumen: prioritaskan tanggalSpj yang diisi, lalu tanggal pembuatan (createdAt), lalu hari ini
+  const tanggalDibuat = st.createdAt ? tanggalIndonesia(tanggalKeIso(st.createdAt)) : ''
+  const tanggalHariIni = tanggalIndonesia(tanggalKeIso(new Date()))
+  const tanggal = hasil.teksTanggalSpj || tanggalDibuat || tanggalHariIni
 
   const rawKode = (st.kodeAkun || pengaturanGlobal.kodeAkunDefault || '').trim()
   const sumber = st.sumberDana
@@ -62,6 +84,7 @@ export function siapkanDokumen(dto: HasilSuratTugasDto): DataDokumen {
     terbilang: hasil.terbilang,
     teksTanggalSt: hasil.teksTanggalSt,
     tempatTanggal: `${pengaturan.kotaKedudukan}, ${tanggal}`,
+    teksTanggalDokumen: tanggal,
     kodeAkun: kodeAkunFinal,
     pembuatDaftar: {
       nama: pengaturan.pembuatDaftarNama || pertama?.nama || '',

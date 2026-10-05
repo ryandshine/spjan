@@ -212,7 +212,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
               <Field label="Tanggal surat tugas" htmlFor="st-tanggal">
                 <Input id="st-tanggal" type="date" value={st.tanggal} onChange={(e) => ubahSt({ tanggal: e.target.value })} />
               </Field>
-              <Field label="Tanggal SPJ (tanggal dokumen)" htmlFor="st-spj" hint="Boleh kosong; dilengkapi saat dokumen dicetak.">
+              <Field label="Tanggal SPJ (tanggal dokumen)" htmlFor="st-spj" hint="Bawaan: tanggal saat dokumen dibuat. Boleh diubah bila ada tanggal SPJ khusus.">
                 <Input id="st-spj" type="date" value={st.tanggalSpj ?? ''} onChange={(e) => ubahSt({ tanggalSpj: e.target.value || null })} />
               </Field>
               <Field label="Tahun anggaran" htmlFor="st-tahun" hint={`Bawaan pengaturan: ${pengaturan.tahunAnggaran}`}>
