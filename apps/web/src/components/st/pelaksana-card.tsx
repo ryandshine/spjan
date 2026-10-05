@@ -107,7 +107,7 @@ export function PelaksanaCard({
               <UserPlusIcon /> Pegawai baru
             </Button>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 items-start">
             <Field label="Nama (dengan gelar)" htmlFor={id('nama')} className="xl:col-span-2">
               <Input id={id('nama')} value={p.nama} onChange={(e) => onUbah((x) => ({ ...x, nama: e.target.value }))} />
             </Field>

@@ -20,7 +20,7 @@ function Field({
   children: React.ReactNode
 }) {
   return (
-    <div className={cn('grid gap-1.5', className)}>
+    <div className={cn('flex flex-col justify-start gap-1.5', className)}>
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
       {hint && !error ? <p className="text-xs text-muted-foreground">{hint}</p> : null}

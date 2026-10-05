@@ -101,7 +101,7 @@ export function EtapeForm({
         ) : null}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 items-start">
         <Field label="Provinsi tujuan" htmlFor={id('prov')}>
           <Select id={id('prov')} value={etape.provinsi} onChange={(e) => onUbah({ provinsi: e.target.value })}>
             <option value="">- pilih provinsi -</option>
@@ -243,7 +243,7 @@ export function EtapeForm({
         <Textarea id={id('keg')} rows={2} value={etape.kegiatan} onChange={(e) => onUbah({ kegiatan: e.target.value })} />
       </Field>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 items-start">
         <Field label="Nama hotel / penginapan" htmlFor={id('hotel')} className="xl:col-span-2">
           <Input
             id={id('hotel')}

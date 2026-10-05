@@ -205,7 +205,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
             <CardHeader>
               <CardTitle>Surat tugas</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
+            <CardContent className="grid gap-4 sm:grid-cols-2 items-start">
               <Field label="Nomor surat tugas" htmlFor="st-nomor" className="sm:col-span-2">
                 <Input id="st-nomor" value={st.nomor} onChange={(e) => ubahSt({ nomor: e.target.value })} placeholder="ST.226/PPS/PEMPS/PSL.04.02/B/09/2026" />
               </Field>
