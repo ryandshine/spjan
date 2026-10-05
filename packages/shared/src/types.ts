@@ -165,6 +165,7 @@ export interface PelaksanaHasil {
   noSpd: string;
   tanggalSpd: string | null;
   teksTanggalSpd: string;
+  rute: string;
   transport: BarisBiaya[];
   uangHarian: BarisBiaya[];
   representasi: BarisBiaya[];

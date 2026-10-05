@@ -293,6 +293,15 @@ function hitungPelaksana(p: PelaksanaInput, input: SpjInput, sbm: Sbm): Pelaksan
       ? `Biaya Perjalanan dinas dalam rangka ${segmen.join(" dan ")} sesuai Surat Tugas Nomor: ${input.nomorSt} tanggal ${tanggalIndonesia(input.tanggalSt)} sesuai dengan rincian terlampir.`
       : "";
 
+  const kotaUnik: string[] = [];
+  if (input.kotaKedudukan) kotaUnik.push(input.kotaKedudukan);
+  for (const e of p.etape) {
+    if (e.kota && kotaUnik[kotaUnik.length - 1] !== e.kota) {
+      kotaUnik.push(e.kota);
+    }
+  }
+  const rute = kotaUnik.length > 0 ? kotaUnik.join(" - ") : "-";
+
   return {
     nama: p.nama,
     nip: p.nip,
@@ -301,6 +310,7 @@ function hitungPelaksana(p: PelaksanaInput, input: SpjInput, sbm: Sbm): Pelaksan
     noSpd: (p.noSpd ?? "").trim(),
     tanggalSpd: p.tanggalSpd ?? null,
     teksTanggalSpd: p.tanggalSpd ? tanggalIndonesia(p.tanggalSpd) : "",
+    rute,
     transport,
     uangHarian,
     representasi,

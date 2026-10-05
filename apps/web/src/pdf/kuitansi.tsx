@@ -10,7 +10,7 @@ const s = StyleSheet.create({
   page: { paddingTop: 34, paddingBottom: 30, paddingHorizontal: 34, fontFamily: PDF_FONT, fontSize: 10, lineHeight: 1.3 },
   bingkai: { border: B },
   baris: { flexDirection: 'row' },
-  label: { width: 112 },
+  label: { width: 130 },
   titik: { width: 12 },
   blok: { paddingHorizontal: 6, paddingVertical: 5 },
 })
@@ -69,12 +69,30 @@ export function KuitansiPage({ d, p }: { d: DataDokumen; p: PelaksanaHasil }) {
           <Isian label="TERBILANG">
             <Text style={{ fontStyle: 'italic' }}>{p.terbilang}</Text>
           </Isian>
-          <Isian label="UNTUK PEMBAYARAN" tinggi={92}>
+          <Isian label="UNTUK PEMBAYARAN" tinggi={68}>
             <Text>{p.uraianSptb}</Text>
           </Isian>
         </View>
 
-        <View style={[s.baris, { justifyContent: 'flex-end', paddingRight: 24, paddingTop: 8, paddingBottom: 12 }]} wrap={false}>
+        <View style={[s.baris, { justifyContent: 'space-between', paddingLeft: 6, paddingRight: 24, paddingTop: 10, paddingBottom: 12 }]} wrap={false}>
+          <View style={{ flex: 1, paddingRight: 20 }}>
+            <View style={[s.baris, { marginBottom: 3 }]}>
+              <Text style={{ width: 130 }}>Berdasarkan nomor SPD</Text>
+              <Text style={s.titik}>:</Text>
+              <Text style={{ flex: 1 }}>{p.noSpd || '-'}</Text>
+            </View>
+            <View style={[s.baris, { marginBottom: 3 }]}>
+              <Text style={{ width: 130 }}>Tanggal</Text>
+              <Text style={s.titik}>:</Text>
+              <Text style={{ flex: 1 }}>{p.teksTanggalSpd || d.teksTanggalSt}</Text>
+            </View>
+            <View style={s.baris}>
+              <Text style={{ width: 130 }}>Perjalanan Dari</Text>
+              <Text style={s.titik}>:</Text>
+              <Text style={{ flex: 1 }}>{p.rute}</Text>
+            </View>
+          </View>
+
           <View style={{ width: 230 }}>
             <Text>{d.tempatTanggal}</Text>
             <Text>Yang Menerima,</Text>
