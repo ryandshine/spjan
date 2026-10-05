@@ -44,6 +44,7 @@ export function EtapeForm({
 }) {
   const { hari, malam } = ringkasEtape(etape)
   const id = (k: string) => `etape-${idAwal}-${k}`
+  const tarif30 = batasHotel !== null ? Math.round(batasHotel * 0.3) : null
 
   const tglAwal = parseTanggal(etape.berangkat)
   const tglAkhir = parseTanggal(etape.pulang)
@@ -243,15 +244,30 @@ export function EtapeForm({
       </Field>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Field label="Nama hotel" htmlFor={id('hotel')} className="xl:col-span-2">
-          <Input id={id('hotel')} value={etape.hotelNama ?? ''} onChange={(e) => onUbah({ hotelNama: e.target.value || null })} />
+        <Field label="Nama hotel / penginapan" htmlFor={id('hotel')} className="xl:col-span-2">
+          <Input
+            id={id('hotel')}
+            value={etape.hotelNama ?? ''}
+            placeholder={etape.hotel30Persen ? 'Biaya Penginapan 30% SBM' : 'Nama hotel / penginapan...'}
+            onChange={(e) => onUbah({ hotelNama: e.target.value || null })}
+          />
         </Field>
         <Field
           label="Tarif hotel per malam"
           htmlFor={id('tarif')}
-          hint={batasHotel !== null ? `Batas SBM ${rupiah(batasHotel)}` : undefined}
+          hint={
+            etape.hotel30Persen
+              ? `30% SBM: ${tarif30 !== null ? rupiah(tarif30) : 'Otomatis'}`
+              : batasHotel !== null
+                ? `Batas SBM ${rupiah(batasHotel)}`
+                : undefined
+          }
         >
-          <RupiahInput id={id('tarif')} value={etape.hotelTarif} onChange={(v) => onUbah({ hotelTarif: v })} />
+          <RupiahInput
+            id={id('tarif')}
+            value={etape.hotelTarif ?? (etape.hotel30Persen && tarif30 !== null ? tarif30 : null)}
+            onChange={(v) => onUbah({ hotelTarif: v })}
+          />
         </Field>
         <Field
           label="Malam menginap"
@@ -266,6 +282,32 @@ export function EtapeForm({
             onChange={(e) => onUbah({ malamOverride: e.target.value === '' ? null : Number(e.target.value) })}
           />
         </Field>
+      </div>
+
+      <div className="rounded-md border border-dashed border-primary/40 bg-primary/5 p-3">
+        <label className="flex items-start gap-2.5 text-sm cursor-pointer select-none">
+          <input
+            type="checkbox"
+            className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
+            checked={etape.hotel30Persen ?? false}
+            onChange={(e) => {
+              const aktif = e.target.checked
+              onUbah({
+                hotel30Persen: aktif,
+                hotelNama: aktif ? etape.hotelNama || 'Biaya Penginapan 30% SBM' : etape.hotelNama,
+                hotelTarif: aktif ? (tarif30 ?? etape.hotelTarif) : etape.hotelTarif,
+              })
+            }}
+          />
+          <div className="grid gap-0.5">
+            <span className="font-medium text-foreground">
+              Menginap tanpa fasilitas hotel (dapat biaya penginapan 30% tarif SBM)
+            </span>
+            <p className="text-xs text-muted-foreground">
+              Sesuai PMK 113/PMK.05/2012 Pasal 16 ayat (2), pelaksana yang tidak menggunakan fasilitas hotel/penginapan berhak atas 30% dari batas tertinggi SBM penginapan {tarif30 !== null ? `(${rupiah(tarif30)}/malam)` : ''} dan otomatis dicantumkan pada Daftar Pengeluaran Riil (DPR).
+            </p>
+          </div>
+        </label>
       </div>
 
       {bolehRepresentasi ? (

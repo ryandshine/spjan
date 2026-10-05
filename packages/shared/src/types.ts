@@ -87,6 +87,8 @@ export interface EtapeInput {
   dinasJabatan?: boolean;
   /** Daftar tanggal (YYYY-MM-DD) pelaksanaan paket rapat/pertemuan fullboard */
   fullboardDates?: string[];
+  /** Menginap tanpa fasilitas hotel: berhak 30% dari tarif SBM (PMK 113/PMK.05/2012) dan masuk ke DPR */
+  hotel30Persen?: boolean | null;
 }
 
 export interface BiayaInput {

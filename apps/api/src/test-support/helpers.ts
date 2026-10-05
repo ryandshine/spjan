@@ -68,6 +68,7 @@ export const stResa = {
           hotelTarif: 1_021_948,
           dinasJabatan: false,
           fullboardDates: [],
+          hotel30Persen: false,
         },
       ],
       biaya: [

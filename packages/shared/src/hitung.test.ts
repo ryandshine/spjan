@@ -116,6 +116,45 @@ describe("hitungSpj - kasus emas", () => {
     ]);
   });
 
+  it("Riandi: opsi menginap tanpa fasilitas hotel (30% tarif SBM) otomatis dihitung dan masuk DPR", () => {
+    // SBM D.I. Yogyakarta kolom 4: Rp845.000. 30% = Rp253.500/malam. 3 malam = Rp760.500.
+    const p: PelaksanaInput = {
+      ...riandi,
+      etape: [
+        {
+          ...etapeYogya({ hotelNama: null, hotelTarif: null }),
+          hotel30Persen: true,
+        },
+      ],
+    };
+    const h = hitungSpj(spj([p]), SBM_2026).pelaksana[0]!;
+    expect(h.peringatan).toEqual([]);
+    expect(h.totalPenginapan).toBe(760_500);
+    expect(h.penginapan[0]).toMatchObject({
+      uraian: "Biaya Penginapan 30% SBM",
+      qty: 3,
+      satuan: "malam",
+      tarif: 253_500,
+      jumlah: 760_500,
+      keterangan: "Tanggal 10-13 September 2026, Tanpa fasilitas hotel (DPR)",
+    });
+
+    // Harus otomatis masuk ke pengeluaranRiil (DPR)
+    expect(h.pengeluaranRiil).toHaveLength(1);
+    expect(h.pengeluaranRiil[0]).toMatchObject({
+      uraian: "Biaya penginapan 30% (tanpa fasilitas hotel) di Yogyakarta",
+      qty: 3,
+      satuan: "malam",
+      tarif: 253_500,
+      jumlah: 760_500,
+    });
+    expect(h.totalPengeluaranRiil).toBe(760_500);
+    expect(h.terbilangPengeluaranRiil).toBe("Tujuh Ratus Enam Puluh Ribu Lima Ratus Rupiah");
+
+    // Total SPJ: uang harian 1.680.000 + penginapan 760.500 = 2.440.500
+    expect(h.total).toBe(2_440_500);
+  });
+
   it("Direktur Manado: Eselon II dinas jabatan, total 11.909.784", () => {
     const direktur: PelaksanaInput = {
       nama: "Dr. Marcus Octavianus Susatyo, S.Hut., M.P.",

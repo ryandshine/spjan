@@ -104,6 +104,7 @@ interface HasilEtape {
   uangHarian?: BarisBiaya[];
   representasi?: BarisBiaya;
   penginapan?: BarisBiaya;
+  hotel30Persen?: boolean;
   peringatan: Peringatan[];
   uraianSptb?: string;
 }
@@ -197,26 +198,50 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
     }
   }
 
-  const tarifHotel = e.hotelTarif ?? 0;
+  const batas = cfg ? sbm.penginapan[prov]?.[cfg.kolomHotel - 1] : undefined;
+  const isHotel30 = !!e.hotel30Persen;
+  const tarif30 = batas !== undefined ? Math.round(batas * 0.3) : 0;
+  const tarifHotel = isHotel30 ? (e.hotelTarif && e.hotelTarif > 0 ? e.hotelTarif : tarif30) : (e.hotelTarif ?? 0);
+
   if (malam > 0) {
-    if (!(tarifHotel > 0)) {
-      peringatan.push({ kode: "TARIF_HOTEL_KOSONG", pesan: `${nomor}: tarif hotel belum diisi (${malam} malam).`, etape: i });
-    } else {
-      hasil.penginapan = {
-        uraian: (e.hotelNama ?? "").trim(),
-        qty: malam,
-        satuan: "malam",
-        tarif: tarifHotel,
-        jumlah: malam * tarifHotel,
-        keterangan: `Tanggal ${rincian}, Bukti terlampir`,
-      };
-      const batas = cfg ? sbm.penginapan[prov]?.[cfg.kolomHotel - 1] : undefined;
-      if (batas !== undefined && tarifHotel > batas) {
+    if (isHotel30) {
+      if (tarifHotel <= 0) {
         peringatan.push({
-          kode: "HOTEL_MELEBIHI_BATAS",
-          pesan: `${nomor}: tarif hotel ${formatRp(tarifHotel)} melebihi batas SBM ${formatRp(batas)}.`,
+          kode: "TARIF_HOTEL_KOSONG",
+          pesan: `${nomor}: tarif penginapan 30% belum dapat dihitung (provinsi tidak ditemukan di SBM).`,
           etape: i,
         });
+      } else {
+        hasil.hotel30Persen = true;
+        const namaTampil = (e.hotelNama ?? "").trim() || "Biaya Penginapan 30% SBM";
+        hasil.penginapan = {
+          uraian: namaTampil,
+          qty: malam,
+          satuan: "malam",
+          tarif: tarifHotel,
+          jumlah: malam * tarifHotel,
+          keterangan: `Tanggal ${rincian}, Tanpa fasilitas hotel (DPR)`,
+        };
+      }
+    } else {
+      if (!(tarifHotel > 0)) {
+        peringatan.push({ kode: "TARIF_HOTEL_KOSONG", pesan: `${nomor}: tarif hotel belum diisi (${malam} malam).`, etape: i });
+      } else {
+        hasil.penginapan = {
+          uraian: (e.hotelNama ?? "").trim(),
+          qty: malam,
+          satuan: "malam",
+          tarif: tarifHotel,
+          jumlah: malam * tarifHotel,
+          keterangan: `Tanggal ${rincian}, Bukti terlampir`,
+        };
+        if (batas !== undefined && tarifHotel > batas) {
+          peringatan.push({
+            kode: "HOTEL_MELEBIHI_BATAS",
+            pesan: `${nomor}: tarif hotel ${formatRp(tarifHotel)} melebihi batas SBM ${formatRp(batas)}.`,
+            etape: i,
+          });
+        }
       }
     }
   }
@@ -240,18 +265,30 @@ function hitungPelaksana(p: PelaksanaInput, input: SpjInput, sbm: Sbm): Pelaksan
   const uangHarian: BarisBiaya[] = [];
   const representasi: BarisBiaya[] = [];
   const penginapan: BarisBiaya[] = [];
+  const pengeluaranRiil: BarisBiaya[] = [];
   const segmen: string[] = [];
   p.etape.forEach((e, i) => {
     const h = hitungEtape(e, i, p, sbm);
     peringatan.push(...h.peringatan);
     if (h.uangHarian) uangHarian.push(...h.uangHarian);
     if (h.representasi) representasi.push(h.representasi);
-    if (h.penginapan) penginapan.push(h.penginapan);
+    if (h.penginapan) {
+      penginapan.push(h.penginapan);
+      if (h.hotel30Persen) {
+        pengeluaranRiil.push({
+          uraian: `Biaya penginapan 30% (tanpa fasilitas hotel) di ${e.kota || proper(e.provinsi)}`,
+          qty: h.penginapan.qty,
+          satuan: h.penginapan.satuan,
+          tarif: h.penginapan.tarif,
+          jumlah: h.penginapan.jumlah,
+          keterangan: h.penginapan.keterangan,
+        });
+      }
+    }
     if (h.uraianSptb) segmen.push(h.uraianSptb);
   });
 
   const transport: BarisBiaya[] = [];
-  const pengeluaranRiil: BarisBiaya[] = [];
   for (const b of p.biaya) {
     const baris = barisTransport(b, input, p.etape, sbm);
     if (baris) {
