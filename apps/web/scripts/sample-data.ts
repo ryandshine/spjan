@@ -56,6 +56,7 @@ export const ST_CONTOH: SuratTugasPayload = {
       jabatan: 'Kasubdit Pemantauan Perhutanan Sosial',
       status: 'ESELON_III_GOL_IV',
       noSpd: '401/SPD/PPS/2026',
+      tanggalSpd: '2026-09-08',
       etape: [
         { provinsi: 'BALI', kota: 'Denpasar', kegiatan: KEG_BALI, berangkat: '2026-09-10', pulang: '2026-09-11', malamOverride: null, hotelNama: 'Hotel Bali', hotelTarif: 1_500_000, dinasJabatan: false, fullboardDates: [] },
         { provinsi: 'D.I. YOGYAKARTA', kota: 'Yogyakarta', kegiatan: KEG_YOGYA, berangkat: '2026-09-12', pulang: '2026-09-13', malamOverride: null, hotelNama: 'Hotel Yogya', hotelTarif: 1_000_000, dinasJabatan: false, fullboardDates: [] },

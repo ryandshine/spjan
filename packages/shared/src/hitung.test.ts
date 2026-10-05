@@ -206,6 +206,18 @@ describe("hitungSpj - kasus emas", () => {
     expect(hasil.teksTanggalSt).toBe("8 September 2026");
     expect(hasil.teksTanggalSpj).toBe("");
   });
+
+  it("memformat tanggalSpd menjadi teksTanggalSpd", () => {
+    const denganTglSpd = { ...resa, tanggalSpd: "2026-09-09" };
+    const h = hitungSpj(spj([denganTglSpd]), SBM_2026).pelaksana[0]!;
+    expect(h.tanggalSpd).toBe("2026-09-09");
+    expect(h.teksTanggalSpd).toBe("9 September 2026");
+
+    const tanpaTglSpd = { ...resa, tanggalSpd: null };
+    const h2 = hitungSpj(spj([tanpaTglSpd]), SBM_2026).pelaksana[0]!;
+    expect(h2.tanggalSpd).toBeNull();
+    expect(h2.teksTanggalSpd).toBe("");
+  });
 });
 
 describe("hitungSpj - pagu biaya tambahan", () => {

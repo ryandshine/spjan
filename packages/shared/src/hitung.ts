@@ -299,6 +299,8 @@ function hitungPelaksana(p: PelaksanaInput, input: SpjInput, sbm: Sbm): Pelaksan
     jabatan: p.jabatan,
     status: p.status,
     noSpd: (p.noSpd ?? "").trim(),
+    tanggalSpd: p.tanggalSpd ?? null,
+    teksTanggalSpd: p.tanggalSpd ? tanggalIndonesia(p.tanggalSpd) : "",
     transport,
     uangHarian,
     representasi,

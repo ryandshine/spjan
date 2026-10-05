@@ -111,6 +111,8 @@ export interface PelaksanaInput {
   jabatan: string;
   status: StatusKode | null;
   noSpd?: string | null;
+  /** YYYY-MM-DD */
+  tanggalSpd?: string | null;
   etape: EtapeInput[];
   biaya: BiayaInput[];
 }
@@ -161,6 +163,8 @@ export interface PelaksanaHasil {
   jabatan: string;
   status: StatusKode | null;
   noSpd: string;
+  tanggalSpd: string | null;
+  teksTanggalSpd: string;
   transport: BarisBiaya[];
   uangHarian: BarisBiaya[];
   representasi: BarisBiaya[];

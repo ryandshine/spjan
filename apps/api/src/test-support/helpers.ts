@@ -55,6 +55,7 @@ export const stResa = {
       jabatan: "Surveyor Pemetaan Ahli Pertama",
       status: "ESELON_IV_GOL_III_II_I" as const,
       noSpd: "403/SPD/PPS/2026",
+      tanggalSpd: null,
       etape: [
         {
           provinsi: "BALI",

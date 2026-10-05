@@ -41,6 +41,7 @@ export const PelaksanaPayloadSchema = z.object({
   jabatan: teks(200),
   status: StatusKodeSchema.nullable(),
   noSpd: teks(100).nullish(),
+  tanggalSpd: tanggalWajib.nullish(),
   etape: z.array(EtapePayloadSchema).max(20),
   biaya: z.array(BiayaPayloadSchema).max(60),
 });
@@ -167,6 +168,7 @@ export function toSpjInput(st: SuratTugasPayload, pengaturan: Pick<PengaturanPay
       jabatan: p.jabatan,
       status: p.status,
       noSpd: p.noSpd ?? null,
+      tanggalSpd: p.tanggalSpd ?? null,
       etape: p.etape,
       biaya: p.biaya,
     })),

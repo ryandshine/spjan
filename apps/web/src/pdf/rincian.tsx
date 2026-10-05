@@ -106,7 +106,7 @@ export function RincianPage({ d, p }: { d: DataDokumen; p: PelaksanaHasil }) {
         <View style={[s.info, { marginBottom: 4 }]}>
           <Text style={s.infoLabel}>Tanggal</Text>
           <Text style={s.infoTitik}>:</Text>
-          <Text>{d.teksTanggalSt}</Text>
+          <Text>{p.teksTanggalSpd || d.teksTanggalSt}</Text>
         </View>
 
         <Baris no="No." jumlah="Jumlah  Rp." ket="Keterangan" atas bawah>

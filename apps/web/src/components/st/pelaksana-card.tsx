@@ -114,10 +114,7 @@ export function PelaksanaCard({
             <Field label="NIP" htmlFor={id('nip')}>
               <Input id={id('nip')} inputMode="numeric" value={p.nip} onChange={(e) => onUbah((x) => ({ ...x, nip: e.target.value }))} />
             </Field>
-            <Field label="No. SPD" htmlFor={id('spd')}>
-              <Input id={id('spd')} value={p.noSpd ?? ''} onChange={(e) => onUbah((x) => ({ ...x, noSpd: e.target.value || null }))} />
-            </Field>
-            <Field label="Jabatan" htmlFor={id('jab')} className="xl:col-span-2">
+            <Field label="Jabatan" htmlFor={id('jab')}>
               <Input id={id('jab')} value={p.jabatan} onChange={(e) => onUbah((x) => ({ ...x, jabatan: e.target.value }))} />
             </Field>
             <Field label="Status / golongan" htmlFor={id('status')} className="xl:col-span-2">
@@ -133,6 +130,22 @@ export function PelaksanaCard({
                   </option>
                 ))}
               </Select>
+            </Field>
+            <Field label="No. SPD" htmlFor={id('spd')}>
+              <Input
+                id={id('spd')}
+                placeholder="contoh: 401/SPD/PPS/2026"
+                value={p.noSpd ?? ''}
+                onChange={(e) => onUbah((x) => ({ ...x, noSpd: e.target.value || null }))}
+              />
+            </Field>
+            <Field label="Tanggal SPD" htmlFor={id('tgl-spd')} hint="Bawaan: tanggal ST bila kosong">
+              <Input
+                id={id('tgl-spd')}
+                type="date"
+                value={p.tanggalSpd ?? ''}
+                onChange={(e) => onUbah((x) => ({ ...x, tanggalSpd: e.target.value || null }))}
+              />
             </Field>
           </div>
         </section>

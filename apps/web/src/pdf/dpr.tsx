@@ -96,7 +96,7 @@ export function DprPage({ d, p }: { d: DataDokumen; p: PelaksanaHasil }) {
         </View>
 
         <Text style={s.paragraf}>
-          Berdasarkan Surat Perjalanan Dinas (SPD) Nomor: {p.noSpd || '-'} tanggal {d.teksTanggalSt}, dengan ini kami menyatakan dengan
+          Berdasarkan Surat Perjalanan Dinas (SPD) Nomor: {p.noSpd || '-'} tanggal {p.teksTanggalSpd || d.teksTanggalSt}, dengan ini kami menyatakan dengan
           sesungguhnya bahwa:
         </Text>
 

@@ -54,6 +54,7 @@ export function pelaksanaKosong(): PelaksanaPayload {
     jabatan: "",
     status: null,
     noSpd: null,
+    tanggalSpd: null,
     etape: [etapeKosong()],
     biaya: [],
   };
