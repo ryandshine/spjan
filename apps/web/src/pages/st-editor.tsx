@@ -31,8 +31,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { TabPanel, Tabs, type TabItem } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { pesanGalat } from '@/lib/format'
+import { pesanGalat, rupiah, tanggalPanjang } from '@/lib/format'
 import {
   useHapusSuratTugas,
   usePegawai,
@@ -43,6 +44,8 @@ import {
   useVersiSbm,
 } from '@/lib/queries'
 import { cakupanGalat, pesanValidasi, petaGalat } from '@/lib/validasi'
+
+type TabKunci = 'data' | 'pelaksana' | 'bukti'
 
 function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratTugasPayload; sbm: Sbm; pengaturan: PengaturanPayload }) {
   const navigate = useNavigate()
@@ -55,6 +58,10 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
   const [dialogHapus, setDialogHapus] = useState(false)
   const [bukaPj, setBukaPj] = useState(false)
   const [cobaSimpan, setCobaSimpan] = useState(false)
+  const [tab, setTab] = useState<TabKunci>(id !== null && awal.pelaksana.length > 0 ? 'pelaksana' : 'data')
+  const [dialogSpd, setDialogSpd] = useState(false)
+  const [nomorAwalSpd, setNomorAwalSpd] = useState('401')
+  const [galatSpd, setGalatSpd] = useState<string | null>(null)
   const alertRef = useRef<HTMLDivElement>(null)
   const lewati = useRef(false)
   const kotor = JSON.stringify(st) !== baseline
@@ -67,6 +74,9 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
   }, [cobaSimpan, st])
   const peta = useMemo(() => petaGalat(isuLive), [isuLive])
   const pesanTampil = [...pesanValidasi(isuLive), ...galat]
+  const kunciGalat = Object.keys(peta)
+  const galatTabData = kunciGalat.some((k) => !k.startsWith('pelaksana.'))
+  const galatTabPelaksana = kunciGalat.some((k) => k.startsWith('pelaksana.'))
 
   // Mencegah kehilangan data saat berpindah halaman di dalam aplikasi (beforeunload hanya menangani reload/tutup tab).
   const blocker = useBlocker(
@@ -146,6 +156,8 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
     if (!cek.success) {
       setCobaSimpan(true)
       setGalat([])
+      // Pindah ke tab yang berisi isian bermasalah, karena kolom merahnya tidak terlihat di tab lain.
+      setTab(cek.error.issues.some((i) => i.path[0] !== 'pelaksana') ? 'data' : 'pelaksana')
       toast.error('Ada isian yang belum benar. Lihat kolom bertanda merah.')
       window.setTimeout(() => alertRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
       return
@@ -178,28 +190,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
     }
   }
 
-  function autoIsiNoSpd() {
-    if (st.pelaksana.length === 0) return
-    const tahun = st.tahunAnggaran || pengaturan.tahunAnggaran || new Date().getFullYear()
-    const yangAda = st.pelaksana.find((p) => p.noSpd?.trim())?.noSpd?.trim()
-    let angkaAwal = 401
-    let suffix = `/SPD/PPS/${tahun}`
-
-    if (yangAda) {
-      const match = yangAda.match(/^(\d+)(.*)$/)
-      if (match) {
-        angkaAwal = parseInt(match[1]!, 10)
-        suffix = match[2] || suffix
-      }
-    } else {
-      const masukan = window.prompt(`Nomor urut awal SPD (contoh: 401 untuk 401/SPD/PPS/${tahun}):`, '401')
-      if (!masukan) return
-      const parsed = parseInt(masukan.replace(/\D/g, ''), 10)
-      if (!isNaN(parsed) && parsed > 0) {
-        angkaAwal = parsed
-      }
-    }
-
+  function terapkanNoSpd(angkaAwal: number, suffix: string) {
     setSt((s) => ({
       ...s,
       pelaksana: s.pelaksana.map((p, i) => ({
@@ -211,13 +202,55 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
     toast.success(`Nomor SPD berhasil diisi berurutan untuk ${st.pelaksana.length} pelaksana.`)
   }
 
+  const tahunSpd = st.tahunAnggaran || pengaturan.tahunAnggaran || new Date().getFullYear()
+
+  function autoIsiNoSpd() {
+    if (st.pelaksana.length === 0) return
+    let suffix = `/SPD/PPS/${tahunSpd}`
+    const yangAda = st.pelaksana.find((p) => p.noSpd?.trim())?.noSpd?.trim()
+    if (yangAda) {
+      // Sudah ada nomor: lanjutkan polanya tanpa bertanya.
+      let angkaAwal = 401
+      const match = yangAda.match(/^(\d+)(.*)$/)
+      if (match) {
+        angkaAwal = parseInt(match[1]!, 10)
+        suffix = match[2] || suffix
+      }
+      terapkanNoSpd(angkaAwal, suffix)
+      return
+    }
+    setGalatSpd(null)
+    setDialogSpd(true)
+  }
+
+  function konfirmasiNoSpd() {
+    const angka = parseInt(nomorAwalSpd.replace(/\D/g, ''), 10)
+    if (!Number.isInteger(angka) || angka <= 0) {
+      setGalatSpd('Isi dengan angka lebih dari 0, misalnya 401.')
+      return
+    }
+    terapkanNoSpd(angka, `/SPD/PPS/${tahunSpd}`)
+    setDialogSpd(false)
+  }
+
+  const itemTab: TabItem<TabKunci>[] = [
+    { kunci: 'data', label: 'Data surat tugas', galat: galatTabData },
+    { kunci: 'pelaksana', label: 'Pelaksana', jumlah: st.pelaksana.length, galat: galatTabPelaksana },
+    ...(id !== null ? [{ kunci: 'bukti' as const, label: 'Bukti & usulan' }] : []),
+  ]
+
   return (
     <div>
       <PageHeader
+        lengket
         title={id === null ? 'Surat tugas baru' : st.nomor || 'Surat tugas'}
         description={kotor ? 'Ada perubahan yang belum disimpan.' : id === null ? 'Isi data lalu simpan.' : 'Tersimpan.'}
         actions={
           <>
+            <div className="mr-1 text-right leading-tight" aria-live="polite">
+              <p className="text-xs text-muted-foreground">Total SPTB</p>
+              <p className="text-base font-semibold tabular-nums">{rupiah(hasil.total)}</p>
+            </div>
             {id !== null ? (
               <>
                 <Button variant="ghost" onClick={() => setDialogHapus(true)}>
@@ -258,220 +291,262 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
         </div>
       ) : null}
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0 grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Surat tugas</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2 items-start">
-              <Field label="Nomor surat tugas" htmlFor="st-nomor" className="sm:col-span-2" error={peta.nomor}>
-                <Input id="st-nomor" value={st.nomor} onChange={(e) => ubahSt({ nomor: e.target.value })} placeholder="ST.226/PPS/PEMPS/PSL.04.02/B/09/2026" />
-              </Field>
-              <Field label="Tanggal surat tugas" htmlFor="st-tanggal" error={peta.tanggal}>
-                <Input id="st-tanggal" type="date" value={st.tanggal} onChange={(e) => ubahSt({ tanggal: e.target.value })} />
-              </Field>
-              <Field label="Tanggal SPJ (tanggal dokumen)" htmlFor="st-spj" hint="Bawaan: tanggal saat dokumen dibuat. Boleh diubah bila ada tanggal SPJ khusus.">
-                <Input id="st-spj" type="date" value={st.tanggalSpj ?? ''} onChange={(e) => ubahSt({ tanggalSpj: e.target.value || null })} />
-              </Field>
-              <Field label="Tahun anggaran" htmlFor="st-tahun" hint={`Bawaan pengaturan: ${pengaturan.tahunAnggaran}`}>
-                <Input
-                  id="st-tahun"
-                  type="number"
-                  inputMode="numeric"
-                  value={st.tahunAnggaran ?? ''}
-                  placeholder={String(pengaturan.tahunAnggaran)}
-                  onChange={(e) => {
-                    const val = e.target.value.trim()
-                    ubahSt({ tahunAnggaran: val === '' ? null : Number(val) })
-                  }}
-                />
-              </Field>
-              <Field label="Sumber dana (mata anggaran)" htmlFor="st-sumber-dana" hint="Pilih RM atau PNBP untuk otomatis menyesuaikan akun">
-                <div className="flex items-center gap-4 pt-1.5">
-                  <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                    <input
-                      type="radio"
-                      name="sumberDana"
-                      value="RM"
-                      checked={(st.sumberDana ?? 'RM') === 'RM'}
-                      onChange={() => ubahSumberDana('RM')}
-                      className="text-primary focus:ring-primary size-4"
-                    />
-                    Rupiah Murni (RM)
-                  </label>
-                  <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                    <input
-                      type="radio"
-                      name="sumberDana"
-                      value="PNBP"
-                      checked={st.sumberDana === 'PNBP'}
-                      onChange={() => ubahSumberDana('PNBP')}
-                      className="text-primary focus:ring-primary size-4"
-                    />
-                    PNBP
-                  </label>
-                </div>
-              </Field>
-              <Field label="Kode akun (mata anggaran)" htmlFor="st-akun" className="sm:col-span-2" error={peta.kodeAkun}>
-                <Input id="st-akun" value={st.kodeAkun} onChange={(e) => ubahSt({ kodeAkun: e.target.value })} />
-              </Field>
-              <Field label="Catatan" htmlFor="st-catatan" className="sm:col-span-2">
-                <Textarea id="st-catatan" rows={2} value={st.catatan} onChange={(e) => ubahSt({ catatan: e.target.value })} />
-              </Field>
-            </CardContent>
-          </Card>
+      <Tabs item={itemTab} aktif={tab} onPilih={setTab} idAwal="st" label="Bagian surat tugas" />
 
-          <Card>
-            <CardHeader className="flex-row items-center justify-between gap-2">
-              <div>
-                <CardTitle>Pejabat yang Bertanggung Jawab</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {bukaPj ? (
-                    <>
-                      Penandatangan kuitansi: <em>&quot;Barang / pekerjaan tersebut telah diterima / diselesaikan dengan lengkap dan baik&quot;</em>
-                    </>
-                  ) : (
-                    <>
-                      Penandatangan: <strong>{st.pjNama || pengaturan.pjNama || 'Belum diatur'}</strong>
-                      {st.pjNama || st.pjNip || st.pjJabatan ? '' : ' (bawaan dari Pengaturan)'}
-                    </>
-                  )}
-                </p>
-              </div>
-              <div className="flex items-center gap-1">
-                {bukaPj && (st.pjNama || st.pjNip || st.pjJabatan) ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => ubahSt({ pjNama: null, pjNip: null, pjJabatan: null })}
-                    title="Gunakan pejabat bawaan dari Pengaturan"
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0">
+          <TabPanel idAwal="st" kunci="data" aktif={tab === 'data'}>
+            <div className="grid gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Surat tugas</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 sm:grid-cols-2 items-start">
+                  <Field label="Nomor surat tugas" htmlFor="st-nomor" className="sm:col-span-2" error={peta.nomor}>
+                    <Input id="st-nomor" value={st.nomor} onChange={(e) => ubahSt({ nomor: e.target.value })} placeholder="ST.226/PPS/PEMPS/PSL.04.02/B/09/2026" />
+                  </Field>
+                  <Field label="Tanggal surat tugas" htmlFor="st-tanggal" error={peta.tanggal} hint={tanggalPanjang(st.tanggal) || undefined}>
+                    <Input id="st-tanggal" type="date" value={st.tanggal} onChange={(e) => ubahSt({ tanggal: e.target.value })} />
+                  </Field>
+                  <Field
+                    label="Tanggal SPJ (tanggal dokumen)"
+                    htmlFor="st-spj"
+                    hint={tanggalPanjang(st.tanggalSpj) || 'Kosong = tanggal saat dokumen dibuat. Isi bila ada tanggal SPJ khusus.'}
                   >
-                    <RotateCcwIcon className="size-3.5 mr-1" /> Reset ke bawaan
-                  </Button>
+                    <Input id="st-spj" type="date" value={st.tanggalSpj ?? ''} onChange={(e) => ubahSt({ tanggalSpj: e.target.value || null })} />
+                  </Field>
+                  <Field label="Tahun anggaran" htmlFor="st-tahun" hint={`Bawaan pengaturan: ${pengaturan.tahunAnggaran}`}>
+                    <Input
+                      id="st-tahun"
+                      type="number"
+                      inputMode="numeric"
+                      value={st.tahunAnggaran ?? ''}
+                      placeholder={String(pengaturan.tahunAnggaran)}
+                      onChange={(e) => {
+                        const val = e.target.value.trim()
+                        ubahSt({ tahunAnggaran: val === '' ? null : Number(val) })
+                      }}
+                    />
+                  </Field>
+                  <Field label="Sumber dana (mata anggaran)" htmlFor="st-sumber-dana" hint="Pilih RM atau PNBP untuk otomatis menyesuaikan akun">
+                    <div className="flex items-center gap-4 pt-1.5">
+                      <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                        <input
+                          type="radio"
+                          name="sumberDana"
+                          value="RM"
+                          checked={(st.sumberDana ?? 'RM') === 'RM'}
+                          onChange={() => ubahSumberDana('RM')}
+                          className="text-primary focus:ring-primary size-4"
+                        />
+                        Rupiah Murni (RM)
+                      </label>
+                      <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                        <input
+                          type="radio"
+                          name="sumberDana"
+                          value="PNBP"
+                          checked={st.sumberDana === 'PNBP'}
+                          onChange={() => ubahSumberDana('PNBP')}
+                          className="text-primary focus:ring-primary size-4"
+                        />
+                        PNBP
+                      </label>
+                    </div>
+                  </Field>
+                  <Field label="Kode akun (mata anggaran)" htmlFor="st-akun" className="sm:col-span-2" error={peta.kodeAkun}>
+                    <Input id="st-akun" value={st.kodeAkun} onChange={(e) => ubahSt({ kodeAkun: e.target.value })} />
+                  </Field>
+                  <Field label="Catatan" htmlFor="st-catatan" className="sm:col-span-2">
+                    <Textarea id="st-catatan" rows={2} value={st.catatan} onChange={(e) => ubahSt({ catatan: e.target.value })} />
+                  </Field>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex-row items-center justify-between gap-2">
+                  <div>
+                    <CardTitle>Pejabat yang Bertanggung Jawab</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {bukaPj ? (
+                        <>
+                          Penandatangan kuitansi: <em>&quot;Barang / pekerjaan tersebut telah diterima / diselesaikan dengan lengkap dan baik&quot;</em>
+                        </>
+                      ) : (
+                        <>
+                          Penandatangan: <strong>{st.pjNama || pengaturan.pjNama || 'Belum diatur'}</strong>
+                          {st.pjNama || st.pjNip || st.pjJabatan ? '' : ' (bawaan dari Pengaturan)'}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {bukaPj && (st.pjNama || st.pjNip || st.pjJabatan) ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => ubahSt({ pjNama: null, pjNip: null, pjJabatan: null })}
+                        title="Gunakan pejabat bawaan dari Pengaturan"
+                      >
+                        <RotateCcwIcon className="size-3.5 mr-1" /> Reset ke bawaan
+                      </Button>
+                    ) : null}
+                    <Button variant="outline" size="sm" onClick={() => setBukaPj(!bukaPj)} aria-expanded={bukaPj}>
+                      {bukaPj ? 'Tutup' : 'Ubah'}
+                    </Button>
+                  </div>
+                </CardHeader>
+                {bukaPj ? (
+                <CardContent className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    label="Pilih dari daftar pegawai"
+                    htmlFor="pj-pegawai"
+                    className="sm:col-span-2"
+                    hint="Memilih pegawai akan otomatis mengisi nama, NIP, dan jabatan."
+                  >
+                    <Select
+                      id="pj-pegawai"
+                      value={
+                        (pegawai.data ?? []).find(
+                          (g) => g.nama === st.pjNama || (st.pjNip && (g.nip === st.pjNip || `NIP. ${g.nip}` === st.pjNip))
+                        )?.id ?? ''
+                      }
+                      onChange={(e) => {
+                        const dto = (pegawai.data ?? []).find((g) => g.id === Number(e.target.value))
+                        if (dto) {
+                          ubahSt({
+                            pjNama: dto.nama,
+                            pjNip: dto.nip ? (dto.nip.toUpperCase().startsWith('NIP') ? dto.nip : `NIP. ${dto.nip}`) : '',
+                            pjJabatan: dto.jabatan || null,
+                          })
+                        }
+                      }}
+                    >
+                      <option value="">
+                        {st.pjNama || st.pjNip || st.pjJabatan
+                          ? '- Pilih pegawai untuk mengganti -'
+                          : `- Gunakan bawaan Pengaturan (${pengaturan.pjNama || 'Belum diatur'}) -`}
+                      </option>
+                      {(pegawai.data ?? []).map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.nama} {g.nip ? `(${g.nip})` : ''} {g.jabatan ? `- ${g.jabatan}` : ''}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label="Nama pejabat" htmlFor="pj-nama">
+                    <Input
+                      id="pj-nama"
+                      value={st.pjNama ?? ''}
+                      placeholder={pengaturan.pjNama || 'Nama Pejabat'}
+                      onChange={(e) => ubahSt({ pjNama: e.target.value || null })}
+                    />
+                  </Field>
+                  <Field label="NIP pejabat" htmlFor="pj-nip">
+                    <Input
+                      id="pj-nip"
+                      value={st.pjNip ?? ''}
+                      placeholder={pengaturan.pjNip || 'NIP. ...'}
+                      onChange={(e) => ubahSt({ pjNip: e.target.value || null })}
+                    />
+                  </Field>
+                  <Field label="Jabatan pejabat" htmlFor="pj-jabatan" className="sm:col-span-2">
+                    <Input
+                      id="pj-jabatan"
+                      value={st.pjJabatan ?? ''}
+                      placeholder={pengaturan.pjJabatan || 'Jabatan'}
+                      onChange={(e) => ubahSt({ pjJabatan: e.target.value || null })}
+                    />
+                  </Field>
+                </CardContent>
                 ) : null}
-                <Button variant="outline" size="sm" onClick={() => setBukaPj(!bukaPj)} aria-expanded={bukaPj}>
-                  {bukaPj ? 'Tutup' : 'Ubah'}
-                </Button>
-              </div>
-            </CardHeader>
-            {bukaPj ? (
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <Field
-                label="Pilih dari daftar pegawai"
-                htmlFor="pj-pegawai"
-                className="sm:col-span-2"
-                hint="Memilih pegawai akan otomatis mengisi nama, NIP, dan jabatan."
-              >
-                <Select
-                  id="pj-pegawai"
-                  value={
-                    (pegawai.data ?? []).find(
-                      (g) => g.nama === st.pjNama || (st.pjNip && (g.nip === st.pjNip || `NIP. ${g.nip}` === st.pjNip))
-                    )?.id ?? ''
-                  }
-                  onChange={(e) => {
-                    const dto = (pegawai.data ?? []).find((g) => g.id === Number(e.target.value))
-                    if (dto) {
-                      ubahSt({
-                        pjNama: dto.nama,
-                        pjNip: dto.nip ? (dto.nip.toUpperCase().startsWith('NIP') ? dto.nip : `NIP. ${dto.nip}`) : '',
-                        pjJabatan: dto.jabatan || null,
-                      })
-                    }
-                  }}
-                >
-                  <option value="">
-                    {st.pjNama || st.pjNip || st.pjJabatan
-                      ? '- Pilih pegawai untuk mengganti -'
-                      : `- Gunakan bawaan Pengaturan (${pengaturan.pjNama || 'Belum diatur'}) -`}
-                  </option>
-                  {(pegawai.data ?? []).map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.nama} {g.nip ? `(${g.nip})` : ''} {g.jabatan ? `- ${g.jabatan}` : ''}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Nama pejabat" htmlFor="pj-nama">
-                <Input
-                  id="pj-nama"
-                  value={st.pjNama ?? ''}
-                  placeholder={pengaturan.pjNama || 'Nama Pejabat'}
-                  onChange={(e) => ubahSt({ pjNama: e.target.value || null })}
-                />
-              </Field>
-              <Field label="NIP pejabat" htmlFor="pj-nip">
-                <Input
-                  id="pj-nip"
-                  value={st.pjNip ?? ''}
-                  placeholder={pengaturan.pjNip || 'NIP. ...'}
-                  onChange={(e) => ubahSt({ pjNip: e.target.value || null })}
-                />
-              </Field>
-              <Field label="Jabatan pejabat" htmlFor="pj-jabatan" className="sm:col-span-2">
-                <Input
-                  id="pj-jabatan"
-                  value={st.pjJabatan ?? ''}
-                  placeholder={pengaturan.pjJabatan || 'Jabatan'}
-                  onChange={(e) => ubahSt({ pjJabatan: e.target.value || null })}
-                />
-              </Field>
-            </CardContent>
-            ) : null}
-          </Card>
+              </Card>
+            </div>
+          </TabPanel>
 
           {id !== null ? (
-            <>
-              <BuktiPanel stId={id} />
-              <UsulanHotelPanel
-                stId={id}
-                pelaksanaList={st.pelaksana}
-                onTerapkan={terapkanUsulanHotel}
-              />
-              <UsulanTransportPanel
-                stId={id}
-                pelaksanaList={st.pelaksana}
-                onTerapkan={terapkanUsulanTransport}
-              />
-            </>
+            <TabPanel idAwal="st" kunci="bukti" aktif={tab === 'bukti'}>
+              <div className="grid gap-6">
+                <BuktiPanel stId={id} />
+                <UsulanHotelPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanHotel} />
+                <UsulanTransportPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanTransport} />
+              </div>
+            </TabPanel>
           ) : null}
 
-          {st.pelaksana.map((p, i) => (
-            <PelaksanaCard
-              key={i}
-              nomor={i + 1}
-              p={p}
-              hasil={hasil.pelaksana[i]}
-              sbm={sbm}
-              pegawai={pegawai.data ?? []}
-              provinsi={provinsi}
-              provinsiKedudukan={pengaturan?.provinsiKedudukan}
-              galat={cakupanGalat(peta, `pelaksana.${i}`)}
-              onUbah={(fn) => ubahPelaksana(i, fn)}
-              onHapus={() => setSt((s) => ({ ...s, pelaksana: s.pelaksana.filter((_, j) => j !== i) }))}
-            />
-          ))}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={() => setSt((s) => ({ ...s, pelaksana: [...s.pelaksana, pelaksanaKosong()] }))}>
-              <PlusIcon /> Tambah pelaksana
-            </Button>
-            {st.pelaksana.length > 0 ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={autoIsiNoSpd}
-                title="Isi nomor SPD secara otomatis dan berurutan untuk semua pelaksana"
-              >
-                <SparklesIcon className="size-4 mr-1 text-primary" /> Auto-isi No. SPD
-              </Button>
-            ) : null}
-          </div>
+          <TabPanel idAwal="st" kunci="pelaksana" aktif={tab === 'pelaksana'}>
+            <div className="grid gap-6">
+              {st.pelaksana.length === 0 ? (
+                <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  Belum ada pelaksana. Klik &quot;Tambah pelaksana&quot; untuk memulai.
+                </p>
+              ) : null}
+              {st.pelaksana.map((p, i) => (
+                <PelaksanaCard
+                  key={i}
+                  nomor={i + 1}
+                  p={p}
+                  hasil={hasil.pelaksana[i]}
+                  sbm={sbm}
+                  pegawai={pegawai.data ?? []}
+                  provinsi={provinsi}
+                  provinsiKedudukan={pengaturan?.provinsiKedudukan}
+                  galat={cakupanGalat(peta, `pelaksana.${i}`)}
+                  onUbah={(fn) => ubahPelaksana(i, fn)}
+                  onHapus={() => setSt((s) => ({ ...s, pelaksana: s.pelaksana.filter((_, j) => j !== i) }))}
+                />
+              ))}
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" onClick={() => setSt((s) => ({ ...s, pelaksana: [...s.pelaksana, pelaksanaKosong()] }))}>
+                  <PlusIcon /> Tambah pelaksana
+                </Button>
+                {st.pelaksana.length > 0 ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={autoIsiNoSpd}
+                    title="Isi nomor SPD secara otomatis dan berurutan untuk semua pelaksana"
+                  >
+                    <SparklesIcon className="size-4 mr-1 text-primary" /> Auto-isi No. SPD
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </TabPanel>
         </div>
         <div className="min-w-0">
           <RingkasanPanel hasil={hasil} />
         </div>
       </div>
+
+      <Dialog open={dialogSpd} onOpenChange={setDialogSpd}>
+        <DialogContent>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              konfirmasiNoSpd()
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>Auto-isi nomor SPD</DialogTitle>
+              <DialogDescription>
+                Nomor diisi berurutan untuk {st.pelaksana.length} pelaksana, contoh: {nomorAwalSpd || '401'}/SPD/PPS/{tahunSpd}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="my-4">
+              <Field label="Nomor urut awal" htmlFor="spd-awal" error={galatSpd ?? undefined}>
+                <Input id="spd-awal" inputMode="numeric" autoFocus value={nomorAwalSpd} onChange={(e) => setNomorAwalSpd(e.target.value)} />
+              </Field>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDialogSpd(false)}>
+                Batal
+              </Button>
+              <Button type="submit">Isi nomor</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogHapus} onOpenChange={setDialogHapus}>
         <DialogContent>

@@ -22,7 +22,7 @@ export function RingkasanPanel({ hasil }: { hasil: SpjHasil }) {
               <div className="min-w-0">
                 <p className="truncate font-medium">{p.nama || `Pelaksana ${i + 1}`}</p>
                 {p.peringatan.length > 0 ? (
-                  <Badge variant="destructive">{p.peringatan.length} perlu diperiksa</Badge>
+                  <Badge variant="warning">{p.peringatan.length} perlu diperiksa</Badge>
                 ) : (
                   <Badge variant="success">Lengkap</Badge>
                 )}
@@ -32,7 +32,9 @@ export function RingkasanPanel({ hasil }: { hasil: SpjHasil }) {
           ))}
         </div>
         {jumlahPeringatan > 0 ? (
-          <p className="text-xs text-destructive">{jumlahPeringatan} peringatan data. Lengkapi sebelum mencetak dokumen.</p>
+          <p className="text-xs text-warning-foreground">
+            {jumlahPeringatan} hal perlu diperiksa. Dokumen tetap bisa dibuat, tetapi periksa dulu sebelum dicetak.
+          </p>
         ) : hasil.pelaksana.length > 0 ? (
           <p className="text-xs text-success">Semua data lengkap.</p>
         ) : null}

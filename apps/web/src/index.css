@@ -25,6 +25,7 @@
   --ring: oklch(0.5 0.115 160);
   --success: oklch(0.52 0.13 150);
   --warning: oklch(0.7 0.15 75);
+  --warning-foreground: oklch(0.45 0.1 70);
   --sidebar: oklch(0.975 0.008 155);
 }
 
@@ -49,6 +50,7 @@
   --color-ring: var(--ring);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-sidebar: var(--sidebar);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -63,5 +65,9 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+  /* Item grid tidak boleh lebih lebar dari kolomnya; tanpa ini tabel/kartu lebar mendorong halaman keluar layar di ponsel. */
+  main .grid > * {
+    min-width: 0;
   }
 }
