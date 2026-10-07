@@ -16,8 +16,9 @@ export function PdfKanvas({ blob }: { blob: Blob }) {
         pasangPolyfillPdf()
         // Build legacy memuat polyfill untuk Chrome/WebView Android yang belum mendukung fitur JS terbaru.
         const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-        const { default: workerUrl } = await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')
-        pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
+        // Worker dibundel sebagai .js (?worker): nginx produksi menyajikan .mjs sebagai octet-stream sehingga ditolak peramban.
+        const { default: PdfWorker } = await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker')
+        pdfjs.GlobalWorkerOptions.workerPort = new PdfWorker()
         const doc = await pdfjs.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise
         if (batal || !el) return
         el.replaceChildren()
