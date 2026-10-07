@@ -5,6 +5,7 @@ import {
   jenisButuhEtape,
   jenisButuhProvinsi,
   jenisButuhUraian,
+  norm,
   type BarisBiaya,
   type BiayaPayload,
   type JenisBiaya,
@@ -31,6 +32,7 @@ export function BiayaForm({
   etapeJumlah,
   etapeLabel,
   provinsi,
+  provinsiKedudukan,
   baris,
   sbm,
   onUbah,
@@ -40,6 +42,7 @@ export function BiayaForm({
   etapeJumlah: number
   etapeLabel: (indeks: number) => string
   provinsi: string[]
+  provinsiKedudukan?: string | null
   /** Baris hasil hitung untuk biaya ini (null/undefined bila tarif 0). */
   baris: BarisBiaya | null | undefined
   sbm?: Sbm
@@ -48,13 +51,15 @@ export function BiayaForm({
 }) {
   const perluProvinsi = jenisButuhProvinsi(biaya.jenis)
   const perluEtape = jenisButuhEtape(biaya.jenis) && etapeJumlah > 1
-  const perluUraian = jenisButuhUraian(biaya.jenis) || !!biaya.uraian
+  const perluUraian = jenisButuhUraian(biaya.jenis) || !!biaya.uraian || biaya.jenis === 'TAKSI_TERMINAL'
   const uraianLabel =
     biaya.jenis === 'TRANSPORT_DARAT' || biaya.jenis === 'TRANSPORT_JAKARTA_SEKITAR'
       ? 'Kab/kota tujuan (persis PMK)'
       : biaya.jenis === 'TIKET_PERGI' || biaya.jenis === 'TIKET_KEMBALI'
         ? 'Uraian tiket'
-        : 'Uraian'
+        : biaya.jenis === 'TAKSI_TERMINAL'
+          ? 'Uraian (opsional)'
+          : 'Uraian'
   return (
     <div className="grid gap-2 rounded-lg border bg-card p-3">
       <div className="flex flex-wrap items-end gap-2">
@@ -65,9 +70,18 @@ export function BiayaForm({
             onChange={(e) => {
               const j = e.target.value as JenisBiaya
               const isJkt = j === 'TRANSPORT_JAKARTA_SEKITAR'
+              const isTerminal = j === 'TAKSI_TERMINAL'
+              let tarifPatch: number | undefined = undefined
+              if (j === 'TAKSI_KEDUDUKAN' && !biaya.tarif && provinsiKedudukan && sbm) {
+                tarifPatch = sbm.terminal[norm(provinsiKedudukan)]
+              } else if (j === 'TAKSI_TERMINAL' && !biaya.tarif && biaya.provinsi && sbm) {
+                tarifPatch = sbm.terminal[norm(biaya.provinsi)]
+              }
               onUbah({
                 jenis: j,
                 ...(isJkt && !biaya.qty ? { qty: 2 } : {}),
+                ...(isTerminal && !biaya.qty ? { qty: 2 } : {}),
+                ...(tarifPatch ? { tarif: tarifPatch } : {}),
               })
             }}
           >
@@ -96,7 +110,21 @@ export function BiayaForm({
         ) : null}
         {perluProvinsi ? (
           <Sel label="Provinsi (untuk pagu)">
-            <Select className="w-48" value={biaya.provinsi ?? ''} onChange={(e) => onUbah({ provinsi: e.target.value || null })}>
+            <Select
+              className="w-48"
+              value={biaya.provinsi ?? ''}
+              onChange={(e) => {
+                const pVal = e.target.value || null
+                const tarifAuto =
+                  biaya.jenis === 'TAKSI_TERMINAL' && pVal && sbm && !biaya.tarif
+                    ? sbm.terminal[norm(pVal)]
+                    : undefined
+                onUbah({
+                  provinsi: pVal,
+                  ...(tarifAuto ? { tarif: tarifAuto } : {}),
+                })
+              }}
+            >
               <option value="">- pilih -</option>
               {provinsi.map((p) => (
                 <option key={p} value={p}>
@@ -133,6 +161,7 @@ export function BiayaForm({
           <Sel label={uraianLabel}>
             <Input
               className={biaya.jenis === 'TIKET_PERGI' || biaya.jenis === 'TIKET_KEMBALI' ? 'w-72' : 'w-56'}
+              placeholder={biaya.jenis === 'TAKSI_TERMINAL' ? 'Otomatis: Taksi bandara...' : undefined}
               value={biaya.uraian ?? ''}
               onChange={(e) => onUbah({ uraian: e.target.value || null })}
             />
@@ -154,7 +183,7 @@ export function BiayaForm({
         <Sel label="Keterangan">
           <Input
             className="w-40"
-            placeholder={biaya.jenis === 'TAKSI_KEDUDUKAN' ? '' : 'Bukti terlampir'}
+            placeholder={biaya.jenis === 'TAKSI_KEDUDUKAN' || biaya.jenis === 'TAKSI_TERMINAL' ? '' : 'Bukti terlampir'}
             value={biaya.keterangan ?? ''}
             onChange={(e) => onUbah({ keterangan: e.target.value || null })}
           />

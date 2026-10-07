@@ -225,9 +225,9 @@ describe("hitungSpj - kasus emas", () => {
     const h = hitungSpj(spj([gunadi]), SBM_2026).pelaksana[0]!;
     expect(h.transport.map((r) => r.uraian)).toEqual([
       "Tiket Pesawat Jakarta ke Denpasar",
-      "Taksi dari tempat kedudukan - Bandara Soekarno Hatta (PP)",
       "Tiket Pesawat Denpasar ke Yogyakarta",
       "Tiket Pesawat Yogyakarta ke Jakarta",
+      "Taksi dari tempat kedudukan - Bandara Soekarno Hatta (PP)",
     ]);
     expect(h.totalUangHarian).toBe(1_800_000);
     expect(h.totalPenginapan).toBe(2_500_000);
@@ -319,9 +319,46 @@ describe("hitungSpj - pagu biaya tambahan", () => {
   });
 
   it("taksi terminal Bali di atas pagu Rp219.000", () => {
-    expect(dengan({ jenis: "TAKSI_TERMINAL", provinsi: "BALI", qty: 2, tarif: 300_000 }).catatan).toBe(
+    const r = dengan({ jenis: "TAKSI_TERMINAL", provinsi: "BALI", qty: 2, tarif: 300_000 });
+    expect(r.catatan).toBe(
       "Tarif Rp300.000 melebihi pagu PMK Rp219.000 per satuan (dapat dilampaui bila riil; lampirkan bukti).",
     );
+    expect(r.uraian).toBe("Taksi/transport dari-ke bandara/terminal Bali");
+  });
+
+  it("taksi terminal Yogyakarta otomatis format dengan nama provinsi", () => {
+    const dasarYogya: PelaksanaInput = {
+      ...dasar,
+      etape: [{ ...etapeBali(), kota: "Yogyakarta", provinsi: "D.I. YOGYAKARTA" }],
+    };
+    const hasil = hitungSpj(
+      spj([{ ...dasarYogya, biaya: [{ jenis: "TAKSI_TERMINAL", provinsi: "D.I. YOGYAKARTA", qty: 2, tarif: 258_000 }] }]),
+      SBM_2026,
+    ).pelaksana[0]!.transport[0]!;
+    expect(hasil.uraian).toBe("Taksi/transport dari-ke bandara/terminal D.I. Yogyakarta");
+    expect(hasil.qty).toBeNull();
+    expect(hasil.tarif).toBeNull();
+    expect(hasil.jumlah).toBe(516_000);
+    expect(hasil.keterangan).toBe("");
+
+    const hasilKustom = hitungSpj(
+      spj([
+        {
+          ...dasarYogya,
+          biaya: [
+            {
+              jenis: "TAKSI_TERMINAL",
+              provinsi: "D.I. YOGYAKARTA",
+              uraian: "Bandara YIA ke Hotel Tentrem",
+              qty: 1,
+              tarif: 200_000,
+            },
+          ],
+        },
+      ]),
+      SBM_2026,
+    ).pelaksana[0]!.transport[0]!;
+    expect(hasilKustom.uraian).toBe("Bandara YIA ke Hotel Tentrem");
   });
 
   it("transport kegiatan dalam kab/kota PP Rp170.000", () => {

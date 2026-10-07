@@ -348,10 +348,15 @@ export default function BuatDariStPage() {
                             </TableCell>
                             <TableCell>
                               {pelaksana?.etape.map((et, j) => (
-                                <div key={j} className="text-xs flex items-center gap-1.5 py-0.5">
+                                <div key={j} className="text-xs flex flex-wrap items-center gap-1.5 py-0.5">
                                   <MapPinIcon className="size-3 text-muted-foreground shrink-0" />
                                   <span>{et.kota}</span>
                                   <span className="text-muted-foreground font-mono">({et.provinsi})</span>
+                                  {et.dalamKota8Jam ? (
+                                    <Badge variant="outline" className="text-[10px] py-0 px-1 font-normal bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30">
+                                      Dalam Kota &gt; 8 jam
+                                    </Badge>
+                                  ) : null}
                                 </div>
                               ))}
                             </TableCell>

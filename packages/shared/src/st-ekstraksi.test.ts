@@ -134,4 +134,40 @@ describe("st-ekstraksi", () => {
     expect(usulan.peringatan.some((w) => w.includes("Atlantis"))).toBe(true);
     expect(usulan.peringatan.some((w) => w.includes("lebih awal"))).toBe(true);
   });
+
+  it("otomatis memetakan perjalanan 1 hari Jabodetabek ke dalamKota8Jam dan biaya transport", () => {
+    const raw: HasilEkstraksiSt = {
+      nomor: "ST.100/2026",
+      tanggal: "2026-10-06",
+      kegiatan: "Pelatihan komputer di Tangerang",
+      pelaksana: [
+        {
+          nama: "Riandi Eko Priantoro",
+          nip: "198404212023211020",
+          jabatan: "Pranata Komputer",
+          etape: [
+            {
+              tujuan: "Tanggerang",
+              tanggalBerangkat: "2026-10-06",
+              tanggalKembali: "2026-10-06",
+            },
+          ],
+        },
+      ],
+    };
+
+    const usulan = petakanStKeUsulan(raw, MASTER_PEGAWAI, ["BANTEN", "JAWA BARAT", "D.K.I. JAKARTA"]);
+    expect(usulan.peringatan).toHaveLength(0); // Banten cocok otomatis dari Tanggerang!
+    const pel = usulan.payload.pelaksana[0]!;
+    expect(pel.etape[0]?.provinsi).toBe("BANTEN");
+    expect(pel.etape[0]?.kota).toBe("Kota Tangerang");
+    expect(pel.etape[0]?.dalamKota8Jam).toBe(true);
+    expect(pel.etape[0]?.malamOverride).toBe(0);
+    // Otomatis dibuatkan biaya Transport Jakarta - Sekitar
+    expect(pel.biaya).toHaveLength(1);
+    expect(pel.biaya[0]?.jenis).toBe("TRANSPORT_JAKARTA_SEKITAR");
+    expect(pel.biaya[0]?.uraian).toBe("Kota Tangerang");
+    expect(pel.biaya[0]?.tarif).toBe(258000);
+    expect(pel.biaya[0]?.qty).toBe(2);
+  });
 });

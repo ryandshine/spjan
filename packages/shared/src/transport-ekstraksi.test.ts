@@ -102,6 +102,7 @@ describe("petakanTransportKeUsulan", () => {
         sha256: "aabbcc11223344",
         jenis: "tiket",
         createdAt: "2026-09-08T10:00:00.000Z",
+        keterangan: null,
         ekstraksi: {
           id: 21,
           berkasId: 21,
@@ -149,6 +150,7 @@ describe("petakanTransportKeUsulan", () => {
         sha256: "ccbbaa44332211",
         jenis: "tiket",
         createdAt: "2026-09-08T10:00:00.000Z",
+        keterangan: null,
         ekstraksi: {
           id: 22,
           berkasId: 22,
@@ -193,6 +195,7 @@ describe("petakanTransportKeUsulan", () => {
         sha256: "ffeedd00998877",
         jenis: "transport",
         createdAt: "2026-09-08T10:00:00.000Z",
+        keterangan: null,
         ekstraksi: {
           id: 23,
           berkasId: 23,
@@ -234,6 +237,7 @@ describe("petakanTransportKeUsulan", () => {
         sha256: "11223344556677",
         jenis: "tiket",
         createdAt: "2026-09-08T10:00:00.000Z",
+        keterangan: null,
         ekstraksi: {
           id: 24,
           berkasId: 24,
@@ -307,6 +311,7 @@ describe("petakanTransportKeUsulan", () => {
         sha256: "99887766554433",
         jenis: "tiket",
         createdAt: "2026-09-08T10:00:00.000Z",
+        keterangan: null,
         ekstraksi: {
           id: 25,
           berkasId: 25,

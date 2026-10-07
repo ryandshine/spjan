@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
-import { FileTextIcon, PlusIcon, RotateCcwIcon, SaveIcon, Trash2Icon } from 'lucide-react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { FileTextIcon, PlusIcon, RotateCcwIcon, SaveIcon, SparklesIcon, Trash2Icon } from 'lucide-react'
+import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
   SuratTugasPayloadSchema,
@@ -42,7 +42,7 @@ import {
   useSuratTugas,
   useVersiSbm,
 } from '@/lib/queries'
-import { pesanValidasi } from '@/lib/validasi'
+import { cakupanGalat, pesanValidasi, petaGalat } from '@/lib/validasi'
 
 function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratTugasPayload; sbm: Sbm; pengaturan: PengaturanPayload }) {
   const navigate = useNavigate()
@@ -53,7 +53,25 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
   const [baseline, setBaseline] = useState(() => JSON.stringify(awal))
   const [galat, setGalat] = useState<string[]>([])
   const [dialogHapus, setDialogHapus] = useState(false)
+  const [bukaPj, setBukaPj] = useState(false)
+  const [cobaSimpan, setCobaSimpan] = useState(false)
+  const alertRef = useRef<HTMLDivElement>(null)
+  const lewati = useRef(false)
   const kotor = JSON.stringify(st) !== baseline
+
+  // Setelah percobaan simpan pertama yang gagal, validasi berjalan langsung: galat hilang sendiri begitu isiannya diperbaiki.
+  const isuLive = useMemo(() => {
+    if (!cobaSimpan) return []
+    const r = SuratTugasPayloadSchema.safeParse(st)
+    return r.success ? [] : r.error.issues
+  }, [cobaSimpan, st])
+  const peta = useMemo(() => petaGalat(isuLive), [isuLive])
+  const pesanTampil = [...pesanValidasi(isuLive), ...galat]
+
+  // Mencegah kehilangan data saat berpindah halaman di dalam aplikasi (beforeunload hanya menangani reload/tutup tab).
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) => kotor && !lewati.current && currentLocation.pathname !== nextLocation.pathname,
+  )
 
   useEffect(() => {
     if (!kotor) return
@@ -126,17 +144,22 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
   async function kirim() {
     const cek = SuratTugasPayloadSchema.safeParse(st)
     if (!cek.success) {
-      const pesan = pesanValidasi(cek.error.issues)
-      setGalat(pesan)
-      toast.error('Ada isian yang belum benar.')
+      setCobaSimpan(true)
+      setGalat([])
+      toast.error('Ada isian yang belum benar. Lihat kolom bertanda merah.')
+      window.setTimeout(() => alertRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
       return
     }
+    setCobaSimpan(false)
     setGalat([])
     try {
       const dto = await simpan.mutateAsync({ id, payload: cek.data })
       setBaseline(JSON.stringify(st))
       toast.success('Surat tugas disimpan.')
-      if (id === null) navigate(`/st/${dto.id}`, { replace: true })
+      if (id === null) {
+        lewati.current = true
+        navigate(`/st/${dto.id}`, { replace: true })
+      }
     } catch (error) {
       setGalat([pesanGalat(error)])
     }
@@ -147,11 +170,45 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
     try {
       await hapus.mutateAsync(id)
       toast.success('Surat tugas dihapus.')
+      lewati.current = true
       navigate('/', { replace: true })
     } catch (error) {
       toast.error(pesanGalat(error))
       setDialogHapus(false)
     }
+  }
+
+  function autoIsiNoSpd() {
+    if (st.pelaksana.length === 0) return
+    const tahun = st.tahunAnggaran || pengaturan.tahunAnggaran || new Date().getFullYear()
+    const yangAda = st.pelaksana.find((p) => p.noSpd?.trim())?.noSpd?.trim()
+    let angkaAwal = 401
+    let suffix = `/SPD/PPS/${tahun}`
+
+    if (yangAda) {
+      const match = yangAda.match(/^(\d+)(.*)$/)
+      if (match) {
+        angkaAwal = parseInt(match[1]!, 10)
+        suffix = match[2] || suffix
+      }
+    } else {
+      const masukan = window.prompt(`Nomor urut awal SPD (contoh: 401 untuk 401/SPD/PPS/${tahun}):`, '401')
+      if (!masukan) return
+      const parsed = parseInt(masukan.replace(/\D/g, ''), 10)
+      if (!isNaN(parsed) && parsed > 0) {
+        angkaAwal = parsed
+      }
+    }
+
+    setSt((s) => ({
+      ...s,
+      pelaksana: s.pelaksana.map((p, i) => ({
+        ...p,
+        noSpd: `${angkaAwal + i}${suffix}`,
+        tanggalSpd: p.tanggalSpd || s.tanggal || null,
+      })),
+    }))
+    toast.success(`Nomor SPD berhasil diisi berurutan untuk ${st.pelaksana.length} pelaksana.`)
   }
 
   return (
@@ -188,15 +245,17 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
         }
       />
 
-      {galat.length > 0 ? (
-        <Alert variant="destructive" className="mb-5">
-          <p className="mb-1 font-medium">Belum bisa disimpan:</p>
-          <ul className="list-inside list-disc">
-            {galat.map((g, i) => (
-              <li key={i}>{g}</li>
-            ))}
-          </ul>
-        </Alert>
+      {pesanTampil.length > 0 ? (
+        <div ref={alertRef}>
+          <Alert variant="destructive" className="mb-5">
+            <p className="mb-1 font-medium">Belum bisa disimpan. Perbaiki {pesanTampil.length} isian berikut (juga ditandai merah di kolomnya):</p>
+            <ul className="list-inside list-disc">
+              {pesanTampil.map((g, i) => (
+                <li key={i}>{g}</li>
+              ))}
+            </ul>
+          </Alert>
+        </div>
       ) : null}
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -206,10 +265,10 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
               <CardTitle>Surat tugas</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2 items-start">
-              <Field label="Nomor surat tugas" htmlFor="st-nomor" className="sm:col-span-2">
+              <Field label="Nomor surat tugas" htmlFor="st-nomor" className="sm:col-span-2" error={peta.nomor}>
                 <Input id="st-nomor" value={st.nomor} onChange={(e) => ubahSt({ nomor: e.target.value })} placeholder="ST.226/PPS/PEMPS/PSL.04.02/B/09/2026" />
               </Field>
-              <Field label="Tanggal surat tugas" htmlFor="st-tanggal">
+              <Field label="Tanggal surat tugas" htmlFor="st-tanggal" error={peta.tanggal}>
                 <Input id="st-tanggal" type="date" value={st.tanggal} onChange={(e) => ubahSt({ tanggal: e.target.value })} />
               </Field>
               <Field label="Tanggal SPJ (tanggal dokumen)" htmlFor="st-spj" hint="Bawaan: tanggal saat dokumen dibuat. Boleh diubah bila ada tanggal SPJ khusus.">
@@ -254,7 +313,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
                   </label>
                 </div>
               </Field>
-              <Field label="Kode akun (mata anggaran)" htmlFor="st-akun" className="sm:col-span-2">
+              <Field label="Kode akun (mata anggaran)" htmlFor="st-akun" className="sm:col-span-2" error={peta.kodeAkun}>
                 <Input id="st-akun" value={st.kodeAkun} onChange={(e) => ubahSt({ kodeAkun: e.target.value })} />
               </Field>
               <Field label="Catatan" htmlFor="st-catatan" className="sm:col-span-2">
@@ -268,20 +327,35 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
               <div>
                 <CardTitle>Pejabat yang Bertanggung Jawab</CardTitle>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Penandatangan kuitansi: <em>&quot;Barang / pekerjaan tersebut telah diterima / diselesaikan dengan lengkap dan baik&quot;</em>
+                  {bukaPj ? (
+                    <>
+                      Penandatangan kuitansi: <em>&quot;Barang / pekerjaan tersebut telah diterima / diselesaikan dengan lengkap dan baik&quot;</em>
+                    </>
+                  ) : (
+                    <>
+                      Penandatangan: <strong>{st.pjNama || pengaturan.pjNama || 'Belum diatur'}</strong>
+                      {st.pjNama || st.pjNip || st.pjJabatan ? '' : ' (bawaan dari Pengaturan)'}
+                    </>
+                  )}
                 </p>
               </div>
-              {st.pjNama || st.pjNip || st.pjJabatan ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => ubahSt({ pjNama: null, pjNip: null, pjJabatan: null })}
-                  title="Gunakan pejabat bawaan dari Pengaturan"
-                >
-                  <RotateCcwIcon className="size-3.5 mr-1" /> Reset ke bawaan
+              <div className="flex items-center gap-1">
+                {bukaPj && (st.pjNama || st.pjNip || st.pjJabatan) ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => ubahSt({ pjNama: null, pjNip: null, pjJabatan: null })}
+                    title="Gunakan pejabat bawaan dari Pengaturan"
+                  >
+                    <RotateCcwIcon className="size-3.5 mr-1" /> Reset ke bawaan
+                  </Button>
+                ) : null}
+                <Button variant="outline" size="sm" onClick={() => setBukaPj(!bukaPj)} aria-expanded={bukaPj}>
+                  {bukaPj ? 'Tutup' : 'Ubah'}
                 </Button>
-              ) : null}
+              </div>
             </CardHeader>
+            {bukaPj ? (
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <Field
                 label="Pilih dari daftar pegawai"
@@ -344,6 +418,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
                 />
               </Field>
             </CardContent>
+            ) : null}
           </Card>
 
           {id !== null ? (
@@ -371,14 +446,26 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
               sbm={sbm}
               pegawai={pegawai.data ?? []}
               provinsi={provinsi}
+              provinsiKedudukan={pengaturan?.provinsiKedudukan}
+              galat={cakupanGalat(peta, `pelaksana.${i}`)}
               onUbah={(fn) => ubahPelaksana(i, fn)}
               onHapus={() => setSt((s) => ({ ...s, pelaksana: s.pelaksana.filter((_, j) => j !== i) }))}
             />
           ))}
-          <div>
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={() => setSt((s) => ({ ...s, pelaksana: [...s.pelaksana, pelaksanaKosong()] }))}>
               <PlusIcon /> Tambah pelaksana
             </Button>
+            {st.pelaksana.length > 0 ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={autoIsiNoSpd}
+                title="Isi nomor SPD secara otomatis dan berurutan untuk semua pelaksana"
+              >
+                <SparklesIcon className="size-4 mr-1 text-primary" /> Auto-isi No. SPD
+              </Button>
+            ) : null}
           </div>
         </div>
         <div className="min-w-0">
@@ -398,6 +485,23 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
             </Button>
             <Button variant="destructive" onClick={konfirmasiHapus} disabled={hapus.isPending}>
               {hapus.isPending ? 'Menghapus...' : 'Hapus'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={blocker.state === 'blocked'} onOpenChange={(o) => !o && blocker.state === 'blocked' && blocker.reset()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tinggalkan halaman ini?</DialogTitle>
+            <DialogDescription>Ada perubahan yang belum disimpan. Jika Anda keluar sekarang, perubahan tersebut akan hilang.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => blocker.state === 'blocked' && blocker.reset()}>
+              Tetap di sini
+            </Button>
+            <Button variant="destructive" onClick={() => blocker.state === 'blocked' && blocker.proceed()}>
+              Keluar tanpa menyimpan
             </Button>
           </DialogFooter>
         </DialogContent>

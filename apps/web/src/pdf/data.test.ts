@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { siapkanDokumen } from './data'
+import { SpjDocument } from './spj-document'
 import type { HasilSuratTugasDto } from '@spjan/shared'
 
 const mockDto: HasilSuratTugasDto = {
@@ -78,5 +79,26 @@ describe('siapkanDokumen', () => {
     expect(hasil.teksTanggalDokumen.length).toBeGreaterThan(0)
     expect(hasil.tempatTanggal).toContain('Jakarta, ')
     expect(hasil.tempatTanggal).not.toContain('   ')
+  })
+
+  it('menyertakan daftar foto dokumentasi jika disediakan', () => {
+    const foto = [
+      {
+        id: 10,
+        namaAsli: 'foto1.jpg',
+        keterangan: 'Kunjungan Lapangan',
+        mime: 'image/jpeg',
+        src: 'data:image/jpeg;base64,sample',
+      },
+    ]
+    const hasil = siapkanDokumen(mockDto, foto)
+    expect(hasil.dokumentasi).toHaveLength(1)
+    expect(hasil.dokumentasi?.[0]?.keterangan).toBe('Kunjungan Lapangan')
+  })
+
+  it('dapat membuat elemen SpjDocument dengan jenis spd', () => {
+    const hasil = siapkanDokumen(mockDto)
+    const el = SpjDocument({ d: hasil, jenis: 'spd' })
+    expect(el).toBeDefined()
   })
 })

@@ -1,6 +1,7 @@
 import type {
   BerkasDto,
   HasilSuratTugasDto,
+  JenisBerkas,
   ModelAiDto,
   ModelAiPayload,
   PegawaiDto,
@@ -14,6 +15,7 @@ import type {
   SuratTugasPayload,
   SuratTugasRingkasDto,
   UjiModelHasil,
+  UpdateBerkasPayload,
   UpdateUsulanBerkasPayload,
   UsulanHotelItem,
   UsulanStHasil,
@@ -85,10 +87,19 @@ export const api = {
   },
 
   berkas: {
-    unggah: async (file: File, stId?: number): Promise<{ berkas: BerkasDto; duplikat: boolean }> => {
+    unggah: async (
+      file: File,
+      stId?: number,
+      opsi?: { jenis?: JenisBerkas; keterangan?: string },
+    ): Promise<{ berkas: BerkasDto; duplikat: boolean }> => {
       const form = new FormData()
       form.append('file', file)
-      const url = stId !== undefined ? `/api/berkas?stId=${stId}` : '/api/berkas'
+      const params = new URLSearchParams()
+      if (stId !== undefined) params.set('stId', String(stId))
+      if (opsi?.jenis) params.set('jenis', opsi.jenis)
+      if (opsi?.keterangan) params.set('keterangan', opsi.keterangan)
+      const qs = params.toString()
+      const url = qs ? `/api/berkas?${qs}` : '/api/berkas'
       const res = await fetch(url, {
         method: 'POST',
         credentials: 'same-origin',
@@ -103,6 +114,7 @@ export const api = {
     },
     get: (id: number) => request<BerkasDto>('GET', `/api/berkas/${id}`),
     list: (stId?: number) => request<BerkasDto[]>('GET', stId !== undefined ? `/api/berkas?stId=${stId}` : '/api/berkas'),
+    update: (id: number, payload: UpdateBerkasPayload) => request<BerkasDto>('PATCH', `/api/berkas/${id}`, payload),
     hapus: (id: number) => request<void>('DELETE', `/api/berkas/${id}`),
     ulang: (id: number) => request<BerkasDto>('POST', `/api/berkas/${id}/ulang`),
     updateUsulan: (id: number, payload: UpdateUsulanBerkasPayload) =>

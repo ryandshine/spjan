@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { ArrowLeftIcon, DownloadIcon } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowLeftIcon, DownloadIcon, ImageIcon } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
+import type { FotoDokumentasi } from '@spjan/shared'
 
 import { PageHeader } from '@/components/page-header'
 import { PdfPreview } from '@/components/pdf-preview'
@@ -8,7 +9,7 @@ import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { pesanGalat } from '@/lib/format'
-import { useHasilSuratTugas } from '@/lib/queries'
+import { useDaftarBerkas, useHasilSuratTugas } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 import { siapkanDokumen } from '@/pdf/data'
 import { daftarkanFont } from '@/pdf/fonts'
@@ -26,8 +27,87 @@ interface Pilihan {
 export default function DokumenPage() {
   const { id: idParam } = useParams()
   const id = Number(idParam)
-  const hasil = useHasilSuratTugas(Number.isInteger(id) && id > 0 ? id : undefined)
-  const d = useMemo(() => (hasil.data ? siapkanDokumen(hasil.data) : null), [hasil.data])
+  const stIdValid = Number.isInteger(id) && id > 0 ? id : undefined
+  const hasil = useHasilSuratTugas(stIdValid)
+  const berkasQuery = useDaftarBerkas(stIdValid ?? null)
+
+  const [fotoDokumentasi, setFotoDokumentasi] = useState<FotoDokumentasi[]>([])
+  const [sedangMuatFoto, setSedangMuatFoto] = useState(false)
+
+  // Ambil data foto dokumentasi dan ubah ke data URI agar @react-pdf/renderer merender gambar secara mulus
+  useEffect(() => {
+    const list = berkasQuery.data
+    if (!list || list.length === 0) {
+      setFotoDokumentasi([])
+      return
+    }
+
+    // Filter berkas gambar: utamakan jenis 'dokumentasi' atau gambar lainnya
+    const fotoFiles = list.filter(
+      (b) => b.jenis === 'dokumentasi' || (b.mime.startsWith('image/') && b.jenis !== 'st'),
+    )
+
+    if (fotoFiles.length === 0) {
+      setFotoDokumentasi([])
+      return
+    }
+
+    let batal = false
+    setSedangMuatFoto(true)
+
+    ;(async () => {
+      try {
+        const fotoArray: FotoDokumentasi[] = await Promise.all(
+          fotoFiles.map(async (b) => {
+            try {
+              const res = await fetch(`/api/berkas/${b.id}/isi`, { credentials: 'same-origin' })
+              const blob = await res.blob()
+              const dataUrl = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.onerror = reject
+                reader.readAsDataURL(blob)
+              })
+              return {
+                id: b.id,
+                namaAsli: b.namaAsli,
+                keterangan: b.keterangan || b.namaAsli,
+                mime: b.mime,
+                src: dataUrl,
+                createdAt: b.createdAt,
+              }
+            } catch {
+              // Fallback ke direct URL bila fetch data URI gagal
+              return {
+                id: b.id,
+                namaAsli: b.namaAsli,
+                keterangan: b.keterangan || b.namaAsli,
+                mime: b.mime,
+                src: `/api/berkas/${b.id}/isi`,
+                createdAt: b.createdAt,
+              }
+            }
+          }),
+        )
+        if (!batal) {
+          setFotoDokumentasi(fotoArray)
+        }
+      } catch {
+        // Abaikan galat konversi gambar
+      } finally {
+        if (!batal) setSedangMuatFoto(false)
+      }
+    })()
+
+    return () => {
+      batal = true
+    }
+  }, [berkasQuery.data])
+
+  const d = useMemo(
+    () => (hasil.data ? siapkanDokumen(hasil.data, fotoDokumentasi) : null),
+    [hasil.data, fotoDokumentasi],
+  )
   const [kunci, setKunci] = useState('sptb')
   const blobTerakhir = useRef<Blob | null>(null)
 
@@ -35,15 +115,24 @@ export default function DokumenPage() {
     const daftar: Pilihan[] = [{ kunci: 'sptb', label: 'SPTB', jenis: 'sptb' }]
     d?.pelaksana.forEach((p, i) => {
       const nama = p.nama || `Pelaksana ${i + 1}`
+      daftar.push({ kunci: `spd:${i}`, label: `SPD - ${nama}`, jenis: 'spd', indeks: i })
       daftar.push({ kunci: `rincian:${i}`, label: `Rincian - ${nama}`, jenis: 'rincian', indeks: i })
       daftar.push({ kunci: `kuitansi:${i}`, label: `Kuitansi - ${nama}`, jenis: 'kuitansi', indeks: i })
       if (p.pengeluaranRiil && p.pengeluaranRiil.length > 0) {
         daftar.push({ kunci: `dpr:${i}`, label: `DPR - ${nama}`, jenis: 'dpr', indeks: i })
       }
     })
+    if (fotoDokumentasi.length > 0) {
+      daftar.push({
+        kunci: 'dokumentasi',
+        label: `Bukti Dokumentasi (${fotoDokumentasi.length} foto)`,
+        jenis: 'dokumentasi',
+      })
+    }
     daftar.push({ kunci: 'semua', label: 'Semua dokumen (satu berkas)', jenis: 'semua' })
     return daftar
-  }, [d])
+  }, [d, fotoDokumentasi])
+
   const terpilih = pilihan.find((p) => p.kunci === kunci) ?? pilihan[0]
 
   const dokumen = useMemo(
@@ -79,7 +168,7 @@ export default function DokumenPage() {
             <Link to={`/st/${id}`} className={buttonVariants({ variant: 'outline' })}>
               <ArrowLeftIcon className="size-4" /> Kembali ke editor
             </Link>
-            <Button onClick={unduh}>
+            <Button onClick={unduh} disabled={sedangMuatFoto}>
               <DownloadIcon /> Unduh PDF
             </Button>
           </>
@@ -118,14 +207,25 @@ export default function DokumenPage() {
                 terpilih?.kunci === p.kunci ? 'border-primary bg-accent font-medium' : 'bg-card',
               )}
             >
-              <span className="truncate">{p.label}</span>
+              <span className="truncate flex items-center gap-1.5">
+                {p.jenis === 'dokumentasi' ? <ImageIcon className="size-3.5 text-sky-600" /> : null}
+                {p.label}
+              </span>
               {p.jenis !== 'sptb' && p.jenis !== 'semua' && p.indeks !== undefined && (d.pelaksana[p.indeks]?.peringatan.length ?? 0) > 0 ? (
                 <Badge variant="warning">!</Badge>
               ) : null}
             </button>
           ))}
         </nav>
-        <div className="h-[80vh] min-h-[500px]">{dokumen ? <PdfPreview dokumen={dokumen} onSiap={simpanBlob} /> : null}</div>
+        <div className="h-[80vh] min-h-[500px]">
+          {sedangMuatFoto && !dokumen ? (
+            <div className="flex h-full items-center justify-center rounded-lg border bg-card text-sm text-muted-foreground">
+              Menyiapkan foto dokumentasi untuk dokumen...
+            </div>
+          ) : dokumen ? (
+            <PdfPreview dokumen={dokumen} onSiap={simpanBlob} />
+          ) : null}
+        </div>
       </div>
     </div>
   )

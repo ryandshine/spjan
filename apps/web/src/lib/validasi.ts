@@ -33,6 +33,10 @@ const LABEL: Record<string, string> = {
   keterangan: 'Keterangan',
 }
 
+function pesanIsu(i: Isu): string {
+  return i.code === 'too_small' && i.origin === 'string' ? 'wajib diisi' : i.message
+}
+
 /** Mengubah isu validasi zod menjadi kalimat Indonesia dengan lokasi (Pelaksana 1 > Tujuan 2 > Tarif hotel). */
 export function pesanValidasi(isu: ReadonlyArray<Isu>): string[] {
   return isu.map((i) => {
@@ -48,7 +52,29 @@ export function pesanValidasi(isu: ReadonlyArray<Isu>): string[] {
         bagian.push(LABEL[kunci] ?? kunci)
       }
     }
-    const pesan = i.code === 'too_small' && i.origin === 'string' ? 'wajib diisi' : i.message
-    return `${bagian.join(' > ')}: ${pesan}`
+    return `${bagian.join(' > ')}: ${pesanIsu(i)}`
   })
+}
+
+/** Peta galat per kolom, kuncinya path zod digabung titik (mis. "pelaksana.0.etape.1.kota"). Hanya pesan pertama per kolom. */
+export type PetaGalat = Record<string, string>
+
+export function petaGalat(isu: ReadonlyArray<Isu>): PetaGalat {
+  const peta: PetaGalat = {}
+  for (const i of isu) {
+    const kunci = i.path.map(String).join('.')
+    if (!(kunci in peta)) peta[kunci] = pesanIsu(i)
+  }
+  return peta
+}
+
+/** Mengambil bagian peta di bawah awalan tertentu, dengan awalan dibuang (mis. awalan "etape.1" -> kunci "kota"). */
+export function cakupanGalat(peta: PetaGalat | undefined, awalan: string): PetaGalat {
+  const hasil: PetaGalat = {}
+  if (!peta) return hasil
+  const depan = `${awalan}.`
+  for (const [k, v] of Object.entries(peta)) {
+    if (k.startsWith(depan)) hasil[k.slice(depan.length)] = v
+  }
+  return hasil
 }

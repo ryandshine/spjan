@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const JENIS_BERKAS = ["belum", "st", "hotel", "tiket", "transport", "lainnya"] as const;
+export const JENIS_BERKAS = ["belum", "st", "hotel", "tiket", "transport", "dokumentasi", "lainnya"] as const;
 export type JenisBerkas = (typeof JENIS_BERKAS)[number];
 
 export const JENIS_BERKAS_LABEL: Record<JenisBerkas, string> = {
@@ -9,6 +9,7 @@ export const JENIS_BERKAS_LABEL: Record<JenisBerkas, string> = {
   hotel: "Invoice hotel",
   tiket: "Tiket",
   transport: "Bukti transport",
+  dokumentasi: "Dokumentasi kegiatan",
   lainnya: "Lainnya",
 };
 
@@ -58,6 +59,7 @@ export interface BerkasDto {
   ukuran: number;
   sha256: string;
   jenis: JenisBerkas;
+  keterangan: string | null;
   createdAt: string;
   /** Ekstraksi terbaru; null bila belum pernah dijadwalkan. */
   ekstraksi: EkstraksiDto | null;
@@ -68,6 +70,23 @@ export const UpdateUsulanBerkasPayloadSchema = z.object({
   pelaksanaId: z.number().int().positive().nullable().optional(),
 });
 export type UpdateUsulanBerkasPayload = z.infer<typeof UpdateUsulanBerkasPayloadSchema>;
+
+export const UpdateBerkasPayloadSchema = z.object({
+  jenis: z.enum(JENIS_BERKAS).optional(),
+  keterangan: z.string().max(500).nullable().optional(),
+  pelaksanaId: z.number().int().positive().nullable().optional(),
+  usulanStatus: z.enum(STATUS_USULAN).optional(),
+});
+export type UpdateBerkasPayload = z.infer<typeof UpdateBerkasPayloadSchema>;
+
+export interface FotoDokumentasi {
+  id: number;
+  namaAsli: string;
+  keterangan: string | null;
+  mime: string;
+  src: string;
+  createdAt?: string;
+}
 
 export const ModelAiPayloadSchema = z.object({
   llmUrl: z.url().max(200).nullable(),
@@ -91,7 +110,7 @@ export interface UjiModelHasil {
 }
 
 export const HasilKlasifikasiSchema = z.object({
-  jenis: z.enum(["st", "hotel", "tiket", "transport", "lainnya"]),
+  jenis: z.enum(["st", "hotel", "tiket", "transport", "dokumentasi", "lainnya"]),
   ringkasan: z.string().max(300),
 });
 export type HasilKlasifikasi = z.infer<typeof HasilKlasifikasiSchema>;

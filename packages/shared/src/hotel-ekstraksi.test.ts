@@ -120,6 +120,7 @@ describe("petakanHotelKeUsulan", () => {
         sha256: "abc1234567890",
         jenis: "hotel",
         createdAt: "2026-10-05T00:00:00Z",
+        keterangan: null,
         ekstraksi: {
           id: 1,
           berkasId: 10,
@@ -166,6 +167,7 @@ describe("petakanHotelKeUsulan", () => {
         sha256: "abc999",
         jenis: "hotel",
         createdAt: "2026-10-05T00:00:00Z",
+        keterangan: null,
         ekstraksi: {
           id: 2,
           berkasId: 11,

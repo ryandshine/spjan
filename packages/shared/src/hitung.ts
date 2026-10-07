@@ -71,8 +71,26 @@ function uraianBiaya(b: BiayaInput, input: SpjInput, etape: EtapeInput[]): strin
       const i = b.etapeIndex ?? etape.length - 1;
       return `Tiket Pesawat ${etape[i]?.kota ?? ""} ke ${kedudukan}`;
     }
-    case "TAKSI_KEDUDUKAN":
-      return uraian || URAIAN_TAKSI_KEDUDUKAN;
+    case "TAKSI_KEDUDUKAN": {
+      if (uraian) return uraian;
+      if (kedudukan && norm(kedudukan) !== "JAKARTA") {
+        return `Taksi dari tempat kedudukan - Bandara ${proper(kedudukan)} (PP)`;
+      }
+      return URAIAN_TAKSI_KEDUDUKAN;
+    }
+    case "TAKSI_TERMINAL": {
+      if (uraian) return uraian;
+      const targetEtape =
+        (b.etapeIndex != null ? etape[b.etapeIndex] : undefined) ??
+        etape.find((e) => norm(e.provinsi) === norm(b.provinsi ?? "")) ??
+        etape[0];
+      const rawLokasi = b.provinsi || targetEtape?.provinsi || targetEtape?.kota || "";
+      if (rawLokasi) {
+        const namaLokasi = proper(rawLokasi);
+        return `Taksi/transport dari-ke bandara/terminal ${namaLokasi}`;
+      }
+      return LABEL_URAIAN.TAKSI_TERMINAL ?? b.jenis;
+    }
     case "LAINNYA":
       return uraian || "Biaya lainnya";
     default: {
@@ -85,17 +103,22 @@ function uraianBiaya(b: BiayaInput, input: SpjInput, etape: EtapeInput[]): strin
 function barisTransport(b: BiayaInput, input: SpjInput, etape: EtapeInput[], sbm: Sbm): BarisBiaya | null {
   if (!(b.tarif > 0)) return null;
   const qty = b.qty && b.qty > 0 ? b.qty : 1;
-  const tampil = qty > 1;
+  const isTaksiTerminal = b.jenis === "TAKSI_TERMINAL";
+  const tampil = !isTaksiTerminal && qty > 1;
   const satuanDefault = SEWA.has(b.jenis) ? "hari" : "kali";
   const catatan = catatanBiaya(sbm, b, input.provinsiKedudukan);
-  const keteranganDefault = b.jenis === "TAKSI_KEDUDUKAN" ? "" : KETERANGAN_DEFAULT;
+  const tanpaKeterangan = b.jenis === "TAKSI_KEDUDUKAN" || b.jenis === "TAKSI_TERMINAL";
+  const ketInput = ada(b.keterangan) ? (b.keterangan as string).trim() : "";
+  const keterangan = tanpaKeterangan
+    ? (ketInput === KETERANGAN_DEFAULT ? "" : ketInput)
+    : (ketInput || KETERANGAN_DEFAULT);
   return {
     uraian: uraianBiaya(b, input, etape),
     qty: tampil ? qty : null,
     satuan: tampil ? ada(b.satuan) ? (b.satuan as string) : satuanDefault : null,
     tarif: tampil ? b.tarif : null,
     jumlah: Math.round(qty * b.tarif),
-    keterangan: ada(b.keterangan) ? (b.keterangan as string) : keteranganDefault,
+    keterangan,
     ...(catatan ? { catatan } : {}),
   };
 }
@@ -300,8 +323,46 @@ function hitungPelaksana(p: PelaksanaInput, input: SpjInput, sbm: Sbm): Pelaksan
     if (h.uraianSptb) segmen.push(h.uraianSptb);
   });
 
+function urutanBiayaTransport(jenis: JenisBiaya): number {
+  switch (jenis) {
+    case "TIKET_PERGI":
+      return 10;
+    case "TIKET_KEMBALI":
+      return 20;
+    case "TAKSI_KEDUDUKAN":
+      return 30;
+    case "TAKSI_TERMINAL":
+      return 40;
+    case "TRANSPORT_DARAT":
+      return 50;
+    case "TRANSPORT_JAKARTA_SEKITAR":
+      return 51;
+    case "TRANSPORT_KEGIATAN_PP":
+      return 52;
+    case "SEWA_RODA4":
+    case "SEWA_RODA6":
+    case "SEWA_BUS_BESAR":
+      return 60;
+    case "AIRPORT_TAX_BAGASI":
+      return 65;
+    case "KERETA_BUS_LAIN":
+      return 70;
+    case "LAINNYA":
+      return 80;
+    default:
+      return 90;
+  }
+}
+
   const transport: BarisBiaya[] = [];
-  for (const b of p.biaya) {
+  const biayaUrut = [...p.biaya].sort((a, b) => {
+    const ua = urutanBiayaTransport(a.jenis);
+    const ub = urutanBiayaTransport(b.jenis);
+    if (ua !== ub) return ua - ub;
+    return (a.etapeIndex ?? 0) - (b.etapeIndex ?? 0);
+  });
+
+  for (const b of biayaUrut) {
     const baris = barisTransport(b, input, p.etape, sbm);
     if (baris) {
       transport.push(baris);

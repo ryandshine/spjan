@@ -15,6 +15,7 @@ interface Row {
   ukuran: number;
   sha256: string;
   jenis: JenisBerkas;
+  keterangan: string | null;
   created_at: Date;
   e_id: number | null;
   e_status: StatusEkstraksi | null;
@@ -28,7 +29,7 @@ interface Row {
 }
 
 const SELECT_BERKAS = `
-  select b.id, b.st_id, b.pelaksana_id, b.nama_asli, b.mime, b.ukuran, b.sha256, b.jenis, b.created_at,
+  select b.id, b.st_id, b.pelaksana_id, b.nama_asli, b.mime, b.ukuran, b.sha256, b.jenis, b.keterangan, b.created_at,
          e.id as e_id, e.status as e_status, e.model as e_model, e.hasil as e_hasil,
          e.kode_galat as e_kode_galat, e.galat as e_galat, e.usulan_status as e_usulan_status,
          e.created_at as e_created_at, e.selesai_at as e_selesai_at
@@ -45,6 +46,7 @@ function map(r: Row): BerkasDto {
     ukuran: r.ukuran,
     sha256: r.sha256,
     jenis: r.jenis,
+    keterangan: r.keterangan ?? null,
     createdAt: r.created_at.toISOString(),
     ekstraksi:
       r.e_id === null || r.e_status === null || r.e_usulan_status === null || r.e_created_at === null
@@ -99,7 +101,7 @@ function bersihkanNama(nama: string): string {
 export async function tambahBerkas(
   db: Db,
   store: BerkasStore,
-  input: { stId: number | null; namaAsli: string; data: Buffer },
+  input: { stId: number | null; namaAsli: string; data: Buffer; jenis?: JenisBerkas; keterangan?: string | null },
 ): Promise<{ dto: BerkasDto; duplikat: boolean }> {
   const mime = deteksiMime(input.data);
   if (!mime) {
@@ -122,14 +124,24 @@ export async function tambahBerkas(
     throw new HttpError(409, "BATAS_BERKAS", `Satu surat tugas maksimal ${BATAS_BERKAS.maksPerSt} berkas.`);
   }
   await store.put(sha256, input.data);
+
+  const jenisAwal = input.jenis ?? "belum";
+  const keteranganAwal = input.keterangan ?? null;
+  const isDokumentasi = jenisAwal === "dokumentasi";
+
   const { rows } = await db.query<{ id: number }>(
     `with b as (
-       insert into berkas (st_id, nama_asli, mime, ukuran, sha256) values ($1, $2, $3, $4, $5) returning id
+       insert into berkas (st_id, nama_asli, mime, ukuran, sha256, jenis, keterangan)
+       values ($1, $2, $3, $4, $5, $6, $7) returning id
      ), e as (
-       insert into ekstraksi (berkas_id) select id from b returning id
+       insert into ekstraksi (berkas_id, status, hasil)
+       select id,
+              ${isDokumentasi ? "'selesai'" : "'antre'"},
+              ${isDokumentasi ? "'{\"ringkasan\":\"Dokumentasi foto kegiatan\"}'::jsonb" : "null"}
+       from b returning id
      )
      select id from b`,
-    [input.stId, bersihkanNama(input.namaAsli), mime, input.data.length, sha256],
+    [input.stId, bersihkanNama(input.namaAsli), mime, input.data.length, sha256, jenisAwal, keteranganAwal],
   );
   const dto = await getBerkas(db, (rows[0] as { id: number }).id);
   return { dto: dto as BerkasDto, duplikat: false };
@@ -190,5 +202,47 @@ export async function updateUsulanStatus(
     await db.query("update berkas set pelaksana_id = $1 where id = $2", [pelaksanaId, berkasId]);
   }
   return (rowCount ?? 0) > 0;
+}
+
+export async function updateBerkas(
+  db: Db,
+  id: number,
+  payload: { jenis?: JenisBerkas; keterangan?: string | null; pelaksanaId?: number | null; usulanStatus?: StatusUsulan },
+): Promise<boolean> {
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  let idx = 1;
+
+  if (payload.jenis !== undefined) {
+    updates.push(`jenis = $${idx++}`);
+    values.push(payload.jenis);
+  }
+  if (payload.keterangan !== undefined) {
+    updates.push(`keterangan = $${idx++}`);
+    values.push(payload.keterangan);
+  }
+  if (payload.pelaksanaId !== undefined) {
+    updates.push(`pelaksana_id = $${idx++}`);
+    values.push(payload.pelaksanaId);
+  }
+
+  if (updates.length > 0) {
+    values.push(id);
+    const { rowCount } = await db.query(
+      `update berkas set ${updates.join(", ")} where id = $${idx}`,
+      values,
+    );
+    if (!rowCount) return false;
+  }
+
+  if (payload.usulanStatus !== undefined) {
+    await db.query(
+      `update ekstraksi set usulan_status = $1
+        where id = (select id from ekstraksi where berkas_id = $2 order by id desc limit 1)`,
+      [payload.usulanStatus, id],
+    );
+  }
+
+  return true;
 }
 

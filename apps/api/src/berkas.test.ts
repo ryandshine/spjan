@@ -247,6 +247,26 @@ describe("isi, hapus, dan ulang", () => {
     expect(updated.ekstraksi.usulanStatus).toBe("diterapkan");
     expect(updated.pelaksanaId).toBe(pelId);
   });
+
+  it("dapat mengunggah foto dokumentasi dengan jenis dan keterangan serta update via PATCH /:id", async () => {
+    const stId = await buatSt();
+    const res = await unggah("kegiatan-lapangan.jpg", pngUnik(105), `?stId=${stId}&jenis=dokumentasi&keterangan=Rapat+Koordinasi+KPS`);
+    expect(res.statusCode).toBe(201);
+    const { berkas } = res.json();
+    expect(berkas.jenis).toBe("dokumentasi");
+    expect(berkas.keterangan).toBe("Rapat Koordinasi KPS");
+    expect(berkas.ekstraksi.status).toBe("selesai");
+
+    const patchRes = await app.inject({
+      method: "PATCH",
+      url: `/api/berkas/${berkas.id}`,
+      headers: { cookie },
+      payload: { keterangan: "Peninjauan Areal Perhutanan Sosial" },
+    });
+    expect(patchRes.statusCode).toBe(200);
+    const updated = patchRes.json();
+    expect(updated.keterangan).toBe("Peninjauan Areal Perhutanan Sosial");
+  });
 });
 
 

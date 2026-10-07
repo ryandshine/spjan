@@ -4,14 +4,17 @@ import {
   biayaKosong,
   etapeKosong,
   indeksBarisTransport,
+  isKotaJabodetabek,
   jenisButuhEtape,
   jenisButuhProvinsi,
   jenisButuhUraian,
   pelaksanaDariPegawai,
   payloadDariDto,
   pelaksanaKosong,
+  provinsiDariKotaJabodetabek,
   ringkasEtape,
   stKosong,
+  cocokkanKotaJakartaSekitar,
 } from "./st-model.js";
 
 describe("nilai awal", () => {
@@ -106,3 +109,48 @@ describe("payloadDariDto", () => {
     expect(payload.pelaksana).toHaveLength(1);
   });
 });
+
+describe("Jabodetabek helpers", () => {
+  const daftarSample = [
+    { kabKota: "Kota Tangerang", besaran: 258000 },
+    { kabKota: "Kota Tangerang Selatan", besaran: 258000 },
+    { kabKota: "Kab. Tangerang", besaran: 279000 },
+    { kabKota: "Kota Bogor", besaran: 270000 },
+    { kabKota: "Kab. Bogor", besaran: 270000 },
+    { kabKota: "Kota Depok", besaran: 248000 },
+    { kabKota: "Kota Bekasi", besaran: 256000 },
+    { kabKota: "Kepulauan Seribu", besaran: 386000 },
+  ];
+
+  it("mendeteksi kota Jabodetabek dengan toleransi typo", () => {
+    expect(isKotaJabodetabek("Tanggerang")).toBe(true);
+    expect(isKotaJabodetabek("Kota Tangerang")).toBe(true);
+    expect(isKotaJabodetabek("Tangerang Selatan")).toBe(true);
+    expect(isKotaJabodetabek("Bogor")).toBe(true);
+    expect(isKotaJabodetabek("Depok")).toBe(true);
+    expect(isKotaJabodetabek("Bekasi")).toBe(true);
+    expect(isKotaJabodetabek("Kep. Seribu")).toBe(true);
+    expect(isKotaJabodetabek("Bandung")).toBe(false);
+    expect(isKotaJabodetabek("Surabaya")).toBe(false);
+    expect(isKotaJabodetabek("")).toBe(false);
+  });
+
+  it("menentukan provinsi standar kota Jabodetabek", () => {
+    expect(provinsiDariKotaJabodetabek("Tanggerang")).toBe("BANTEN");
+    expect(provinsiDariKotaJabodetabek("Kota Tangerang Selatan")).toBe("BANTEN");
+    expect(provinsiDariKotaJabodetabek("Bogor")).toBe("JAWA BARAT");
+    expect(provinsiDariKotaJabodetabek("Kota Depok")).toBe("JAWA BARAT");
+    expect(provinsiDariKotaJabodetabek("Bekasi")).toBe("JAWA BARAT");
+    expect(provinsiDariKotaJabodetabek("Kepulauan Seribu")).toBe("D.K.I. JAKARTA");
+    expect(provinsiDariKotaJabodetabek("Semarang")).toBeNull();
+  });
+
+  it("mencocokkan kota ke tarif SBM transportJakarta", () => {
+    expect(cocokkanKotaJakartaSekitar("Tanggerang", daftarSample)?.kabKota).toBe("Kota Tangerang");
+    expect(cocokkanKotaJakartaSekitar("Kota Tangerang Selatan", daftarSample)?.kabKota).toBe("Kota Tangerang Selatan");
+    expect(cocokkanKotaJakartaSekitar("Tangsel", daftarSample)?.kabKota).toBe("Kota Tangerang Selatan");
+    expect(cocokkanKotaJakartaSekitar("Bogor", daftarSample)?.besaran).toBe(270000);
+    expect(cocokkanKotaJakartaSekitar("Bandung", daftarSample)).toBeNull();
+  });
+});
+

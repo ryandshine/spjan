@@ -1,6 +1,13 @@
 import multipart from "@fastify/multipart";
 import type { FastifyInstance } from "fastify";
-import { BATAS_BERKAS, HasilEkstraksiStSchema, UpdateUsulanBerkasPayloadSchema, petakanStKeUsulan } from "@spjan/shared";
+import {
+  BATAS_BERKAS,
+  HasilEkstraksiStSchema,
+  JENIS_BERKAS,
+  UpdateBerkasPayloadSchema,
+  UpdateUsulanBerkasPayloadSchema,
+  petakanStKeUsulan,
+} from "@spjan/shared";
 import { z } from "zod";
 
 import type { BerkasStore } from "../berkas/store.js";
@@ -14,6 +21,7 @@ import {
   stAda,
   tambahBerkas,
   ulangiEkstraksi,
+  updateBerkas,
   updateUsulanStatus,
 } from "../repositories/berkas.js";
 import { listPegawai } from "../repositories/pegawai.js";
@@ -21,14 +29,18 @@ import { getPengaturan } from "../repositories/pengaturan.js";
 import { getVersiSbm, versiAktifTerbaru } from "../repositories/sbm.js";
 
 const IdSchema = z.object({ id: z.coerce.number().int().positive() });
-const StQuerySchema = z.object({ stId: z.coerce.number().int().positive().optional() });
+const StQuerySchema = z.object({
+  stId: z.coerce.number().int().positive().optional(),
+  jenis: z.enum(JENIS_BERKAS).optional(),
+  keterangan: z.string().max(500).optional(),
+});
 
 export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: BerkasStore }): Promise<void> {
   // multipart dibaca sebagai aliran sehingga tidak terkena bodyLimit JSON (1 MB) di app.ts.
   await app.register(multipart, { limits: { fileSize: BATAS_BERKAS.maksUkuranMb * 1024 * 1024, files: 1, fields: 0 } });
 
   app.post("/", async (req, reply) => {
-    const { stId } = StQuerySchema.parse(req.query);
+    const { stId, jenis, keterangan } = StQuerySchema.parse(req.query);
     if (stId !== undefined && !(await stAda(opts.db, stId))) throw notFound("Surat tugas");
     const file = await req.file();
     if (!file) throw new HttpError(400, "BERKAS_KOSONG", "Tidak ada berkas pada permintaan.");
@@ -41,7 +53,13 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
       }
       throw error;
     }
-    const { dto, duplikat } = await tambahBerkas(opts.db, opts.store, { stId: stId ?? null, namaAsli: file.filename, data });
+    const { dto, duplikat } = await tambahBerkas(opts.db, opts.store, {
+      stId: stId ?? null,
+      namaAsli: file.filename,
+      data,
+      jenis,
+      keterangan,
+    });
     return reply.code(duplikat ? 200 : 201).send({ berkas: dto, duplikat });
   });
 
@@ -55,6 +73,14 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
     const b = await getBerkas(opts.db, id);
     if (!b) throw notFound("Berkas");
     return b;
+  });
+
+  app.patch("/:id", async (req) => {
+    const { id } = IdSchema.parse(req.params);
+    const payload = UpdateBerkasPayloadSchema.parse(req.body);
+    const ok = await updateBerkas(opts.db, id, payload);
+    if (!ok) throw notFound("Berkas");
+    return getBerkas(opts.db, id);
   });
 
   app.get("/:id/isi", async (req, reply) => {
@@ -123,7 +149,7 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
     ]);
     if (!sbmDetail) throw new HttpError(500, "SBM_HILANG", "Data SBM tidak ditemukan.");
     const daftarProvinsi = Object.keys(sbmDetail.data.uangHarian);
-    const usulan = petakanStKeUsulan(hasil.data, masterPegawai, daftarProvinsi, pengaturan);
+    const usulan = petakanStKeUsulan(hasil.data, masterPegawai, daftarProvinsi, pengaturan, sbmDetail.data);
     return { berkas: b, usulan };
   });
 }

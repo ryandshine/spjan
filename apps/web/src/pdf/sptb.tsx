@@ -70,45 +70,47 @@ export function SptbPage({ d }: { d: DataDokumen }) {
       <View style={{ borderTop: B, borderLeft: B }}>
         {/* judul kolom */}
         <View style={s.baris} wrap={false}>
-          <Sel w={W.no} style={{ justifyContent: 'center' }}>
+          <Sel w={W.no} style={{ height: 42, justifyContent: 'center' }}>
             <Text style={s.tengah}>No.</Text>
           </Sel>
-          <Sel w={W.akun} style={{ justifyContent: 'center' }}>
+          <Sel w={W.akun} style={{ height: 42, justifyContent: 'center' }}>
             <Text style={s.tengah}>AKUN</Text>
           </Sel>
-          <Sel w={W.penerima} style={{ justifyContent: 'center' }}>
+          <Sel w={W.penerima} style={{ height: 42, justifyContent: 'center' }}>
             <Text style={s.tengah}>PENERIMA</Text>
           </Sel>
-          <Sel style={{ justifyContent: 'center' }}>
+          <Sel style={{ height: 42, justifyContent: 'center' }}>
             <Text style={s.tengah}>URAIAN</Text>
           </Sel>
-          <View style={[{ width: W.tgl + W.nomor }, { borderRight: B }]}>
-            <View style={{ borderBottom: B, paddingVertical: 2 }}>
+          <View style={{ width: W.tgl + W.nomor, height: 42, borderRight: B }}>
+            <View style={{ height: 26, borderBottom: B, justifyContent: 'center' }}>
               <Text style={s.tengah}>Bukti</Text>
             </View>
-            <View style={s.baris}>
-              <Sel w={W.tgl} style={{ borderBottom: B }}>
+            <View style={{ flexDirection: 'row', height: 16 }}>
+              <View style={{ width: W.tgl, height: 16, borderRight: B, borderBottom: B, justifyContent: 'center' }}>
                 <Text style={s.tengah}>Tanggal</Text>
-              </Sel>
-              <Sel w={W.nomor} style={{ borderRightWidth: 0, borderBottom: B }}>
+              </View>
+              <View style={{ width: W.nomor, height: 16, borderBottom: B, justifyContent: 'center' }}>
                 <Text style={s.tengah}>Nomor</Text>
-              </Sel>
+              </View>
             </View>
           </View>
-          <Sel w={W.jumlah} style={{ justifyContent: 'center' }}>
+          <Sel w={W.jumlah} style={{ height: 42, justifyContent: 'center' }}>
             <Text style={s.tengah}>Jumlah</Text>
           </Sel>
-          <View style={{ width: W.ppn + W.pph, borderRight: B }}>
-            <View style={{ borderBottom: B, paddingVertical: 1, paddingHorizontal: 2 }}>
-              <Text style={s.tengah}>Pajak yang dipungut Bendahara Pengeluaran</Text>
+          <View style={{ width: W.ppn + W.pph, height: 42, borderRight: B }}>
+            <View style={{ height: 26, borderBottom: B, justifyContent: 'center', paddingHorizontal: 2 }}>
+              <Text style={[s.tengah, { fontSize: 7, lineHeight: 1.15 }]}>
+                Pajak yang dipungut Bendahara Pengeluaran
+              </Text>
             </View>
-            <View style={s.baris}>
-              <Sel w={W.ppn} style={{ borderBottom: B }}>
+            <View style={{ flexDirection: 'row', height: 16 }}>
+              <View style={{ width: W.ppn, height: 16, borderRight: B, borderBottom: B, justifyContent: 'center' }}>
                 <Text style={s.tengah}>PPN</Text>
-              </Sel>
-              <Sel w={W.pph} style={{ borderRightWidth: 0, borderBottom: B }}>
+              </View>
+              <View style={{ width: W.pph, height: 16, borderBottom: B, justifyContent: 'center' }}>
                 <Text style={s.tengah}>PPh</Text>
-              </Sel>
+              </View>
             </View>
           </View>
         </View>

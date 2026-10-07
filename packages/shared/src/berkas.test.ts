@@ -31,6 +31,6 @@ describe("HasilKlasifikasiSchema", () => {
 describe("konstanta", () => {
   it("batas berkas sesuai spec", () => {
     expect(BATAS_BERKAS).toEqual({ maksUkuranMb: 10, maksPerSt: 30 });
-    expect(JENIS_BERKAS).toEqual(["belum", "st", "hotel", "tiket", "transport", "lainnya"]);
+    expect(JENIS_BERKAS).toEqual(["belum", "st", "hotel", "tiket", "transport", "dokumentasi", "lainnya"]);
   });
 });

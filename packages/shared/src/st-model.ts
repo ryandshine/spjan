@@ -104,9 +104,56 @@ export function ringkasEtape(
  * dengan indeks biaya masukan. Mengembalikan, untuk tiap biaya masukan, indeks barisnya pada
  * `transport` hasil (atau null bila biaya itu tidak menghasilkan baris).
  */
-export function indeksBarisTransport(biaya: Pick<BiayaInput, "tarif">[]): Array<number | null> {
-  let berikut = 0;
-  return biaya.map((b) => (b.tarif > 0 ? berikut++ : null));
+export function indeksBarisTransport(
+  biaya: Array<Pick<BiayaInput, "tarif"> & Partial<Pick<BiayaInput, "jenis" | "etapeIndex">>>,
+): Array<number | null> {
+  const urutan = (jenis?: string) => {
+    switch (jenis) {
+      case "TIKET_PERGI":
+        return 10;
+      case "TIKET_KEMBALI":
+        return 20;
+      case "TAKSI_KEDUDUKAN":
+        return 30;
+      case "TAKSI_TERMINAL":
+        return 40;
+      case "TRANSPORT_DARAT":
+        return 50;
+      case "TRANSPORT_JAKARTA_SEKITAR":
+        return 51;
+      case "TRANSPORT_KEGIATAN_PP":
+        return 52;
+      case "SEWA_RODA4":
+      case "SEWA_RODA6":
+      case "SEWA_BUS_BESAR":
+        return 60;
+      case "AIRPORT_TAX_BAGASI":
+        return 65;
+      case "KERETA_BUS_LAIN":
+        return 70;
+      case "LAINNYA":
+        return 80;
+      default:
+        return 90;
+    }
+  };
+
+  const aktif = biaya
+    .map((b, i) => ({ ...b, origIdx: i }))
+    .filter((b) => b.tarif > 0);
+
+  aktif.sort((a, b) => {
+    const ua = urutan(a.jenis);
+    const ub = urutan(b.jenis);
+    if (ua !== ub) return ua - ub;
+    return (a.etapeIndex ?? 0) - (b.etapeIndex ?? 0);
+  });
+
+  const hasil: Array<number | null> = new Array(biaya.length).fill(null);
+  aktif.forEach((item, sortedIdx) => {
+    hasil[item.origIdx] = sortedIdx;
+  });
+  return hasil;
 }
 
 /** Pelaksana baru dari data pegawai; mempertahankan etape/biaya yang sudah ada. */
@@ -132,4 +179,81 @@ export function payloadDariDto(dto: SuratTugasDto): SuratTugasPayload {
     pjNip: dto.pjNip ?? null,
     pjJabatan: dto.pjJabatan ?? null,
   };
+}
+
+/** Menentukan apakah suatu nama kota termasuk kawasan Jabodetabek (Bogor, Depok, Tangerang, Bekasi, Kep. Seribu). */
+export function isKotaJabodetabek(namaKota: string | null | undefined): boolean {
+  if (!namaKota) return false;
+  const s = namaKota.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return (
+    s.includes("bogor") ||
+    s.includes("depok") ||
+    s.includes("tangerang") ||
+    s.includes("tanggerang") ||
+    s.includes("tangsel") ||
+    s.includes("bekasi") ||
+    s.includes("seribu")
+  );
+}
+
+/** Menentukan nama provinsi standar berdasarkan nama kota Jabodetabek. */
+export function provinsiDariKotaJabodetabek(namaKota: string | null | undefined): string | null {
+  if (!namaKota) return null;
+  const s = namaKota.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (s.includes("tangerang") || s.includes("tanggerang") || s.includes("tangsel")) {
+    return "BANTEN";
+  }
+  if (s.includes("bogor") || s.includes("depok") || s.includes("bekasi")) {
+    return "JAWA BARAT";
+  }
+  if (s.includes("seribu")) {
+    return "D.K.I. JAKARTA";
+  }
+  return null;
+}
+
+/** Mencari baris SBM transportJakarta yang paling cocok dengan nama kota (fuzzy / keyword match). */
+export function cocokkanKotaJakartaSekitar(
+  namaKota: string | null | undefined,
+  daftar: Array<{ kabKota: string; besaran: number }>,
+): { kabKota: string; besaran: number } | null {
+  if (!namaKota || !daftar || daftar.length === 0) return null;
+  const s = namaKota.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (!s) return null;
+
+  // 1. Exact stripped match
+  const eksak = daftar.find((item) => item.kabKota.toLowerCase().replace(/[^a-z0-9]/g, "") === s);
+  if (eksak) return eksak;
+
+  // 2. Keyword-based matching with typo handling (e.g. tanggerang, tangsel)
+  if (s.includes("tangsel") || (s.includes("tangerang") && s.includes("selatan")) || (s.includes("tanggerang") && s.includes("selatan"))) {
+    return daftar.find((d) => d.kabKota === "Kota Tangerang Selatan") ?? null;
+  }
+  if (s.includes("tangerang") || s.includes("tanggerang")) {
+    if (s.includes("kab")) {
+      return daftar.find((d) => d.kabKota === "Kab. Tangerang") ?? null;
+    }
+    return daftar.find((d) => d.kabKota === "Kota Tangerang") ?? null;
+  }
+  if (s.includes("bogor")) {
+    if (s.includes("kab")) {
+      return daftar.find((d) => d.kabKota === "Kab. Bogor") ?? null;
+    }
+    return daftar.find((d) => d.kabKota === "Kota Bogor") ?? null;
+  }
+  if (s.includes("depok")) {
+    return daftar.find((d) => d.kabKota === "Kota Depok") ?? null;
+  }
+  if (s.includes("bekasi")) {
+    if (s.includes("kab")) {
+      return daftar.find((d) => d.kabKota === "Kab. Bekasi") ?? null;
+    }
+    return daftar.find((d) => d.kabKota === "Kota Bekasi") ?? null;
+  }
+  if (s.includes("seribu")) {
+    return daftar.find((d) => d.kabKota === "Kepulauan Seribu") ?? null;
+  }
+
+  // 3. Substring fallback
+  return daftar.find((item) => item.kabKota.toLowerCase().includes(namaKota.toLowerCase())) ?? null;
 }

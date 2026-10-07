@@ -1,7 +1,9 @@
 import { z } from "zod";
-import type { PegawaiDto, PengaturanPayload, SuratTugasPayload } from "./schemas.js";
-import { norm } from "./teks.js";
-import type { StatusKode } from "./types.js";
+import { SBM_2026 } from "./data/sbm-2026.js";
+import type { BiayaPayload, PegawaiDto, PengaturanPayload, SuratTugasPayload } from "./schemas.js";
+import { cocokkanKotaJakartaSekitar, isKotaJabodetabek, provinsiDariKotaJabodetabek } from "./st-model.js";
+import { norm, parseTanggal, selisihHari } from "./teks.js";
+import type { Sbm, StatusKode } from "./types.js";
 
 export const EtapeEkstraksiStSchema = z.object({
   tujuan: z.string().trim().min(1).max(200),
@@ -56,6 +58,12 @@ export function cariProvinsiSbm(tujuan: string, daftarProvinsi: string[]): strin
   const langsung = daftarProvinsi.find((p) => norm(p) === t);
   if (langsung) return langsung;
 
+  const provJkt = provinsiDariKotaJabodetabek(tujuan);
+  if (provJkt) {
+    const p = daftarProvinsi.find((x) => norm(x) === norm(provJkt));
+    if (p) return p;
+  }
+
   if (t.includes("YOGYAKARTA") || t.includes("JOGJA") || t.includes("DIY")) {
     const p = daftarProvinsi.find((x) => norm(x) === "D.I. YOGYAKARTA");
     if (p) return p;
@@ -83,9 +91,11 @@ export function petakanStKeUsulan(
   masterPegawai: PegawaiDto[],
   daftarProvinsiSbm: string[],
   pengaturan?: Pick<PengaturanPayload, "kodeAkunDefault"> | null,
+  sbmDetail?: Sbm | null,
 ): UsulanStHasil {
   const peringatan: string[] = [];
   const pelaksanaStatus: PelaksanaStatus[] = [];
+  const sbm = sbmDetail ?? SBM_2026;
 
   const pelaksanaPayload = ekstraksi.pelaksana.map((pel) => {
     const nipDigit = pel.nip ? pel.nip.replace(/\D/g, "") : null;
@@ -112,7 +122,9 @@ export function petakanStKeUsulan(
       peringatan.push(`Pelaksana "${pel.nama}" belum terdaftar di Master Pegawai.`);
     }
 
-    const etapePayload = pel.etape.map((et) => {
+    const biayaAwal: BiayaPayload[] = [];
+
+    const etapePayload = pel.etape.map((et, idx) => {
       const prov = cariProvinsiSbm(et.tujuan, daftarProvinsiSbm);
       if (!prov) {
         peringatan.push(`Tujuan "${et.tujuan}" pada pelaksana "${pel.nama}" tidak cocok dengan daftar provinsi SBM.`);
@@ -122,17 +134,45 @@ export function petakanStKeUsulan(
           `Tanggal pulang (${et.tanggalKembali}) lebih awal dari tanggal berangkat (${et.tanggalBerangkat}) pada pelaksana "${pel.nama}".`,
         );
       }
+
+      const tAwal = parseTanggal(et.tanggalBerangkat);
+      const tAkhir = parseTanggal(et.tanggalKembali);
+      const isSatuHari = tAwal && tAkhir && selisihHari(tAwal, tAkhir) === 0;
+      const isJkt = isKotaJabodetabek(et.tujuan);
+      const dalamKota = isSatuHari && isJkt;
+
+      // Standarisasi nama kota jika Jabodetabek
+      const cocokTransport = isJkt ? cocokkanKotaJakartaSekitar(et.tujuan, sbm.transportJakarta) : null;
+      const namaKotaStandard = cocokTransport ? cocokTransport.kabKota : et.tujuan;
+
+      // Jika perjalanan dinas 1 hari ke Jabodetabek, otomatis tambahkan biaya Transport Jakarta - Sekitar (PP)
+      if (dalamKota) {
+        biayaAwal.push({
+          jenis: "TRANSPORT_JAKARTA_SEKITAR",
+          provinsi: null,
+          uraian: cocokTransport ? cocokTransport.kabKota : "Kota Tangerang",
+          qty: 2,
+          satuan: "kali",
+          tarif: cocokTransport ? cocokTransport.besaran : 258000,
+          keterangan: "Bukti terlampir",
+          etapeIndex: idx,
+          pengeluaranRiil: false,
+        });
+      }
+
       return {
         provinsi: prov ?? et.tujuan,
-        kota: et.tujuan,
+        kota: namaKotaStandard,
         kegiatan: ekstraksi.kegiatan,
         berangkat: et.tanggalBerangkat,
         pulang: et.tanggalKembali,
-        malamOverride: null,
+        malamOverride: isSatuHari ? 0 : null,
         hotelNama: null,
         hotelTarif: null,
         dinasJabatan: false,
         fullboardDates: [],
+        hotel30Persen: false,
+        dalamKota8Jam: dalamKota,
       };
     });
 
@@ -144,7 +184,7 @@ export function petakanStKeUsulan(
       status: match?.status ?? null,
       noSpd: null,
       etape: etapePayload,
-      biaya: [],
+      biaya: biayaAwal,
     };
   });
 

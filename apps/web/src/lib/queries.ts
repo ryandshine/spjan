@@ -225,6 +225,18 @@ export function useUpdateUsulanBerkas() {
   })
 }
 
+export function useUpdateBerkas() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: number; payload: Parameters<typeof api.berkas.update>[1] }) =>
+      api.berkas.update(v.id, v.payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['berkas'] })
+      qc.invalidateQueries({ queryKey: ['st'] })
+    },
+  })
+}
+
 export function useHapusBerkas() {
   const qc = useQueryClient()
   return useMutation({

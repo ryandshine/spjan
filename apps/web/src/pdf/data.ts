@@ -1,6 +1,7 @@
 import {
   formatAngka,
   tanggalIndonesia,
+  type FotoDokumentasi,
   type HasilSuratTugasDto,
   type PelaksanaHasil,
   type PengaturanPayload,
@@ -19,6 +20,7 @@ export interface DataDokumen {
   teksTanggalDokumen: string
   kodeAkun: string
   pembuatDaftar: { nama: string; nip: string }
+  dokumentasi?: FotoDokumentasi[]
 }
 
 export const angka = (n: number): string => formatAngka(n)
@@ -41,7 +43,7 @@ function tanggalKeIso(tgl?: string | Date | null): string {
 }
 
 /** Menyusun data siap cetak dari respons GET /api/surat-tugas/:id/hasil. */
-export function siapkanDokumen(dto: HasilSuratTugasDto): DataDokumen {
+export function siapkanDokumen(dto: HasilSuratTugasDto, dokumentasi?: FotoDokumentasi[]): DataDokumen {
   const { suratTugas: st, pengaturan: pengaturanGlobal, hasil } = dto
   const pertama = hasil.pelaksana[0]
 
@@ -90,5 +92,6 @@ export function siapkanDokumen(dto: HasilSuratTugasDto): DataDokumen {
       nama: pengaturan.pembuatDaftarNama || pertama?.nama || '',
       nip: pengaturan.pembuatDaftarNip || (pertama ? nipCetak(pertama.nip) : ''),
     },
+    dokumentasi,
   }
 }
