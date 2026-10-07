@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeftIcon, DownloadIcon, ImageIcon } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import type { FotoDokumentasi } from '@spjan/shared'
@@ -22,7 +22,11 @@ interface Pilihan {
   label: string
   jenis: JenisDokumen
   indeks?: number
+  /** Judul kelompok di daftar dokumen (nama pelaksana); dokumen tanpa kelompok tampil di atas/bawah. */
+  grup?: string
 }
+
+const FOTO_KOSONG: FotoDokumentasi[] = []
 
 export default function DokumenPage() {
   const { id: idParam } = useParams()
@@ -31,29 +35,22 @@ export default function DokumenPage() {
   const hasil = useHasilSuratTugas(stIdValid)
   const berkasQuery = useDaftarBerkas(stIdValid ?? null)
 
-  const [fotoDokumentasi, setFotoDokumentasi] = useState<FotoDokumentasi[]>([])
-  const [sedangMuatFoto, setSedangMuatFoto] = useState(false)
+  // Filter berkas gambar: utamakan jenis 'dokumentasi' atau gambar lainnya
+  const fotoFiles = useMemo(
+    () => (berkasQuery.data ?? []).filter((b) => b.jenis === 'dokumentasi' || (b.mime.startsWith('image/') && b.jenis !== 'st')),
+    [berkasQuery.data],
+  )
+  const [termuat, setTermuat] = useState<{ untuk: typeof fotoFiles; data: FotoDokumentasi[] } | null>(null)
+  // Hasil unduhan hanya berlaku untuk daftar berkas yang sama; selain itu dianggap belum siap (turunan, bukan setState di efek).
+  const siap = termuat !== null && termuat.untuk === fotoFiles
+  const fotoDokumentasi = siap ? termuat.data : FOTO_KOSONG
+  const sedangMuatFoto = fotoFiles.length > 0 && !siap
 
   // Ambil data foto dokumentasi dan ubah ke data URI agar @react-pdf/renderer merender gambar secara mulus
   useEffect(() => {
-    const list = berkasQuery.data
-    if (!list || list.length === 0) {
-      setFotoDokumentasi([])
-      return
-    }
-
-    // Filter berkas gambar: utamakan jenis 'dokumentasi' atau gambar lainnya
-    const fotoFiles = list.filter(
-      (b) => b.jenis === 'dokumentasi' || (b.mime.startsWith('image/') && b.jenis !== 'st'),
-    )
-
-    if (fotoFiles.length === 0) {
-      setFotoDokumentasi([])
-      return
-    }
+    if (fotoFiles.length === 0) return
 
     let batal = false
-    setSedangMuatFoto(true)
 
     ;(async () => {
       try {
@@ -89,20 +86,16 @@ export default function DokumenPage() {
             }
           }),
         )
-        if (!batal) {
-          setFotoDokumentasi(fotoArray)
-        }
+        if (!batal) setTermuat({ untuk: fotoFiles, data: fotoArray })
       } catch {
         // Abaikan galat konversi gambar
-      } finally {
-        if (!batal) setSedangMuatFoto(false)
       }
     })()
 
     return () => {
       batal = true
     }
-  }, [berkasQuery.data])
+  }, [fotoFiles])
 
   const d = useMemo(
     () => (hasil.data ? siapkanDokumen(hasil.data, fotoDokumentasi) : null),
@@ -115,11 +108,11 @@ export default function DokumenPage() {
     const daftar: Pilihan[] = [{ kunci: 'sptb', label: 'SPTB', jenis: 'sptb' }]
     d?.pelaksana.forEach((p, i) => {
       const nama = p.nama || `Pelaksana ${i + 1}`
-      daftar.push({ kunci: `spd:${i}`, label: `SPD - ${nama}`, jenis: 'spd', indeks: i })
-      daftar.push({ kunci: `rincian:${i}`, label: `Rincian - ${nama}`, jenis: 'rincian', indeks: i })
-      daftar.push({ kunci: `kuitansi:${i}`, label: `Kuitansi - ${nama}`, jenis: 'kuitansi', indeks: i })
+      daftar.push({ kunci: `spd:${i}`, label: 'SPD', jenis: 'spd', indeks: i, grup: nama })
+      daftar.push({ kunci: `rincian:${i}`, label: 'Rincian', jenis: 'rincian', indeks: i, grup: nama })
+      daftar.push({ kunci: `kuitansi:${i}`, label: 'Kuitansi', jenis: 'kuitansi', indeks: i, grup: nama })
       if (p.pengeluaranRiil && p.pengeluaranRiil.length > 0) {
-        daftar.push({ kunci: `dpr:${i}`, label: `DPR - ${nama}`, jenis: 'dpr', indeks: i })
+        daftar.push({ kunci: `dpr:${i}`, label: 'DPR', jenis: 'dpr', indeks: i, grup: nama })
       }
     })
     if (fotoDokumentasi.length > 0) {
@@ -196,12 +189,18 @@ export default function DokumenPage() {
         </p>
       ) : null}
       <div className="grid items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <nav className="grid gap-1">
-          {pilihan.map((p) => (
+        <nav className="grid gap-1" aria-label="Daftar dokumen">
+          {pilihan.map((p, n) => (
+            <Fragment key={p.kunci}>
+            {p.grup && p.grup !== pilihan[n - 1]?.grup ? (
+              <p className="mt-3 truncate px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground first:mt-0" title={p.grup}>
+                {p.grup}
+              </p>
+            ) : null}
             <button
-              key={p.kunci}
               type="button"
               onClick={() => setKunci(p.kunci)}
+              aria-current={terpilih?.kunci === p.kunci ? 'true' : undefined}
               className={cn(
                 'flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-accent',
                 terpilih?.kunci === p.kunci ? 'border-primary bg-accent font-medium' : 'bg-card',
@@ -215,6 +214,7 @@ export default function DokumenPage() {
                 <Badge variant="warning">!</Badge>
               ) : null}
             </button>
+            </Fragment>
           ))}
         </nav>
         <div className="h-[80vh] min-h-[500px]">

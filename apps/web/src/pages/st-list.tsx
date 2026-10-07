@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { FileUpIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import { FileTextIcon, FileUpIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { DataTable, type Kolom } from '@/components/data-table'
 import { PageHeader } from '@/components/page-header'
 import { Alert } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { pesanGalat, tanggalPendek, waktuPendek } from '@/lib/format'
+import { pesanGalat, rupiah, tanggalPendek, waktuPendek } from '@/lib/format'
 import { useDaftarSuratTugas, useHapusSuratTugas } from '@/lib/queries'
 import type { SuratTugasRingkasDto } from '@spjan/shared'
 
@@ -40,13 +41,25 @@ export default function SuratTugasListPage() {
     },
     { judul: 'Tanggal', teks: (b) => tanggalPendek(b.tanggal), sel: (b) => tanggalPendek(b.tanggal) },
     { judul: 'Pelaksana', rataKanan: true, sel: (b) => b.jumlahPelaksana },
+    { judul: 'Total', rataKanan: true, sel: (b) => (b.jumlahPelaksana > 0 ? rupiah(b.total) : <span className="text-muted-foreground">-</span>) },
+    {
+      judul: 'Status',
+      sel: (b) =>
+        b.jumlahPelaksana === 0 ? (
+          <Badge variant="muted">Belum ada pelaksana</Badge>
+        ) : b.jumlahPeringatan > 0 ? (
+          <Badge variant="warning">{b.jumlahPeringatan} perlu diperiksa</Badge>
+        ) : (
+          <Badge variant="success">Siap cetak</Badge>
+        ),
+    },
     { judul: 'Diperbarui', sel: (b) => <span className="text-muted-foreground">{waktuPendek(b.updatedAt)}</span> },
     {
       judul: '',
       sel: (b) => (
         <div className="flex justify-end gap-1">
-          <Link to={`/st/${b.id}`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
-            Buka
+          <Link to={`/st/${b.id}/dokumen`} className={buttonVariants({ variant: 'outline', size: 'sm' })} aria-label={`Dokumen ${b.nomor}`}>
+            <FileTextIcon className="size-3.5" /> Dokumen
           </Link>
           <Button variant="ghost" size="icon" aria-label={`Hapus ${b.nomor}`} onClick={() => setTarget(b)}>
             <Trash2Icon className="text-destructive" />

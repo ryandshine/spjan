@@ -183,7 +183,7 @@ export default function BuatDariStPage() {
                   <div>
                     <CardTitle className="text-base">{berkas?.namaAsli ?? 'Memuat berkas...'}</CardTitle>
                     <CardDescription className="text-xs">
-                      {berkas ? `${formatUkuran(berkas.ukuran)} • sha256: ${berkas.sha256.slice(0, 10)}...` : 'Menghubungkan ke server...'}
+                      {berkas ? formatUkuran(berkas.ukuran) : 'Menghubungkan ke server...'}
                     </CardDescription>
                   </div>
                 </div>

@@ -24,13 +24,16 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="flex shrink-0 flex-col border-b bg-sidebar md:w-60 md:border-r md:border-b-0">
+      <aside className="flex shrink-0 flex-col border-b bg-sidebar md:sticky md:top-0 md:h-screen md:w-60 md:border-r md:border-b-0">
         <div className="flex items-center gap-2.5 px-5 py-4">
           <span className="grid size-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">SJ</span>
           <div className="leading-tight">
             <p className="text-sm font-semibold">SPJAN</p>
             <p className="text-xs text-muted-foreground">SPJ Perjalanan Dinas</p>
           </div>
+          <Button variant="ghost" size="icon" className="ml-auto md:hidden" onClick={keluar} disabled={logout.isPending} aria-label="Keluar">
+            <LogOutIcon />
+          </Button>
         </div>
         <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-1 md:flex-col md:pb-0">
           {NAV.map(({ to, label, icon: Icon, end }) => (
