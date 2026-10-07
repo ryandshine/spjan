@@ -1,17 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { pasangPolyfillPdf } from '@/lib/polyfill-pdf'
+
 /** Merender PDF ke kanvas per halaman untuk peramban tanpa penampil PDF bawaan (mis. Chrome Android). */
 export function PdfKanvas({ blob }: { blob: Blob }) {
   const wadah = useRef<HTMLDivElement>(null)
   const [status, setStatus] = useState<'memuat' | 'siap' | 'galat'>('memuat')
+  const [pesan, setPesan] = useState('')
 
   useEffect(() => {
     let batal = false
     const el = wadah.current
     ;(async () => {
       try {
-        const pdfjs = await import('pdfjs-dist')
-        const { default: workerUrl } = await import('pdfjs-dist/build/pdf.worker.min.mjs?url')
+        pasangPolyfillPdf()
+        // Build legacy memuat polyfill untuk Chrome/WebView Android yang belum mendukung fitur JS terbaru.
+        const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+        const { default: workerUrl } = await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')
         pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
         const doc = await pdfjs.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise
         if (batal || !el) return
@@ -34,8 +39,11 @@ export function PdfKanvas({ blob }: { blob: Blob }) {
           await halaman.render({ canvas: kanvas, viewport }).promise
         }
         if (!batal) setStatus('siap')
-      } catch {
-        if (!batal) setStatus('galat')
+      } catch (error) {
+        if (!batal) {
+          setPesan(error instanceof Error ? error.message : String(error))
+          setStatus('galat')
+        }
       }
     })()
     return () => {
@@ -46,7 +54,7 @@ export function PdfKanvas({ blob }: { blob: Blob }) {
   return (
     <div className="h-full overflow-y-auto rounded-lg border bg-muted/40 p-3">
       {status === 'memuat' ? <p className="text-sm text-muted-foreground">Menggambar halaman...</p> : null}
-      {status === 'galat' ? <p className="text-sm text-destructive">Pratinjau gagal ditampilkan. Gunakan tombol Unduh PDF.</p> : null}
+      {status === 'galat' ? <p className="text-sm text-destructive">Pratinjau gagal ditampilkan. Gunakan tombol Unduh PDF.{pesan ? <span className="mt-1 block text-xs text-muted-foreground">Rincian: {pesan}</span> : null}</p> : null}
       <div ref={wadah} />
     </div>
   )
