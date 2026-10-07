@@ -73,6 +73,25 @@ describe("surat tugas", () => {
     expect(kode).toContain("DATA_BELUM_LENGKAP");
   });
 
+  it("daftar memuat total dan jumlah peringatan yang sama dengan /hasil", async () => {
+    const lengkap = (await call("POST", "/api/surat-tugas", stResa)).json();
+    const draf = (
+      await call("POST", "/api/surat-tugas", {
+        ...stResa,
+        nomor: "ST.DRAF/1",
+        pelaksana: [{ ...stResa.pelaksana[0], etape: [{ ...stResa.pelaksana[0]!.etape[0], berangkat: "", pulang: "" }], biaya: [] }],
+      })
+    ).json();
+    const daftar = (await call("GET", "/api/surat-tugas")).json();
+    for (const { id } of [lengkap, draf]) {
+      const { hasil } = (await call("GET", `/api/surat-tugas/${id}/hasil`)).json();
+      const baris = daftar.find((d: { id: number }) => d.id === id);
+      expect(baris.total).toBe(hasil.total);
+      expect(baris.jumlahPeringatan).toBe(hasil.pelaksana.reduce((n: number, p: { peringatan: unknown[] }) => n + p.peringatan.length, 0));
+    }
+    expect(daftar.find((d: { id: number }) => d.id === draf.id).jumlahPeringatan).toBeGreaterThan(0);
+  });
+
   it("daftar, hapus (cascade), dan galat 404/400", async () => {
     const { id } = (await call("POST", "/api/surat-tugas", stResa)).json();
     const daftar = (await call("GET", "/api/surat-tugas")).json();

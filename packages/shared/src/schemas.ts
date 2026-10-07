@@ -146,6 +146,10 @@ export interface SuratTugasRingkasDto {
   nomor: string;
   tanggal: string;
   jumlahPelaksana: number;
+  /** Total SPTB seluruh pelaksana (rupiah), dihitung dengan SBM yang di-pin surat tugas. */
+  total: number;
+  /** Jumlah peringatan data di semua pelaksana; 0 berarti siap cetak. */
+  jumlahPeringatan: number;
   updatedAt: string;
 }
 

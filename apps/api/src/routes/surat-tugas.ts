@@ -5,6 +5,7 @@ import {
   petakanTransportKeUsulan,
   SuratTugasPayloadSchema,
   toSpjInput,
+  type SuratTugasRingkasDto,
 } from "@spjan/shared";
 import { z } from "zod";
 
@@ -26,7 +27,25 @@ const IdSchema = z.object({ id: z.coerce.number().int().positive() });
 const PostQuerySchema = z.object({ berkasId: z.coerce.number().int().positive().optional() });
 
 export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; store: BerkasStore }): Promise<void> {
-  app.get("/", async () => listSuratTugas(opts.db));
+  app.get("/", async () => {
+    const [daftar, pengaturan] = await Promise.all([listSuratTugas(opts.db), getPengaturan(opts.db)]);
+    const sbmPerVersi = new Map<number, Awaited<ReturnType<typeof getVersiSbm>>>();
+    const hasil: SuratTugasRingkasDto[] = [];
+    for (const ringkas of daftar) {
+      const st = await getSuratTugas(opts.db, ringkas.id);
+      if (!st) continue;
+      if (!sbmPerVersi.has(st.versiSbmId)) sbmPerVersi.set(st.versiSbmId, await getVersiSbm(opts.db, st.versiSbmId));
+      const sbm = sbmPerVersi.get(st.versiSbmId);
+      // Versi SBM yang hilang tidak boleh membuat seluruh daftar gagal; baris itu tampil tanpa angka.
+      const spj = sbm ? hitungSpj(toSpjInput(st, pengaturan), sbm.data) : null;
+      hasil.push({
+        ...ringkas,
+        total: spj?.total ?? 0,
+        jumlahPeringatan: spj ? spj.pelaksana.reduce((n, p) => n + p.peringatan.length, 0) : 0,
+      });
+    }
+    return hasil;
+  });
 
   app.post("/", async (req, reply) => {
     const { berkasId } = PostQuerySchema.parse(req.query);

@@ -4,7 +4,7 @@ import { normalkanUraianTiket, type StatusKode, type SuratTugasDto, type SuratTu
 import type { Db } from "../db.js";
 import { withTransaction } from "../db.js";
 
-export async function listSuratTugas(db: Db): Promise<SuratTugasRingkasDto[]> {
+export async function listSuratTugas(db: Db): Promise<Omit<SuratTugasRingkasDto, "total" | "jumlahPeringatan">[]> {
   const { rows } = await db.query<{ id: number; nomor: string; tanggal: string; n: number; updated_at: Date }>(
     `select st.id, st.nomor, st.tanggal, st.updated_at,
             (select count(*)::int from pelaksana p where p.st_id = st.id) as n
