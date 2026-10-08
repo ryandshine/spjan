@@ -205,6 +205,7 @@ export default function DokumenPage() {
     <div>
       <PageHeader
         title="Dokumen"
+        rapat
         description={d.st.nomor}
         actions={
           <>
@@ -229,21 +230,12 @@ export default function DokumenPage() {
           </ul>
         </Alert>
       ) : null}
-      {!d.st.tanggalSpj ? (
-        <p className="mb-4 text-sm text-muted-foreground">
-          Tanggal dokumen otomatis menggunakan tanggal pembuatan ({d.teksTanggalDokumen}). Anda dapat mengubah Tanggal SPJ di{' '}
-          <Link to={`/st/${id}`} className="text-primary hover:underline">
-            editor surat tugas
-          </Link>
-          .
-        </p>
-      ) : null}
-      <div className="grid gap-3">
-        <nav className="grid gap-1.5 border-b pb-3" aria-label="Daftar dokumen">
-          {kelompok.map((k) => (
-            <div key={k.grup ?? 'umum'} className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+      <div className="grid gap-2">
+        <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b pb-2" aria-label="Daftar dokumen">
+          {kelompok.map((k, n) => (
+            <div key={k.grup ?? 'umum'} className={cn('flex flex-wrap items-center gap-1.5', n > 0 && 'border-l pl-5')}>
               {k.grup ? (
-                <p className="mr-1 max-w-full text-xs font-semibold uppercase tracking-wide text-muted-foreground [overflow-wrap:anywhere]">
+                <p className="mr-1 max-w-full text-sm font-medium text-foreground [overflow-wrap:anywhere]">
                   {k.grup}
                 </p>
               ) : null}
@@ -268,7 +260,7 @@ export default function DokumenPage() {
             </div>
           ))}
         </nav>
-        <div className="h-[calc(100vh-14rem)] min-h-[560px]">
+        <div className="h-[calc(100vh-11.5rem)] min-h-[560px]">
           {(sedangMuatFoto || (terpilih?.jenis === 'laporan' && !gambarSiap)) && !dokumen ? (
             <div className="flex h-full items-center justify-center rounded-lg border bg-card text-sm text-muted-foreground">
               Menyiapkan foto dan gambar untuk dokumen...

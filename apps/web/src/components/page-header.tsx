@@ -8,16 +8,20 @@ export function PageHeader({
   description,
   actions,
   lengket = false,
+  rapat = false,
 }: {
   title: string
   description?: string
   actions?: ReactNode
   lengket?: boolean
+  /** Jarak bawah lebih kecil untuk halaman yang butuh ruang kerja luas (mis. pratinjau dokumen). */
+  rapat?: boolean
 }) {
   return (
     <div
       className={cn(
-        'mb-6 flex flex-wrap items-start justify-between gap-3',
+        'flex flex-wrap items-start justify-between gap-3',
+        rapat ? 'mb-3' : 'mb-6',
         // Hanya lengket di layar lebar: di ponsel header setinggi ~20% layar akan terlalu memakan ruang.
         lengket && 'md:sticky md:top-0 md:z-20 md:-mx-8 md:-mt-6 md:mb-5 md:border-b md:bg-background md:px-8 md:py-3',
       )}
