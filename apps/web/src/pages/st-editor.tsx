@@ -20,6 +20,7 @@ import {
 
 import { PageHeader } from '@/components/page-header'
 import { BuktiPanel } from '@/components/st/bukti-panel'
+import { FotoDokumentasiPanel } from '@/components/st/foto-dokumentasi-panel'
 import { PelaksanaCard } from '@/components/st/pelaksana-card'
 import { RingkasanPanel } from '@/components/st/ringkasan'
 import { UsulanHotelPanel } from '@/components/st/usulan-hotel-panel'
@@ -470,6 +471,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
                 <BuktiPanel stId={id} />
                 <UsulanHotelPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanHotel} />
                 <UsulanTransportPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanTransport} />
+                <FotoDokumentasiPanel stId={id} />
               </div>
             </TabPanel>
           ) : null}

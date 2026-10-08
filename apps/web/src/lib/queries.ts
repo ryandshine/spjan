@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { ModelAiPayload, PegawaiPayload, PengaturanPayload, StatusKode, StatusKonfigurasi, SuratTugasPayload, UpdateUsulanBerkasPayload } from '@spjan/shared'
+import type { JenisBerkas, ModelAiPayload, PegawaiPayload, PengaturanPayload, StatusKode, StatusKonfigurasi, SuratTugasPayload, UpdateUsulanBerkasPayload } from '@spjan/shared'
 
 import { api, ApiError } from '@/lib/api'
 
@@ -259,3 +259,18 @@ export function useUlangiEkstraksiBerkas() {
   })
 }
 
+
+/** Memindahkan berkas antara bukti biaya dan foto dokumentasi; `ulangiAi` menjadwalkan ulang bacaan AI. */
+export function useUbahJenisBerkas() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (v: { id: number; jenis: JenisBerkas; ulangiAi?: boolean }) => {
+      await api.berkas.update(v.id, { jenis: v.jenis })
+      if (v.ulangiAi) await api.berkas.ulang(v.id)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['berkas'] })
+      qc.invalidateQueries({ queryKey: ['st'] })
+    },
+  })
+}

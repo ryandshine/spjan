@@ -35,9 +35,9 @@ export default function DokumenPage() {
   const hasil = useHasilSuratTugas(stIdValid)
   const berkasQuery = useDaftarBerkas(stIdValid ?? null)
 
-  // Filter berkas gambar: utamakan jenis 'dokumentasi' atau gambar lainnya
+  // Hanya foto dokumentasi; gambar bukti biaya (kuitansi, tiket) tidak ikut lembar foto.
   const fotoFiles = useMemo(
-    () => (berkasQuery.data ?? []).filter((b) => b.jenis === 'dokumentasi' || (b.mime.startsWith('image/') && b.jenis !== 'st')),
+    () => (berkasQuery.data ?? []).filter((b) => b.jenis === 'dokumentasi'),
     [berkasQuery.data],
   )
   const [termuat, setTermuat] = useState<{ untuk: typeof fotoFiles; data: FotoDokumentasi[] } | null>(null)
