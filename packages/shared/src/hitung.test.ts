@@ -75,7 +75,7 @@ describe("hitungSpj - kasus emas", () => {
       "Tiket Pesawat Denpasar ke Jakarta",
       "Taksi dari tempat kedudukan - Bandara Soekarno Hatta (PP)",
     ]);
-    expect(h.transport[2]).toMatchObject({ qty: 2, satuan: "kali", tarif: 250_000, jumlah: 500_000, keterangan: "" });
+    expect(h.transport[2]).toMatchObject({ qty: null, satuan: null, tarif: null, jumlah: 500_000, keterangan: "" });
     expect(h.transport[0]).toMatchObject({ qty: null, satuan: null, tarif: null, keterangan: "Bukti terlampir" });
     expect(h.uangHarian[0]).toMatchObject({
       qty: 2,

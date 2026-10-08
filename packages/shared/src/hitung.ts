@@ -30,6 +30,8 @@ const KETERANGAN_DEFAULT = "Bukti terlampir";
 const URAIAN_TAKSI_KEDUDUKAN = "Taksi dari tempat kedudukan - Bandara Soekarno Hatta (PP)";
 
 const SEWA = new Set<JenisBiaya>(["SEWA_RODA4", "SEWA_RODA6", "SEWA_BUS_BESAR"]);
+/** Taksi bandara/kedudukan: uraian dicetak tanpa rincian "n kali @ tarif", langsung total. */
+const TAKSI = new Set<JenisBiaya>(["TAKSI_KEDUDUKAN", "TAKSI_TERMINAL"]);
 
 const LABEL_URAIAN: Partial<Record<JenisBiaya, string>> = {
   TRANSPORT_DARAT: "Transport darat ibukota ke kab/kota",
@@ -103,11 +105,10 @@ function uraianBiaya(b: BiayaInput, input: SpjInput, etape: EtapeInput[]): strin
 function barisTransport(b: BiayaInput, input: SpjInput, etape: EtapeInput[], sbm: Sbm): BarisBiaya | null {
   if (!(b.tarif > 0)) return null;
   const qty = b.qty && b.qty > 0 ? b.qty : 1;
-  const isTaksiTerminal = b.jenis === "TAKSI_TERMINAL";
-  const tampil = !isTaksiTerminal && qty > 1;
+  const tampil = !TAKSI.has(b.jenis) && qty > 1;
   const satuanDefault = SEWA.has(b.jenis) ? "hari" : "kali";
   const catatan = catatanBiaya(sbm, b, input.provinsiKedudukan);
-  const tanpaKeterangan = b.jenis === "TAKSI_KEDUDUKAN" || b.jenis === "TAKSI_TERMINAL";
+  const tanpaKeterangan = TAKSI.has(b.jenis);
   const ketInput = ada(b.keterangan) ? (b.keterangan as string).trim() : "";
   const keterangan = tanpaKeterangan
     ? (ketInput === KETERANGAN_DEFAULT ? "" : ketInput)
