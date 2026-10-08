@@ -27,7 +27,10 @@ describe("surat tugas", () => {
     expect(dto.id).toBeGreaterThan(0);
     expect(dto.versiSbmId).toBeGreaterThan(0);
     const { id, versiSbmId, createdAt, updatedAt, ...isi } = dto;
-    expect(isi).toEqual(stResa);
+    expect(isi).toEqual({
+      ...stResa,
+      pelaksana: stResa.pelaksana.map((p) => ({ ...p, instansi: "Direktorat Pengendalian Perhutanan Sosial" })),
+    });
     expect(typeof createdAt).toBe("string");
     expect(typeof updatedAt).toBe("string");
     expect((await call("GET", `/api/surat-tugas/${id}`)).json().versiSbmId).toBe(versiSbmId);

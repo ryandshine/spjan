@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { SBM_2026 } from "./data/sbm-2026.js";
+import { INSTANSI_BAWAAN } from "./schemas.js";
 import type { BiayaPayload, PegawaiDto, PengaturanPayload, SuratTugasPayload } from "./schemas.js";
 import { cocokkanKotaJakartaSekitar, isKotaJabodetabek, provinsiDariKotaJabodetabek } from "./st-model.js";
 import { norm, parseTanggal, selisihHari } from "./teks.js";
@@ -181,6 +182,7 @@ export function petakanStKeUsulan(
       nama: match?.nama ?? pel.nama,
       nip: match?.nip ?? (pel.nip ? pel.nip.trim() : ""),
       jabatan: match?.jabatan ?? pel.jabatan ?? "",
+      instansi: match?.instansi ?? INSTANSI_BAWAAN,
       status: match?.status ?? null,
       noSpd: null,
       etape: etapePayload,

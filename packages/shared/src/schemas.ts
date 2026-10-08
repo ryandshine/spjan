@@ -36,11 +36,16 @@ export const BiayaPayloadSchema = z.object({
   pengeluaranRiil: z.boolean().nullish(),
 });
 
+/** Instansi bawaan seluruh pegawai Direktorat Pengendalian Perhutanan Sosial. */
+export const INSTANSI_BAWAAN = "Direktorat Pengendalian Perhutanan Sosial";
+
 export const PelaksanaPayloadSchema = z.object({
   pegawaiId: z.number().int().positive().nullish(),
   nama: teks(200).min(1),
   nip: teks(30),
   jabatan: teks(200),
+  /** Kosong/tidak dikirim = INSTANSI_BAWAAN saat disimpan. */
+  instansi: teks(200).optional(),
   status: StatusKodeSchema.nullable(),
   noSpd: teks(100).nullish(),
   tanggalSpd: tanggalWajib.nullish(),
@@ -93,6 +98,8 @@ export const PegawaiPayloadSchema = z.object({
   nama: teks(200).min(1),
   nip: z.string().regex(/^\d{8,30}$/, "NIP berupa angka (8-30 digit)"),
   jabatan: teks(200),
+  /** Tidak dikirim = INSTANSI_BAWAAN saat disimpan. */
+  instansi: teks(200).optional(),
   status: StatusKodeSchema.nullable(),
 });
 export type PegawaiPayload = z.infer<typeof PegawaiPayloadSchema>;
@@ -127,6 +134,7 @@ export interface SuratTugasDto extends SuratTugasPayload {
 export interface PegawaiDto extends PegawaiPayload {
   id: number;
   aktif: boolean;
+  instansi: string;
 }
 
 export interface SbmVersiDto {

@@ -40,6 +40,7 @@ export default function PegawaiPage() {
     { judul: 'Nama', teks: (p) => p.nama, sel: (p) => <span className="font-medium">{p.nama}</span> },
     { judul: 'NIP', teks: (p) => p.nip, sel: (p) => <span className="tabular-nums">{p.nip}</span> },
     { judul: 'Jabatan', teks: (p) => p.jabatan, sel: (p) => p.jabatan || '-' },
+    { judul: 'Instansi', teks: (p) => p.instansi, sel: (p) => p.instansi || '-' },
     {
       judul: 'Status',
       teks: (p) => (p.status ? STATUS_LABEL[p.status] : ''),

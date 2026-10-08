@@ -3,7 +3,7 @@ import { SBM_2026 } from "@spjan/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { closePool } from "./db.js";
-import { bersihkanData, loginCookie, siapkanApp } from "./test-support/helpers.js";
+import { bersihkanData, loginCookie, siapkanApp, stResa } from "./test-support/helpers.js";
 
 let app: FastifyInstance;
 let cookie: string;
@@ -23,6 +23,25 @@ const call = (method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", url: string, 
 const pegawai = { nama: "Gunadi Firdaus, S.Hut., M.Si.", nip: "197803101997031001", jabatan: "Kasubdit", status: "ESELON_III_GOL_IV" };
 
 describe("pegawai", () => {
+  it("instansi bawaan Direktorat Pengendalian Perhutanan Sosial, dapat diubah, kosong kembali ke bawaan", async () => {
+    const dibuat = await call("POST", "/api/pegawai", pegawai);
+    expect(dibuat.json().instansi).toBe("Direktorat Pengendalian Perhutanan Sosial");
+    const { id } = dibuat.json();
+    const ubah = await call("PATCH", `/api/pegawai/${id}`, { instansi: "Balai PS Palembang" });
+    expect(ubah.json().instansi).toBe("Balai PS Palembang");
+    expect((await call("GET", `/api/pegawai/${id}`)).json().instansi).toBe("Balai PS Palembang");
+    const kosong = await call("PATCH", `/api/pegawai/${id}`, { instansi: "" });
+    expect(kosong.json().instansi).toBe("Direktorat Pengendalian Perhutanan Sosial");
+  });
+
+  it("pelaksana di surat tugas menyimpan instansi; tanpa instansi memakai bawaan", async () => {
+    const pel = stResa.pelaksana[0]!;
+    const tanpa = await call("POST", "/api/surat-tugas", stResa);
+    expect(tanpa.json().pelaksana[0].instansi).toBe("Direktorat Pengendalian Perhutanan Sosial");
+    const dengan = await call("POST", "/api/surat-tugas", { ...stResa, nomor: "ST.2", pelaksana: [{ ...pel, instansi: "KPH Wilayah II" }] });
+    expect(dengan.json().pelaksana[0].instansi).toBe("KPH Wilayah II");
+  });
+
   it("membuat, membaca, mengubah, dan menonaktifkan", async () => {
     const dibuat = await call("POST", "/api/pegawai", pegawai);
     expect(dibuat.statusCode).toBe(201);

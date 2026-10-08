@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
-import { PegawaiPayloadSchema, STATUS_KODE, STATUS_LABEL, type PegawaiDto, type PegawaiPayload, type StatusKode } from '@spjan/shared'
+import { INSTANSI_BAWAAN, PegawaiPayloadSchema, STATUS_KODE, STATUS_LABEL, type PegawaiDto, type PegawaiPayload, type StatusKode } from '@spjan/shared'
 
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,7 @@ export function FormPegawai({ awal, onSelesai }: { awal: PegawaiDto | null; onSe
   const [nama, setNama] = useState(awal?.nama ?? '')
   const [nip, setNip] = useState(awal?.nip ?? '')
   const [jabatan, setJabatan] = useState(awal?.jabatan ?? '')
+  const [instansi, setInstansi] = useState(awal?.instansi ?? INSTANSI_BAWAAN)
   const [status, setStatus] = useState<StatusKode | ''>(awal?.status ?? '')
   const [galat, setGalat] = useState<Galat>({})
   const [galatServer, setGalatServer] = useState<string | null>(null)
@@ -28,7 +29,7 @@ export function FormPegawai({ awal, onSelesai }: { awal: PegawaiDto | null; onSe
   async function simpan(e: FormEvent) {
     e.preventDefault()
     setGalatServer(null)
-    const data = { nama: nama.trim(), nip: nip.replace(/\s/g, ''), jabatan: jabatan.trim(), status: status || null }
+    const data = { nama: nama.trim(), nip: nip.replace(/\s/g, ''), jabatan: jabatan.trim(), instansi: instansi.trim(), status: status || null }
     const hasil = PegawaiPayloadSchema.safeParse(data)
     if (!hasil.success) {
       const g: Galat = {}
@@ -60,6 +61,9 @@ export function FormPegawai({ awal, onSelesai }: { awal: PegawaiDto | null; onSe
       </Field>
       <Field label="Jabatan" htmlFor="jabatan" error={galat.jabatan}>
         <Input id="jabatan" value={jabatan} onChange={(e) => setJabatan(e.target.value)} />
+      </Field>
+      <Field label="Instansi" htmlFor="instansi" error={galat.instansi}>
+        <Input id="instansi" value={instansi} onChange={(e) => setInstansi(e.target.value)} />
       </Field>
       <Field label="Status / golongan" htmlFor="status" hint="Menentukan batas hotel, uang representasi, dan kelas tiket.">
         <Select id="status" value={status} onChange={(e) => setStatus(e.target.value as StatusKode | '')}>

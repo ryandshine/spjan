@@ -287,6 +287,9 @@ export function PelaksanaCard({
               <Field label="Jabatan" htmlFor={id('jab')} error={galat?.jabatan}>
                 <Input id={id('jab')} value={p.jabatan} onChange={(e) => onUbah((x) => ({ ...x, jabatan: e.target.value }))} />
               </Field>
+              <Field label="Instansi" htmlFor={id('instansi')} error={galat?.instansi}>
+                <Input id={id('instansi')} value={p.instansi ?? ''} onChange={(e) => onUbah((x) => ({ ...x, instansi: e.target.value }))} />
+              </Field>
               <Field label="Status / golongan" htmlFor={id('status')} className="xl:col-span-2" error={galat?.status}>
                 <Select
                   id={id('status')}
