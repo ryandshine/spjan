@@ -26,5 +26,5 @@ const fotoContoh: FotoDokumentasi[] = [
   '18 September 2026, Diskusi dengan pengurus LPHD',
 ].map((keterangan, i) => ({ id: i + 1, namaAsli: `foto${i + 1}.png`, keterangan, mime: 'image/png', src: LOGO_KEMENHUT_BASE64 }))
 const m = susunLaporan(d.st, d.pengaturan, laporanContoh(), fotoContoh)
-await renderToFile(<SpjDocument d={d} jenis="laporan" laporan={m} />, path.join(keluar, 'laporan.pdf'))
+await renderToFile(<SpjDocument d={d} jenis="laporan" laporan={m} gambarLaporan={{ 1: LOGO_KEMENHUT_BASE64 }} />, path.join(keluar, 'laporan.pdf'))
 console.log('ditulis', path.join(keluar, 'laporan.pdf'))

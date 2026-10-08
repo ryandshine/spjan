@@ -1,44 +1,44 @@
-import { ChevronDownIcon, ChevronUpIcon, PlusIcon, Trash2Icon } from 'lucide-react'
-import { norm, type Bagian, type BagianModel, type BarisTataWaktuLaporan, type Blok, type ModelLaporan } from '@spjan/shared'
+import { useState } from 'react'
+import { PlusIcon, Trash2Icon } from 'lucide-react'
+import { dokPunyaIsi, norm, type Bagian, type BagianModel, type BarisTataWaktuLaporan, type ModelLaporan } from '@spjan/shared'
 
-import { BlokEditor } from '@/components/laporan/blok-editor'
+import { EditorTeks } from '@/components/laporan/editor-teks'
+import { InputTanggalId } from '@/components/laporan/input-tanggal-id'
+import { labelBagian } from '@/lib/laporan-label'
+import { MenuBagian } from '@/components/laporan/menu-bagian'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 
-const NAMA_JENIS: Record<Bagian['jenis'], string> = {
-  sampul: 'Sampul',
-  petugas: 'Tabel petugas',
-  dokumentasi: 'Dokumentasi',
-  dasar: 'Teks otomatis',
-  maksud: 'Teks otomatis',
-  tempat: 'Teks otomatis',
-  lama: 'Teks otomatis',
-  tatawaktu: 'Tata waktu',
-  teks: 'Teks bebas',
+const PLACEHOLDER: Record<string, string> = {
+  hasil:
+    'Uraikan apa yang dilakukan dan ditemukan selama perjalanan dinas: kegiatan di lokasi, kondisi yang diamati, dan permasalahan. Pakai subjudul untuk mengelompokkan.',
+  simpulan: 'Tulis simpulan singkat, lalu saran dan tindak lanjut. Gunakan daftar bernomor untuk saran.',
 }
 
-function PratinjauBlok({ blok }: { blok: Blok[] }) {
-  if (blok.length === 0) return <p className="text-sm italic text-muted-foreground">Belum ada data di surat tugas untuk bagian ini.</p>
-  return (
-    <div className="grid gap-1 text-sm">
-      {blok.map((b, i) =>
-        b.tipe === 'paragraf' ? (
-          <p key={i}>{b.teks}</p>
-        ) : b.tipe === 'subjudul' ? (
-          <p key={i} className="font-semibold">{b.teks}</p>
-        ) : (
-          <ul key={i} className={b.tipe === 'nomor' ? 'list-inside list-decimal' : 'list-inside list-disc'}>
-            {b.butir.map((x, n) => (
-              <li key={n}>{x}</li>
-            ))}
-          </ul>
-        ),
-      )}
-    </div>
-  )
+function placeholderNarasi(b: Extract<Bagian, { jenis: 'teks' }>): string {
+  if (PLACEHOLDER[b.id]) return PLACEHOLDER[b.id] as string
+  if (!b.judul.trim()) return 'Contoh: Demikian laporan ini dibuat, semoga bermanfaat.'
+  return 'Tulis isi bagian ini.'
+}
+
+function keterangan(b: Bagian): string {
+  switch (b.jenis) {
+    case 'sampul':
+      return 'Halaman depan laporan. Judul dan tanggal terisi otomatis.'
+    case 'petugas':
+      return 'Nama diambil dari surat tugas. Instansi terisi dari data pegawai; ubah bila perlu.'
+    case 'dokumentasi':
+      return 'Lampiran foto kegiatan.'
+    case 'tatawaktu':
+      return 'Kegiatan dan tanggal diambil dari etape surat tugas.'
+    case 'teks':
+      return ''
+    default:
+      return 'Ikut berubah bila data surat tugas diubah.'
+  }
 }
 
 function ModeOtomatis({
@@ -52,11 +52,17 @@ function ModeOtomatis({
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      {otomatis ? <Badge variant="default">Otomatis dari data ST</Badge> : <Badge variant="warning">Ditulis sendiri (tidak mengikuti ST)</Badge>}
       {otomatis ? (
-        <Button type="button" variant="outline" size="sm" onClick={onTulisSendiri}>Tulis sendiri</Button>
+        <Badge variant="default">Otomatis dari surat tugas</Badge>
       ) : (
-        <Button type="button" variant="outline" size="sm" onClick={onKembali}>Kembali ke otomatis</Button>
+        <p className="rounded-md border border-warning/40 bg-warning/10 px-3 py-1.5 text-sm">
+          Anda menulis sendiri bagian ini. Perubahan di surat tugas tidak lagi tampil di sini.
+        </p>
+      )}
+      {otomatis ? (
+        <Button type="button" variant="outline" className="h-10" onClick={onTulisSendiri}>Tulis sendiri</Button>
+      ) : (
+        <Button type="button" variant="outline" className="h-10" onClick={onKembali}>Kembali ke otomatis</Button>
       )}
     </div>
   )
@@ -84,9 +90,10 @@ function EditorTataWaktu({ baris, onUbah }: { baris: BarisTataWaktuLaporan[]; on
   )
 }
 
-export function BagianCard({
+export function PanelBagian({
   bagian,
   model,
+  stId,
   sampul,
   jumlahFoto,
   bisaNaik,
@@ -98,6 +105,7 @@ export function BagianCard({
 }: {
   bagian: Bagian
   model: BagianModel | undefined
+  stId: number
   sampul: ModelLaporan['sampul']
   jumlahFoto: number
   bisaNaik: boolean
@@ -107,51 +115,46 @@ export function BagianCard({
   onTurun: () => void
   onHapus: () => void
 }) {
+  const [gantiJudul, setGantiJudul] = useState(false)
   const tetap = bagian.jenis === 'sampul'
+  const ket = keterangan(bagian)
   return (
-    <Card>
-      <CardContent className="grid gap-3 pt-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">
-            {model?.nomor ? `${model.nomor}. ` : ''}
-            {NAMA_JENIS[bagian.jenis]}
-          </span>
-          {bagian.jenis !== 'sampul' ? (
-            <Input
-              className="min-w-48 flex-1 font-semibold"
-              aria-label="Judul bagian"
-              placeholder={bagian.jenis === 'teks' ? 'Tanpa judul (tidak bernomor)' : 'Judul bagian'}
-              value={bagian.judul}
-              onChange={(e) => onUbah({ ...bagian, judul: e.target.value })}
-            />
-          ) : (
-            <span className="flex-1" />
-          )}
-          {!tetap ? (
-            <div className="flex items-center">
-              <Button type="button" variant="ghost" size="icon" className="size-8" aria-label="Geser bagian ke atas" disabled={!bisaNaik} onClick={onNaik}>
-                <ChevronUpIcon className="size-4" />
-              </Button>
-              <Button type="button" variant="ghost" size="icon" className="size-8" aria-label="Geser bagian ke bawah" disabled={!bisaTurun} onClick={onTurun}>
-                <ChevronDownIcon className="size-4" />
-              </Button>
-              <Button type="button" variant="ghost" size="icon" className="size-8" aria-label="Hapus bagian" onClick={onHapus}>
-                <Trash2Icon className="size-4 text-destructive" />
-              </Button>
-            </div>
-          ) : null}
+    <Card id="panel-laporan">
+      <CardContent className="grid gap-4 pt-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            {gantiJudul && bagian.jenis !== 'sampul' ? (
+              <Input
+                autoFocus
+                className="h-10 text-base font-semibold"
+                aria-label="Judul bagian"
+                placeholder="Judul bagian (kosongkan untuk tanpa judul)"
+                value={bagian.judul}
+                onChange={(e) => onUbah({ ...bagian, judul: e.target.value })}
+                onBlur={() => setGantiJudul(false)}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === 'Escape') && setGantiJudul(false)}
+              />
+            ) : (
+              <h2 className="text-lg font-semibold leading-tight">
+                {model?.nomor ? `${model.nomor}. ` : ''}
+                {labelBagian(bagian)}
+              </h2>
+            )}
+            {ket ? <p className="mt-1 text-sm text-muted-foreground">{ket}</p> : null}
+          </div>
+          {!tetap ? <MenuBagian bisaNaik={bisaNaik} bisaTurun={bisaTurun} onGantiJudul={() => setGantiJudul(true)} onNaik={onNaik} onTurun={onTurun} onHapus={onHapus} /> : null}
         </div>
 
         {bagian.jenis === 'sampul' ? (
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="grid gap-1 text-xs text-muted-foreground">
-              Judul (kosongkan untuk otomatis)
-              <Input placeholder={sampul.judul} value={bagian.judul ?? ''} onChange={(e) => onUbah({ ...bagian, judul: e.target.value || null })} />
+              Judul laporan (kosongkan untuk otomatis)
+              <Input className="h-10" placeholder={sampul.judul} value={bagian.judul ?? ''} onChange={(e) => onUbah({ ...bagian, judul: e.target.value || null })} />
             </label>
-            <label className="grid gap-1 text-xs text-muted-foreground">
-              Tanggal sampul (kosongkan untuk otomatis)
-              <Input type="date" value={bagian.tanggal ?? ''} onChange={(e) => onUbah({ ...bagian, tanggal: e.target.value || null })} />
-            </label>
+            <div className="grid gap-1 text-xs text-muted-foreground">
+              Tanggal laporan (kosongkan untuk otomatis)
+              <InputTanggalId label="Tanggal laporan" nilai={bagian.tanggal} onUbah={(iso) => onUbah({ ...bagian, tanggal: iso })} />
+            </div>
             <p className="text-xs text-muted-foreground sm:col-span-2">Tercetak: {sampul.tempatTanggal}</p>
           </div>
         ) : null}
@@ -163,7 +166,7 @@ export function BagianCard({
                 <tr>
                   <th className="w-10 px-2 py-1.5">No</th>
                   <th className="px-2 py-1.5">Nama (dari surat tugas)</th>
-                  <th className="w-64 px-2 py-1.5">Instansi (isi manual)</th>
+                  <th className="min-w-72 px-2 py-1.5">Instansi</th>
                 </tr>
               </thead>
               <tbody>
@@ -173,6 +176,7 @@ export function BagianCard({
                     <td className="px-2 py-1">{r.nama}</td>
                     <td className="px-2 py-1">
                       <Input
+                        className="h-10"
                         aria-label={`Instansi ${r.nama}`}
                         value={r.instansi}
                         onChange={(e) => {
@@ -189,17 +193,21 @@ export function BagianCard({
           </div>
         ) : null}
 
-        {(bagian.jenis === 'dasar' || bagian.jenis === 'maksud' || bagian.jenis === 'tempat' || bagian.jenis === 'lama') && model?.isi.jenis === 'blok' ? (
+        {(bagian.jenis === 'dasar' || bagian.jenis === 'maksud' || bagian.jenis === 'tempat' || bagian.jenis === 'lama') && model?.isi.jenis === 'dokumen' ? (
           <>
             <ModeOtomatis
               otomatis={bagian.ganti === null}
-              onTulisSendiri={() => onUbah({ ...bagian, ganti: model.isi.jenis === 'blok' ? model.isi.blok : [] })}
+              onTulisSendiri={() => onUbah({ ...bagian, ganti: model.isi.jenis === 'dokumen' ? model.isi.dok : null })}
               onKembali={() => onUbah({ ...bagian, ganti: null })}
             />
             {bagian.ganti === null ? (
-              <PratinjauBlok blok={model.isi.blok} />
+              dokPunyaIsi(model.isi.dok) ? (
+                <EditorTeks key={`${bagian.id}-oto-${JSON.stringify(model.isi.dok)}`} dok={model.isi.dok} stId={stId} bacaSaja />
+              ) : (
+                <p className="text-sm italic text-muted-foreground">Belum ada data di surat tugas untuk bagian ini.</p>
+              )
             ) : (
-              <BlokEditor blok={bagian.ganti} onUbah={(blok) => onUbah({ ...bagian, ganti: blok })} />
+              <EditorTeks key={`${bagian.id}-sendiri`} dok={bagian.ganti} stId={stId} onUbah={(d) => onUbah({ ...bagian, ganti: d })} />
             )}
           </>
         ) : null}
@@ -231,11 +239,11 @@ export function BagianCard({
 
         {bagian.jenis === 'dokumentasi' ? (
           <p className="text-sm text-muted-foreground">
-            {jumlahFoto} foto dari kartu Foto Dokumentasi (tab Bukti &amp; usulan), dicetak dengan keterangannya.
+            {jumlahFoto === 0 ? 'Belum ada foto.' : `${jumlahFoto} foto akan dicetak dengan keterangannya.`} Foto diunggah di tab Bukti &amp; usulan, kartu Foto Dokumentasi Kegiatan.
           </p>
         ) : null}
 
-        {bagian.jenis === 'teks' ? <BlokEditor blok={bagian.blok} onUbah={(blok) => onUbah({ ...bagian, blok })} /> : null}
+        {bagian.jenis === 'teks' ? <EditorTeks key={bagian.id} dok={bagian.isi} stId={stId} placeholder={placeholderNarasi(bagian)} onUbah={(d) => onUbah({ ...bagian, isi: d })} /> : null}
       </CardContent>
     </Card>
   )

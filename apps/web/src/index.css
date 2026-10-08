@@ -71,3 +71,32 @@
     min-width: 0;
   }
 }
+
+/* Editor teks kaya Laporan (TipTap): tampilan mengikuti hasil cetak PDF. */
+.editor-teks .tiptap {
+  min-height: 9rem;
+  padding: 0.75rem;
+  outline: none;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+.editor-teks .tiptap > * + * { margin-top: 0.5rem; }
+.editor-teks .tiptap p { text-align: justify; }
+.editor-teks .tiptap h3 { font-weight: 700; font-size: 0.95rem; margin-top: 0.9rem; }
+.editor-teks .tiptap ul { list-style: disc; padding-left: 1.5rem; }
+.editor-teks .tiptap ol { list-style: decimal; padding-left: 1.5rem; }
+.editor-teks .tiptap a { color: oklch(0.45 0.18 255); text-decoration: underline; cursor: pointer; }
+.editor-teks .tiptap img { max-width: 100%; max-height: 22rem; object-fit: contain; }
+.editor-teks .tiptap img.ProseMirror-selectednode { outline: 2px solid var(--ring); }
+.editor-teks .tiptap table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+.editor-teks .tiptap th,
+.editor-teks .tiptap td { border: 1px solid var(--foreground); padding: 0.25rem 0.4rem; vertical-align: top; position: relative; }
+.editor-teks .tiptap th { font-weight: 700; background: var(--muted); }
+.editor-teks .tiptap .selectedCell::after { content: ""; position: absolute; inset: 0; background: color-mix(in oklch, var(--ring) 20%, transparent); pointer-events: none; }
+.editor-teks .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

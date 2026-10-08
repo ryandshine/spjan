@@ -1,13 +1,14 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeftIcon, DownloadIcon, ImageIcon } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
-import { buatLaporanAwal, susunLaporan, type FotoDokumentasi } from '@spjan/shared'
+import { buatLaporanAwal, idGambarLaporan, susunLaporan, type FotoDokumentasi } from '@spjan/shared'
 
 import { PageHeader } from '@/components/page-header'
 import { PdfPreview } from '@/components/pdf-preview'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { muatDataUri } from '@/lib/berkas-data-uri'
 import { pesanGalat } from '@/lib/format'
 import { useDaftarBerkas, useHasilSuratTugas, useLaporan } from '@/lib/queries'
 import { cn } from '@/lib/utils'
@@ -106,6 +107,32 @@ export default function DokumenPage() {
     () => (d ? susunLaporan(d.st, d.pengaturan, laporanQuery.data?.isi ?? buatLaporanAwal(), fotoDokumentasi) : null),
     [d, laporanQuery.data, fotoDokumentasi],
   )
+  // Gambar yang disisipkan di teks laporan dimuat sebagai data URI sebelum PDF dirender.
+  const idGambar = useMemo(() => (modelLaporan ? idGambarLaporan(modelLaporan) : []), [modelLaporan])
+  const kunciGambar = idGambar.join(',')
+  const [gambarTermuat, setGambarTermuat] = useState<{ kunci: string; data: Record<number, string> } | null>(null)
+  useEffect(() => {
+    if (idGambar.length === 0) return
+    let batal = false
+    ;(async () => {
+      const data: Record<number, string> = {}
+      await Promise.all(
+        idGambar.map(async (id) => {
+          try {
+            data[id] = await muatDataUri(id)
+          } catch {
+            // Gambar yang gagal dimuat dilewati saat mencetak.
+          }
+        }),
+      )
+      if (!batal) setGambarTermuat({ kunci: kunciGambar, data })
+    })()
+    return () => {
+      batal = true
+    }
+  }, [idGambar, kunciGambar])
+  const gambarSiap = idGambar.length === 0 || gambarTermuat?.kunci === kunciGambar
+  const gambarLaporan = gambarTermuat?.kunci === kunciGambar ? gambarTermuat.data : undefined
   const [kunci, setKunci] = useState('sptb')
   const blobTerakhir = useRef<Blob | null>(null)
 
@@ -135,8 +162,11 @@ export default function DokumenPage() {
   const terpilih = pilihan.find((p) => p.kunci === kunci) ?? pilihan[0]
 
   const dokumen = useMemo(
-    () => (d && terpilih ? <SpjDocument d={d} jenis={terpilih.jenis} indeks={terpilih.indeks} laporan={modelLaporan ?? undefined} /> : null),
-    [d, terpilih, modelLaporan],
+    () =>
+      d && terpilih && !(terpilih.jenis === 'laporan' && !gambarSiap) ? (
+        <SpjDocument d={d} jenis={terpilih.jenis} indeks={terpilih.indeks} laporan={modelLaporan ?? undefined} gambarLaporan={gambarLaporan} />
+      ) : null,
+    [d, terpilih, modelLaporan, gambarSiap, gambarLaporan],
   )
   const simpanBlob = useCallback((b: Blob) => {
     blobTerakhir.current = b
@@ -224,9 +254,9 @@ export default function DokumenPage() {
           ))}
         </nav>
         <div className="h-[80vh] min-h-[500px]">
-          {sedangMuatFoto && !dokumen ? (
+          {(sedangMuatFoto || (terpilih?.jenis === 'laporan' && !gambarSiap)) && !dokumen ? (
             <div className="flex h-full items-center justify-center rounded-lg border bg-card text-sm text-muted-foreground">
-              Menyiapkan foto dokumentasi untuk dokumen...
+              Menyiapkan foto dan gambar untuk dokumen...
             </div>
           ) : dokumen ? (
             <PdfPreview dokumen={dokumen} onSiap={simpanBlob} />

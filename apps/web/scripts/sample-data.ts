@@ -4,6 +4,7 @@ import {
   hitungSpj,
   toSpjInput,
   type HasilSuratTugasDto,
+  type Dok,
   type LaporanIsi,
   type PengaturanPayload,
   type SuratTugasDto,
@@ -113,49 +114,60 @@ const PARAGRAF_PANJANG =
 /** Laporan contoh yang meniru struktur contoh Muara Merang, untuk memeriksa tata letak PDF. */
 export function laporanContoh(): LaporanIsi {
   const awal = buatLaporanAwal()
+  const teks = (t: string, marks?: { type: 'bold' | 'italic' | 'underline' | 'link'; attrs?: Record<string, unknown> }[]) => ({ type: 'text', text: t, ...(marks ? { marks } : {}) })
+  const para = (...isi: ReturnType<typeof teks>[]) => ({ type: 'paragraph', content: isi })
+  const sub = (t: string) => ({ type: 'heading', attrs: { level: 3 }, content: [teks(t)] })
+  const hasil: Dok = {
+    type: 'doc',
+    content: [
+      ...['Pelaksanaan Pengawasan', 'Hasil Pengawasan', 'Pemenuhan Hak', 'Kepatuhan terhadap Larangan'].flatMap((j) => [sub(j), para(teks(`${PARAGRAF_PANJANG} ${PARAGRAF_PANJANG}`))]),
+      sub('Contoh format'),
+      para(teks('Teks '), teks('tebal', [{ type: 'bold' }]), teks(', '), teks('miring', [{ type: 'italic' }]), teks(', '), teks('bergaris bawah', [{ type: 'underline' }]), teks(', dan '), teks('tautan ke situs', [{ type: 'link', attrs: { href: 'https://contoh.id' } }]), teks('.')),
+      { type: 'paragraph', attrs: { textAlign: 'center' }, content: [teks('Paragraf rata tengah', [{ type: 'bold' }])] },
+      { type: 'paragraph', attrs: { textAlign: 'right' }, content: [teks('Paragraf rata kanan')] },
+      { type: 'bulletList', content: ['Butir pertama', 'Butir kedua dengan teks yang cukup panjang agar membungkus ke baris berikutnya pada halaman PDF laporan.'].map((t) => ({ type: 'listItem', content: [para(teks(t))] })) },
+      {
+        type: 'table',
+        content: [
+          { type: 'tableRow', content: ['Indikator', 'Nilai', 'Keterangan'].map((t) => ({ type: 'tableHeader', content: [para(teks(t))] })) },
+          { type: 'tableRow', content: ['Pemenuhan hak', '100,00', 'Baik'].map((t) => ({ type: 'tableCell', content: [para(teks(t))] })) },
+          { type: 'tableRow', content: ['Pelaksanaan kewajiban', '32,78', 'Perlu ditingkatkan'].map((t) => ({ type: 'tableCell', content: [para(teks(t))] })) },
+        ],
+      },
+      { type: 'image', attrs: { src: '/x', berkasId: 1 } },
+    ],
+  }
+  const simpulan: Dok = {
+    type: 'doc',
+    content: [
+      sub('Simpulan'),
+      para(teks(PARAGRAF_PANJANG)),
+      sub('Saran dan Tindak Lanjut'),
+      {
+        type: 'orderedList',
+        content: [
+          'Memfasilitasi penyelesaian RKPS dan RKT dengan memperhatikan kondisi aktual areal, perlindungan hutan, pengembangan usaha, serta rencana pemulihan tutupan lahan.',
+          'Melakukan verifikasi lapangan terhadap bukaan lahan, penanaman sawit, pertambahan permukiman, dan informasi penebangan sebagai dasar penanganan bersama pihak terkait.',
+        ].map((t) => ({ type: 'listItem', content: [para(teks(t))] })),
+      },
+    ],
+  }
   return {
     ...awal,
-    bagian: [
-      ...awal.bagian.map((b) => {
-        if (b.jenis === 'petugas') {
-          return {
-            ...b,
-            instansi: [
-              { kunci: 'GUNADI FIRDAUS, S.HUT., M.SI.', instansi: 'Direktorat PPS' },
-              { kunci: 'R RESA ADAM GUNAWAN, S.T.', instansi: 'Direktorat PPS' },
-              { kunci: 'DR. MARCUS OCTAVIANUS SUSATYO, S.HUT., M.P.', instansi: 'Direktorat PPS' },
-            ],
-          }
+    bagian: awal.bagian.map((b) => {
+      if (b.jenis === 'petugas') {
+        return {
+          ...b,
+          instansi: [
+            { kunci: 'GUNADI FIRDAUS, S.HUT., M.SI.', instansi: 'Direktorat PPS' },
+            { kunci: 'R RESA ADAM GUNAWAN, S.T.', instansi: 'Direktorat PPS' },
+            { kunci: 'DR. MARCUS OCTAVIANUS SUSATYO, S.HUT., M.P.', instansi: 'Direktorat PPS' },
+          ],
         }
-        if (b.id === 'hasil' && b.jenis === 'teks') {
-          return {
-            ...b,
-            blok: ['Pelaksanaan Pengawasan', 'Hasil Pengawasan', 'Pemenuhan Hak', 'Pelaksanaan Kewajiban Pengelolaan', 'Kepatuhan terhadap Larangan', 'Perlindungan Hutan dan Pengendalian Kebakaran'].flatMap((judul) => [
-              { tipe: 'subjudul' as const, teks: judul },
-              { tipe: 'paragraf' as const, teks: `${PARAGRAF_PANJANG} ${PARAGRAF_PANJANG}` },
-            ]),
-          }
-        }
-        if (b.id === 'simpulan' && b.jenis === 'teks') {
-          return {
-            ...b,
-            blok: [
-              { tipe: 'subjudul' as const, teks: 'Simpulan' },
-              { tipe: 'paragraf' as const, teks: PARAGRAF_PANJANG },
-              { tipe: 'subjudul' as const, teks: 'Saran dan Tindak Lanjut' },
-              {
-                tipe: 'nomor' as const,
-                butir: [
-                  'Memfasilitasi penyelesaian RKPS dan RKT dengan memperhatikan kondisi aktual areal, perlindungan hutan, pengembangan usaha, serta rencana pemulihan tutupan lahan.',
-                  'Melakukan verifikasi lapangan terhadap bukaan lahan, penanaman sawit, pertambahan permukiman, dan informasi penebangan sebagai dasar penanganan bersama pihak terkait.',
-                  'Melakukan inventarisasi dan pemulihan patok batas yang hilang serta meningkatkan pemahaman masyarakat mengenai batas areal kerja.',
-                ],
-              },
-            ],
-          }
-        }
-        return b
-      }),
-    ],
+      }
+      if (b.id === 'hasil' && b.jenis === 'teks') return { ...b, isi: hasil }
+      if (b.id === 'simpulan' && b.jenis === 'teks') return { ...b, isi: simpulan }
+      return b
+    }),
   }
 }

@@ -68,7 +68,7 @@ export function BuktiPanel({ stId }: { stId: number }) {
   const ubahJenis = useUbahJenisBerkas()
 
   // Foto dokumentasi punya panel sendiri dan tidak ikut hitungan biaya.
-  const daftarBerkas = (semuaBerkas ?? []).filter((b) => b.jenis !== 'dokumentasi')
+  const daftarBerkas = (semuaBerkas ?? []).filter((b) => b.jenis !== 'dokumentasi' && b.jenis !== 'laporan')
 
   async function prosesUnggah(files: FileList | File[]) {
     const list = Array.from(files)

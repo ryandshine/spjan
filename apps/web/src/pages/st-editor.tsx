@@ -242,13 +242,33 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
     ...(id !== null ? [{ kunci: 'laporan' as const, label: 'Laporan' }] : []),
   ]
 
+  const modeLaporan = tab === 'laporan' && id !== null
+
   return (
     <div>
       <PageHeader
-        lengket
+        lengket={!modeLaporan}
         title={id === null ? 'Surat tugas baru' : st.nomor || 'Surat tugas'}
-        description={kotor ? 'Ada perubahan yang belum disimpan.' : id === null ? 'Isi data lalu simpan.' : 'Tersimpan.'}
+        description={
+          modeLaporan
+            ? 'Laporan Perjalanan Dinas'
+            : kotor
+              ? 'Ada perubahan yang belum disimpan.'
+              : id === null
+                ? 'Isi data lalu simpan.'
+                : 'Tersimpan.'
+        }
         actions={
+          modeLaporan ? (
+            kotor ? (
+              <div className="flex items-center gap-2 rounded-md border border-warning/50 bg-warning/10 px-3 py-1.5 text-sm">
+                Data surat tugas belum disimpan
+                <Button size="sm" onClick={kirim} disabled={simpan.isPending}>
+                  <SaveIcon /> {simpan.isPending ? 'Menyimpan...' : 'Simpan'}
+                </Button>
+              </div>
+            ) : null
+          ) : (
           <>
             <div className="mr-1 text-right leading-tight" aria-live="polite">
               <p className="text-xs text-muted-foreground">Total SPTB</p>
@@ -278,6 +298,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
               <SaveIcon /> {simpan.isPending ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </>
+          )
         }
       />
 
@@ -296,7 +317,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
 
       <Tabs item={itemTab} aktif={tab} onPilih={setTab} idAwal="st" label="Bagian surat tugas" />
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className={modeLaporan ? 'grid items-start gap-6' : 'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]'}>
         <div className="min-w-0">
           <TabPanel idAwal="st" kunci="data" aktif={tab === 'data'}>
             <div className="grid gap-6">
@@ -524,9 +545,11 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
             </div>
           </TabPanel>
         </div>
-        <div className="min-w-0">
-          <RingkasanPanel hasil={hasil} />
-        </div>
+        {modeLaporan ? null : (
+          <div className="min-w-0">
+            <RingkasanPanel hasil={hasil} />
+          </div>
+        )}
       </div>
 
       <Dialog open={dialogSpd} onOpenChange={setDialogSpd}>

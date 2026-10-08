@@ -16,7 +16,7 @@ export type JenisDokumen = 'spd' | 'sptb' | 'rincian' | 'kuitansi' | 'dpr' | 'do
  * Satu berkas PDF. `indeks` membatasi SPD/Rincian/Kuitansi/DPR ke satu pelaksana (0-based);
  * tanpa `indeks` semua pelaksana dicetak berurutan. 'semua' = SPTB lalu SPD, Rincian, Kuitansi, DPR (bila ada biaya riil) tiap pelaksana, dan Dokumentasi (bila ada).
  */
-export function SpjDocument({ d, jenis, indeks, laporan }: { d: DataDokumen; jenis: JenisDokumen; indeks?: number; laporan?: ModelLaporan }) {
+export function SpjDocument({ d, jenis, indeks, laporan, gambarLaporan }: { d: DataDokumen; jenis: JenisDokumen; indeks?: number; laporan?: ModelLaporan; gambarLaporan?: Record<number, string> }) {
   const terpilih = d.pelaksana.map((p, i) => ({ p, i })).filter(({ i }) => indeks === undefined || i === indeks)
   const adaDokumentasi = d.dokumentasi && d.dokumentasi.length > 0
 
@@ -39,7 +39,7 @@ export function SpjDocument({ d, jenis, indeks, laporan }: { d: DataDokumen; jen
       {jenis === 'kuitansi' ? terpilih.map(({ p, i }) => <KuitansiPage key={i} d={d} p={p} />) : null}
       {jenis === 'dpr' ? terpilih.map(({ p, i }) => <DprPage key={i} d={d} p={p} />) : null}
       {jenis === 'dokumentasi' ? <DokumentasiPage d={d} /> : null}
-      {jenis === 'laporan' && laporan ? <LaporanPages m={laporan} /> : null}
+      {jenis === 'laporan' && laporan ? <LaporanPages m={laporan} gambar={gambarLaporan} /> : null}
     </Document>
   )
 }
