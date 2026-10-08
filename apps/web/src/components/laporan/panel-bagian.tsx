@@ -119,7 +119,7 @@ export function PanelBagian({
   const tetap = bagian.jenis === 'sampul'
   const ket = keterangan(bagian)
   return (
-    <Card id="panel-laporan">
+    <Card id="panel-laporan" className="scroll-mt-4">
       <CardContent className="grid gap-4 pt-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">

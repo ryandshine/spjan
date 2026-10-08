@@ -96,11 +96,16 @@ export function LaporanEditor({ stId }: { stId: number }) {
 
   const ubah = (bagian: Bagian[]) => setDraf({ ...isi, bagian })
 
+  // Setelah memilih bagian, panel disunting digulirkan ke layar bila bagian atasnya tidak terlihat (daftar bagian panjang, halaman sudah digulir).
   const pilih = (id: string) => {
     setTerpilihId(id)
-    if (window.matchMedia('(max-width: 1023px)').matches) {
-      document.getElementById('panel-laporan')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
+    window.requestAnimationFrame(() => {
+      const panel = document.getElementById('panel-laporan')
+      if (!panel) return
+      const atas = panel.getBoundingClientRect().top
+      const ponsel = window.matchMedia('(max-width: 1023px)').matches
+      if (ponsel || atas < 0 || atas > window.innerHeight * 0.6) panel.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
   }
 
   async function lihatPdf(abaikanPeringatan = false) {

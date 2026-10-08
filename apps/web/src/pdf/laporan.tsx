@@ -17,7 +17,7 @@ const s = StyleSheet.create({
   namaSampul: { textAlign: 'center' },
   tempatTanggal: { position: 'absolute', bottom: 56, left: 56, right: 56, textAlign: 'center', fontWeight: 700, fontSize: 12 },
   judulBagian: { fontSize: 12, fontWeight: 700, marginTop: 14, marginBottom: 6 },
-  subjudul: { fontWeight: 700, marginTop: 8, marginBottom: 3 },
+  subjudul: { fontWeight: 700, fontSize: 12.5, marginTop: 10, marginBottom: 3 },
   paragraf: { textAlign: 'justify', marginBottom: 6 },
   butir: { flexDirection: 'row', marginBottom: 3, paddingLeft: 10 },
   penanda: { width: 16 },
