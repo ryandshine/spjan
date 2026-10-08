@@ -1,5 +1,5 @@
 import '../pdf/polyfill-buffer'
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeftIcon, DownloadIcon, ImageIcon } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { buatLaporanAwal, idGambarLaporan, susunLaporan, type FotoDokumentasi } from '@spjan/shared'
@@ -161,6 +161,18 @@ export default function DokumenPage() {
     return daftar
   }, [d, fotoDokumentasi])
 
+  // Baris pertama: dokumen umum (SPTB, dokumentasi, laporan, semua); lalu satu baris per pelaksana.
+  const kelompok = useMemo(() => {
+    const hasil: { grup?: string; item: Pilihan[] }[] = [{ item: pilihan.filter((p) => !p.grup) }]
+    for (const p of pilihan) {
+      if (!p.grup) continue
+      const akhir = hasil[hasil.length - 1]
+      if (akhir && akhir.grup === p.grup) akhir.item.push(p)
+      else hasil.push({ grup: p.grup, item: [p] })
+    }
+    return hasil
+  }, [pilihan])
+
   const terpilih = pilihan.find((p) => p.kunci === kunci) ?? pilihan[0]
 
   const dokumen = useMemo(
@@ -226,36 +238,37 @@ export default function DokumenPage() {
           .
         </p>
       ) : null}
-      <div className="grid items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <nav className="grid gap-1" aria-label="Daftar dokumen">
-          {pilihan.map((p, n) => (
-            <Fragment key={p.kunci}>
-            {p.grup && p.grup !== pilihan[n - 1]?.grup ? (
-              <p className="mt-3 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground [overflow-wrap:anywhere] first:mt-0">
-                {p.grup}
-              </p>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => setKunci(p.kunci)}
-              aria-current={terpilih?.kunci === p.kunci ? 'true' : undefined}
-              className={cn(
-                'flex items-center justify-between gap-2 rounded-r-md border-l-4 px-3 py-2 text-left text-sm transition-colors hover:bg-accent',
-                terpilih?.kunci === p.kunci ? 'border-primary bg-accent font-medium' : 'border-transparent',
-              )}
-            >
-              <span className="flex items-center gap-1.5 [overflow-wrap:anywhere]">
-                {p.jenis === 'dokumentasi' ? <ImageIcon className="size-3.5 text-sky-600" /> : null}
-                {p.label}
-              </span>
-              {p.jenis !== 'sptb' && p.jenis !== 'semua' && p.indeks !== undefined && (d.pelaksana[p.indeks]?.peringatan.length ?? 0) > 0 ? (
-                <Badge variant="warning">!</Badge>
+      <div className="grid gap-3">
+        <nav className="grid gap-1.5 border-b pb-3" aria-label="Daftar dokumen">
+          {kelompok.map((k) => (
+            <div key={k.grup ?? 'umum'} className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+              {k.grup ? (
+                <p className="mr-1 max-w-full text-xs font-semibold uppercase tracking-wide text-muted-foreground [overflow-wrap:anywhere]">
+                  {k.grup}
+                </p>
               ) : null}
-            </button>
-            </Fragment>
+              {k.item.map((p) => (
+                <button
+                  key={p.kunci}
+                  type="button"
+                  onClick={() => setKunci(p.kunci)}
+                  aria-current={terpilih?.kunci === p.kunci ? 'true' : undefined}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-left text-sm transition-colors hover:bg-accent',
+                    terpilih?.kunci === p.kunci ? 'border-primary bg-accent font-medium text-foreground' : 'border-border text-muted-foreground',
+                  )}
+                >
+                  {p.jenis === 'dokumentasi' ? <ImageIcon className="size-3.5 text-sky-600" /> : null}
+                  <span className="[overflow-wrap:anywhere]">{p.label}</span>
+                  {p.jenis !== 'sptb' && p.jenis !== 'semua' && p.indeks !== undefined && (d.pelaksana[p.indeks]?.peringatan.length ?? 0) > 0 ? (
+                    <Badge variant="warning">!</Badge>
+                  ) : null}
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
-        <div className="h-[80vh] min-h-[500px]">
+        <div className="h-[calc(100vh-14rem)] min-h-[560px]">
           {(sedangMuatFoto || (terpilih?.jenis === 'laporan' && !gambarSiap)) && !dokumen ? (
             <div className="flex h-full items-center justify-center rounded-lg border bg-card text-sm text-muted-foreground">
               Menyiapkan foto dan gambar untuk dokumen...
