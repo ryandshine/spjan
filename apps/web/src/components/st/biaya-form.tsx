@@ -5,7 +5,7 @@ import {
   jenisButuhEtape,
   jenisButuhProvinsi,
   jenisButuhUraian,
-  norm,
+  tarifTerminal,
   type BarisBiaya,
   type BiayaPayload,
   type JenisBiaya,
@@ -54,6 +54,10 @@ export function BiayaForm({
   const perluProvinsi = jenisButuhProvinsi(biaya.jenis)
   const perluEtape = jenisButuhEtape(biaya.jenis) && etapeJumlah > 1
   const perluUraian = jenisButuhUraian(biaya.jenis) || !!biaya.uraian || biaya.jenis === 'TAKSI_TERMINAL'
+  const namaProvinsiPagu =
+    biaya.jenis === 'TAKSI_KEDUDUKAN' ? provinsiKedudukan : biaya.jenis === 'TAKSI_TERMINAL' ? biaya.provinsi : null
+  const tarifTidakAda =
+    !!sbm && !!namaProvinsiPagu && !biaya.tarif && tarifTerminal(sbm, namaProvinsiPagu) === undefined
   const uraianLabel =
     biaya.jenis === 'TRANSPORT_DARAT' || biaya.jenis === 'TRANSPORT_JAKARTA_SEKITAR'
       ? 'Kab/kota tujuan (persis PMK)'
@@ -75,9 +79,9 @@ export function BiayaForm({
               const isTerminal = j === 'TAKSI_TERMINAL'
               let tarifPatch: number | undefined = undefined
               if (j === 'TAKSI_KEDUDUKAN' && !biaya.tarif && provinsiKedudukan && sbm) {
-                tarifPatch = sbm.terminal[norm(provinsiKedudukan)]
+                tarifPatch = tarifTerminal(sbm, provinsiKedudukan)
               } else if (j === 'TAKSI_TERMINAL' && !biaya.tarif && biaya.provinsi && sbm) {
-                tarifPatch = sbm.terminal[norm(biaya.provinsi)]
+                tarifPatch = tarifTerminal(sbm, biaya.provinsi)
               }
               onUbah({
                 jenis: j,
@@ -119,7 +123,7 @@ export function BiayaForm({
                 const pVal = e.target.value || null
                 const tarifAuto =
                   biaya.jenis === 'TAKSI_TERMINAL' && pVal && sbm && !biaya.tarif
-                    ? sbm.terminal[norm(pVal)]
+                    ? tarifTerminal(sbm, pVal)
                     : undefined
                 onUbah({
                   provinsi: pVal,
@@ -207,6 +211,12 @@ export function BiayaForm({
           </span>
         </label>
       </div>
+      {tarifTidakAda ? (
+        <p className="text-xs text-amber-600 dark:text-amber-500">
+          Tarif taksi bandara untuk {namaProvinsiPagu} belum ada di tabel SBM (PMK 32 Tahun 2025), jadi tidak bisa terisi otomatis.
+          Isi tarif secara manual sesuai bukti pengeluaran.
+        </p>
+      ) : null}
       {baris ? (
         <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs">
           <span className="text-muted-foreground">

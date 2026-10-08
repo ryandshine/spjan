@@ -25,6 +25,10 @@ describe("paguBiaya", () => {
     expect(nilai({ jenis: "TRANSPORT_KEGIATAN_PP", tarif: 1 })).toBe(170_000);
     expect(nilai({ jenis: "TAKSI_TERMINAL", provinsi: "BALI", tarif: 1 })).toBe(219_000);
     expect(nilai({ jenis: "TAKSI_KEDUDUKAN", tarif: 1 })).toBe(250_000);
+    expect(nilai({ jenis: "TAKSI_TERMINAL", provinsi: "PAPUA BARAT DAYA", tarif: 1 })).toBe(228_000);
+    for (const p of ["PAPUA TENGAH", "PAPUA SELATAN", "PAPUA PEGUNUNGAN"]) {
+      expect(nilai({ jenis: "TAKSI_TERMINAL", provinsi: p, tarif: 1 })).toBe(462_000);
+    }
     expect(nilai({ jenis: "SEWA_RODA4", provinsi: "BALI", tarif: 1 })).toBe(1_275_000);
     expect(nilai({ jenis: "SEWA_RODA6", provinsi: "D.I. YOGYAKARTA", tarif: 1 })).toBe(2_570_000);
     expect(nilai({ jenis: "SEWA_BUS_BESAR", provinsi: "D.I. YOGYAKARTA", tarif: 1 })).toBe(3_808_000);

@@ -8,6 +8,20 @@ export interface PaguBiaya {
   nilai: number | null;
 }
 
+/** Provinsi pemekaran yang tarif taksi bandaranya mengikuti provinsi induk (tabel PMK belum memuatnya). */
+const INDUK_TERMINAL: Record<string, string> = {
+  "PAPUA BARAT DAYA": "PAPUA BARAT",
+  "PAPUA TENGAH": "PAPUA",
+  "PAPUA SELATAN": "PAPUA",
+  "PAPUA PEGUNUNGAN": "PAPUA",
+};
+
+/** Tarif taksi bandara/terminal per provinsi; undefined bila tidak ada di tabel SBM. */
+export function tarifTerminal(sbm: Sbm, provinsi: string): number | undefined {
+  const kunci = norm(provinsi);
+  return sbm.terminal[kunci] ?? sbm.terminal[INDUK_TERMINAL[kunci] ?? ""];
+}
+
 const TANPA_PAGU: PaguBiaya = { adaPagu: false, nilai: null };
 
 function ada(nilai: number | null | undefined): PaguBiaya {
@@ -26,9 +40,9 @@ export function paguBiaya(sbm: Sbm, biaya: BiayaInput, provinsiKedudukan: string
     case "TRANSPORT_KEGIATAN_PP":
       return ada(sbm.transportKegiatanPp);
     case "TAKSI_KEDUDUKAN":
-      return ada(sbm.terminal[norm(provinsiKedudukan)]);
+      return ada(tarifTerminal(sbm, provinsiKedudukan));
     case "TAKSI_TERMINAL":
-      return ada(sbm.terminal[prov]);
+      return ada(tarifTerminal(sbm, prov));
     case "SEWA_RODA4":
       return ada(sbm.sewaKendaraan[prov]?.roda4);
     case "SEWA_RODA6":

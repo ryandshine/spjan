@@ -9,6 +9,7 @@ import {
   indeksBarisTransport,
   isKotaJabodetabek,
   norm,
+  tarifTerminal,
   pelaksanaDariPegawai,
   provinsiDariKotaJabodetabek,
   ringkasEtape,
@@ -176,7 +177,7 @@ export function PelaksanaCard({
   }
 
   function tambahTaksiKedudukan() {
-    const tarif = provinsiKedudukan ? (sbm.terminal[norm(provinsiKedudukan)] ?? 0) : 0
+    const tarif = provinsiKedudukan ? (tarifTerminal(sbm, provinsiKedudukan) ?? 0) : 0
     tambahBiaya({
       ...biayaKosong('TAKSI_KEDUDUKAN'),
       tarif,
@@ -192,7 +193,7 @@ export function PelaksanaCard({
       p.etape.find((e) => e.provinsi) ??
       p.etape[0]
     const namaProv = etapeTarget?.provinsi || null
-    const tarif = namaProv ? (sbm.terminal[norm(namaProv)] ?? 0) : 0
+    const tarif = namaProv ? (tarifTerminal(sbm, namaProv) ?? 0) : 0
 
     tambahBiaya({
       ...biayaKosong('TAKSI_TERMINAL'),
