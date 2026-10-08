@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { DokSchema, dokDariBlok, dokKosong } from "./laporan-dokumen.js";
+import { DokSchema, dokDariBlok, dokKosong, dokPunyaIsi } from "./laporan-dokumen.js";
 
 const judulPendek = z.string().max(300);
 const teksPanjang = z.string().max(10_000);
@@ -64,6 +64,23 @@ const LaporanIsiV1Schema = z.object({
 
 /** Membaca laporan tersimpan (versi 2, atau versi 1 yang dikonversi); null bila bentuknya tidak dikenal. */
 export function naikkanLaporan(mentah: unknown): LaporanIsi | null {
+  const hasil = naikkanVersi(mentah);
+  return hasil ? rapikanTemplateLama(hasil) : null;
+}
+
+/** Laporan tersimpan dari template lama: buang bagian penutup tanpa judul yang masih kosong dan ringkas judul kesimpulan. */
+function rapikanTemplateLama(laporan: LaporanIsi): LaporanIsi {
+  const bagian = laporan.bagian
+    .filter((b) => !(b.id === "penutup" && b.jenis === "teks" && b.judul === "" && !dokPunyaIsi(b.isi)))
+    .map((b): Bagian =>
+      b.id === "simpulan" && b.jenis === "teks" && b.judul === "Kesimpulan dan Rekomendasi Tindak Lanjut"
+        ? { ...b, judul: "Kesimpulan dan Rekomendasi" }
+        : b,
+    );
+  return { ...laporan, bagian };
+}
+
+function naikkanVersi(mentah: unknown): LaporanIsi | null {
   const baru = LaporanIsiSchema.safeParse(mentah);
   if (baru.success) return baru.data;
   const lama = LaporanIsiV1Schema.safeParse(mentah);

@@ -183,6 +183,20 @@ describe("dokumen teks kaya", () => {
     expect(dengan(dalam)).toBe(false);
   });
 
+  it("naikkanLaporan membuang penutup kosong dan meringkas judul kesimpulan dari template lama", () => {
+    const awal = buatLaporanAwal();
+    const lama = {
+      ...awal,
+      bagian: [
+        ...awal.bagian.map((b) => (b.id === "simpulan" ? { ...b, judul: "Kesimpulan dan Rekomendasi Tindak Lanjut" } : b)),
+        { id: "penutup", jenis: "teks", judul: "", isi: dokKosong() },
+      ],
+    };
+    const hasil = naikkanLaporan(lama)!;
+    expect(hasil.bagian.some((b) => b.id === "penutup")).toBe(false);
+    expect(hasil.bagian.find((b) => b.id === "simpulan")).toMatchObject({ judul: "Kesimpulan dan Rekomendasi" });
+  });
+
   it("naikkanLaporan mengonversi versi 1 dan menolak bentuk tak dikenal", () => {
     const v1 = {
       versi: 1,
