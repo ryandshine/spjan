@@ -9,3 +9,5 @@ export * from "./berkas.js";
 export * from "./st-ekstraksi.js";
 export * from "./hotel-ekstraksi.js";
 export * from "./transport-ekstraksi.js";
+export * from "./laporan.js";
+export * from "./laporan-susun.js";
