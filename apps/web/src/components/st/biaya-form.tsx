@@ -13,6 +13,7 @@ import {
 } from '@spjan/shared'
 
 import { Istilah } from '@/components/ui/istilah'
+import { PenandaIsian, type ModeIsian } from '@/components/ui/penanda-isian'
 import { RupiahInput } from '@/components/st/rupiah-input'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,10 +22,27 @@ import { Select } from '@/components/ui/select'
 import { rupiah } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-function Sel({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
+function Sel({
+  label,
+  className,
+  mode,
+  otomatisAktif,
+  onKembali,
+  children,
+}: {
+  label: string
+  className?: string
+  mode?: ModeIsian
+  otomatisAktif?: boolean
+  onKembali?: () => void
+  children: React.ReactNode
+}) {
   return (
     <label className={cn('grid gap-1 text-xs text-muted-foreground', className)}>
-      {label}
+      <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
+        {label}
+        {mode ? <PenandaIsian mode={mode} otomatisAktif={otomatisAktif} onKembali={onKembali} /> : null}
+      </span>
       {children}
     </label>
   )
@@ -59,6 +77,9 @@ export function BiayaForm({
     biaya.jenis === 'TAKSI_KEDUDUKAN' ? provinsiKedudukan : biaya.jenis === 'TAKSI_TERMINAL' ? biaya.provinsi : null
   const tarifTidakAda =
     !!sbm && !!namaProvinsiPagu && !biaya.tarif && tarifTerminal(sbm, namaProvinsiPagu) === undefined
+  // Taksi bandara dan taksi kedudukan: tarif otomatis dari SBM provinsi bila ada.
+  const tarifSbm =
+    sbm && namaProvinsiPagu && (biaya.jenis === 'TAKSI_KEDUDUKAN' || biaya.jenis === 'TAKSI_TERMINAL') ? tarifTerminal(sbm, namaProvinsiPagu) : undefined
   const uraianLabel =
     biaya.jenis === 'TRANSPORT_DARAT' || biaya.jenis === 'TRANSPORT_JAKARTA_SEKITAR'
       ? 'Kab/kota tujuan (persis PMK)'
@@ -68,9 +89,9 @@ export function BiayaForm({
           ? 'Uraian (opsional)'
           : 'Uraian'
   return (
-    <div className="grid gap-2 rounded-lg border bg-card p-3">
+    <div className="grid gap-2 border-t pt-4">
       <div className="flex flex-wrap items-start gap-2">
-        <Sel label="Jenis biaya" className="min-w-72 flex-[2]">
+        <Sel label="Jenis biaya" className="min-w-72 flex-[2]" mode="wajib">
           <Select
             className="w-full"
             value={biaya.jenis}
@@ -100,7 +121,7 @@ export function BiayaForm({
           </Select>
         </Sel>
         {perluEtape ? (
-          <Sel label="Untuk tujuan" className="min-w-64 flex-1">
+          <Sel label="Untuk tujuan" className="min-w-64 flex-1" mode="otomatis" otomatisAktif={biaya.etapeIndex == null} onKembali={() => onUbah({ etapeIndex: null })}>
             <Select
               className="w-full"
               value={biaya.etapeIndex ?? ''}
@@ -116,7 +137,7 @@ export function BiayaForm({
           </Sel>
         ) : null}
         {perluProvinsi ? (
-          <Sel label="Provinsi (untuk pagu)" className="min-w-72 flex-1">
+          <Sel label="Provinsi (untuk pagu)" className="min-w-72 flex-1" mode="wajib">
             <Select
               className="w-full"
               value={biaya.provinsi ?? ''}
@@ -142,7 +163,7 @@ export function BiayaForm({
           </Sel>
         ) : null}
         {biaya.jenis === 'TRANSPORT_JAKARTA_SEKITAR' ? (
-          <Sel label="Kab/kota sekitar Jakarta" className="min-w-72 flex-1">
+          <Sel label="Kab/kota sekitar Jakarta" className="min-w-72 flex-1" mode="wajib">
             <Select
               className="w-full"
               value={biaya.uraian ?? ''}
@@ -165,7 +186,13 @@ export function BiayaForm({
             </Select>
           </Sel>
         ) : perluUraian ? (
-          <Sel label={uraianLabel} className={cn('min-w-72 flex-1 basis-72', (biaya.jenis === 'TIKET_PERGI' || biaya.jenis === 'TIKET_KEMBALI') && 'flex-[2]')}>
+          <Sel
+            label={uraianLabel}
+            className={cn('min-w-72 flex-1 basis-72', (biaya.jenis === 'TIKET_PERGI' || biaya.jenis === 'TIKET_KEMBALI') && 'flex-[2]')}
+            mode={jenisButuhUraian(biaya.jenis) ? 'wajib' : 'otomatis'}
+            otomatisAktif={!biaya.uraian}
+            onKembali={() => onUbah({ uraian: null })}
+          >
             <TextareaOtomatis
               placeholder={biaya.jenis === 'TAKSI_TERMINAL' ? 'Otomatis: Taksi/transport dari-ke bandara/terminal sesuai provinsi' : undefined}
               value={biaya.uraian ?? ''}
@@ -173,7 +200,7 @@ export function BiayaForm({
             />
           </Sel>
         ) : null}
-        <Sel label="Jumlah">
+        <Sel label="Jumlah" mode="otomatis" otomatisAktif={biaya.qty == null} onKembali={() => onUbah({ qty: null })}>
           <Input
             className="w-24 text-right"
             type="number"
@@ -183,10 +210,15 @@ export function BiayaForm({
             onChange={(e) => onUbah({ qty: e.target.value === '' ? null : Number(e.target.value) })}
           />
         </Sel>
-        <Sel label="Tarif / harga (Rp)">
+        <Sel
+          label="Tarif / harga (Rp)"
+          mode={tarifSbm !== undefined ? 'otomatis' : 'wajib'}
+          otomatisAktif={tarifSbm !== undefined && biaya.tarif === tarifSbm}
+          onKembali={tarifSbm !== undefined ? () => onUbah({ tarif: tarifSbm }) : undefined}
+        >
           <RupiahInput className="w-44" nolKosong value={biaya.tarif} onChange={(v) => onUbah({ tarif: v ?? 0 })} />
         </Sel>
-        <Sel label="Keterangan" className="min-w-64 flex-1 basis-64">
+        <Sel label="Keterangan" className="min-w-64 flex-1 basis-64" mode="opsional">
           <TextareaOtomatis
             placeholder={biaya.jenis === 'TAKSI_KEDUDUKAN' || biaya.jenis === 'TAKSI_TERMINAL' ? '' : 'Bukti terlampir'}
             value={biaya.keterangan ?? ''}
@@ -197,7 +229,7 @@ export function BiayaForm({
           <Trash2Icon className="text-destructive" />
         </Button>
       </div>
-      <div className="flex items-center gap-2 pt-1 border-t border-dashed">
+      <div className="flex items-center gap-2 pt-1">
         <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground">
           <input
             type="checkbox"
@@ -224,7 +256,7 @@ export function BiayaForm({
       {baris ? (
         <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs">
           <span className="text-muted-foreground">
-            Tercetak: <span className="text-foreground">{baris.uraian}</span>
+            Tercetak di dokumen (otomatis): <span className="text-foreground">{baris.uraian}</span>
             {baris.qty ? ` (${baris.qty} ${baris.satuan} @ ${rupiah(baris.tarif ?? 0)})` : ''}
           </span>
           <span className="font-medium tabular-nums">{rupiah(baris.jumlah)}</span>

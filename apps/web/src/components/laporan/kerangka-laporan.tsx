@@ -36,6 +36,7 @@ export function KerangkaLaporan({
   const status = new Map(ringkasan.bagian.map((s) => [s.id, s]))
   return (
     <nav aria-label="Bagian laporan" className="grid content-start gap-5">
+      <p className="px-1 text-xs text-muted-foreground">Bagian yang terisi otomatis tidak perlu Anda sentuh. Tulis bagian di kelompok &quot;Perlu Anda tulis&quot;.</p>
       {KELOMPOK.map((k) => {
         const baris = bagian.filter((b) => status.get(b.id)?.kelompok === k.kunci)
         if (baris.length === 0) return null
@@ -55,8 +56,8 @@ export function KerangkaLaporan({
                       onClick={() => onPilih(b.id)}
                       aria-current={aktif ? 'true' : undefined}
                       className={cn(
-                        'flex min-h-10 w-full items-center justify-between gap-2 rounded-md border border-l-4 px-3 py-2 text-left text-sm transition-colors hover:bg-accent',
-                        aktif ? 'border-primary bg-accent font-medium' : 'border-l-transparent bg-card',
+                        'flex min-h-10 w-full items-center justify-between gap-2 rounded-r-md border-l-4 px-3 py-2 text-left text-sm transition-colors hover:bg-accent',
+                        aktif ? 'border-primary bg-accent font-medium' : 'border-transparent',
                       )}
                     >
                       <span className="min-w-0 [overflow-wrap:anywhere]">{labelBagian(b)}</span>

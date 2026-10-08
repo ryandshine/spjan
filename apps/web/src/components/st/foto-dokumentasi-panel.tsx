@@ -231,9 +231,9 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
               return (
                 <div
                   key={b.id}
-                  className="group relative flex flex-col overflow-hidden rounded-lg border bg-card shadow-sm transition-all hover:shadow-md"
+                  className="group relative flex flex-col gap-1"
                 >
-                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-muted">
                     <img
                       src={`/api/berkas/${b.id}/isi`}
                       alt={b.keterangan || b.namaAsli}
@@ -277,7 +277,7 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
                     </div>
                   </div>
 
-                  <div className="flex flex-1 flex-col gap-2 p-3">
+                  <div className="flex flex-1 flex-col gap-2">
                     {sedangEdit ? (
                       <div className="space-y-1.5">
                         <Input
@@ -323,7 +323,7 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
                         <p className="mt-0.5 text-[10px] text-muted-foreground [overflow-wrap:anywhere]">{b.namaAsli}</p>
                       </div>
                     )}
-                    <div className="mt-auto flex items-center justify-between border-t pt-2 text-[10px] text-muted-foreground">
+                    <div className="mt-auto flex items-center justify-between pt-1 text-[10px] text-muted-foreground">
                       <span>{formatUkuran(b.ukuran)}</span>
                       <span>{tanggalPendek(b.createdAt.slice(0, 10))}</span>
                     </div>

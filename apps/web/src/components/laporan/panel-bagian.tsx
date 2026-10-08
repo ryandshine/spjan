@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PlusIcon, Trash2Icon } from 'lucide-react'
+import { PlusIcon, Trash2Icon, TriangleAlertIcon } from 'lucide-react'
 import { dokPunyaIsi, norm, type Bagian, type BagianModel, type BarisTataWaktuLaporan, type ModelLaporan } from '@spjan/shared'
 
 import { EditorTeks } from '@/components/laporan/editor-teks'
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { PenandaIsian } from '@/components/ui/penanda-isian'
 import { InputTanggal } from '@/components/ui/input-tanggal'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -54,8 +55,8 @@ function ModeOtomatis({
       {otomatis ? (
         <Badge variant="default">Otomatis dari surat tugas</Badge>
       ) : (
-        <p className="rounded-md border border-warning/40 bg-warning/10 px-3 py-1.5 text-sm">
-          Anda menulis sendiri bagian ini. Perubahan di surat tugas tidak lagi tampil di sini.
+        <p className="flex items-start gap-1.5 text-sm font-medium text-warning-foreground">
+          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden /> Anda menulis sendiri bagian ini. Perubahan di surat tugas tidak lagi tampil di sini.
         </p>
       )}
       {otomatis ? (
@@ -72,7 +73,7 @@ function EditorTataWaktu({ baris, onUbah }: { baris: BarisTataWaktuLaporan[]; on
   return (
     <div className="grid gap-2">
       {baris.map((b, i) => (
-        <div key={i} className="grid items-start gap-2 rounded-md border bg-card p-2 sm:grid-cols-[1fr_180px_auto]">
+        <div key={i} className="grid items-start gap-2 border-t pt-2 sm:grid-cols-[1fr_180px_auto]">
           <Textarea rows={2} placeholder="Kegiatan (satu per baris)" value={b.kegiatan.join('\n')} onChange={(e) => ganti(i, { ...b, kegiatan: e.target.value.split('\n') })} />
           <Input placeholder="Tanggal, mis. 17 September 2026" value={b.tanggal} onChange={(e) => ganti(i, { ...b, tanggal: e.target.value })} />
           <Button type="button" variant="ghost" size="icon" aria-label="Hapus baris" onClick={() => onUbah(baris.filter((_, n) => n !== i))}>
@@ -140,6 +141,12 @@ export function PanelBagian({
               </h2>
             )}
             {ket ? <p className="mt-1 text-sm text-muted-foreground">{ket}</p> : null}
+            {bagian.jenis === 'teks' ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <PenandaIsian mode={bagian.judul.trim() ? 'wajib' : 'opsional'} />
+                {bagian.judul.trim() ? 'Bagian ini Anda yang menulis.' : 'Boleh dikosongkan.'}
+              </div>
+            ) : null}
           </div>
           {!tetap ? <MenuBagian bisaNaik={bisaNaik} bisaTurun={bisaTurun} onGantiJudul={() => setGantiJudul(true)} onNaik={onNaik} onTurun={onTurun} onHapus={onHapus} /> : null}
         </div>
@@ -147,11 +154,17 @@ export function PanelBagian({
         {bagian.jenis === 'sampul' ? (
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="grid gap-1 text-xs text-muted-foreground">
-              Judul laporan (kosongkan untuk otomatis)
+              <span className="flex flex-wrap items-center justify-between gap-2">
+                Judul laporan
+                <PenandaIsian mode="otomatis" otomatisAktif={!bagian.judul} onKembali={() => onUbah({ ...bagian, judul: null })} />
+              </span>
               <Input className="h-10" placeholder={sampul.judul} value={bagian.judul ?? ''} onChange={(e) => onUbah({ ...bagian, judul: e.target.value || null })} />
             </label>
             <div className="grid gap-1 text-xs text-muted-foreground">
-              Tanggal laporan (kosongkan untuk otomatis)
+              <span className="flex flex-wrap items-center justify-between gap-2">
+                Tanggal laporan
+                <PenandaIsian mode="otomatis" otomatisAktif={!bagian.tanggal} onKembali={() => onUbah({ ...bagian, tanggal: null })} />
+              </span>
               <InputTanggal label="Tanggal laporan" nilai={bagian.tanggal} onUbah={(iso) => onUbah({ ...bagian, tanggal: iso })} />
             </div>
             <p className="text-xs text-muted-foreground sm:col-span-2">Tercetak: {sampul.tempatTanggal}</p>
@@ -159,7 +172,7 @@ export function PanelBagian({
         ) : null}
 
         {bagian.jenis === 'petugas' && model?.isi.jenis === 'petugas' ? (
-          <div className="overflow-x-auto rounded-md border">
+          <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-left text-xs">
                 <tr>

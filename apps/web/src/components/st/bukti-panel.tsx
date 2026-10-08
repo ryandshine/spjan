@@ -229,7 +229,7 @@ export function BuktiPanel({ stId }: { stId: number }) {
         Belum ada bukti biaya yang diunggah untuk surat tugas ini.
       </p>
     ) : (
-      <div className="rounded-md border">
+      <div>
         <Table>
           <TableHeader>
             <TableRow>

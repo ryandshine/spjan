@@ -35,7 +35,7 @@ export function PanelPeriksa({ hasil }: { hasil: SpjHasil }) {
             ) : (
               <ul className="grid gap-1.5">
                 {p.peringatan.map((w, k) => (
-                  <li key={k} className="grid gap-1 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs">
+                  <li key={k} className="grid gap-0.5 text-xs">
                     <span className="flex items-start gap-1.5 text-warning-foreground">
                       <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> <span className="[overflow-wrap:anywhere]">{w.pesan}</span>
                     </span>

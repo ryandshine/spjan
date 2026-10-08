@@ -34,6 +34,7 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { InputTanggal } from '@/components/ui/input-tanggal'
 import { MenuAksi } from '@/components/ui/menu-aksi'
+import { LegendaIsian } from '@/components/ui/penanda-isian'
 import { Select } from '@/components/ui/select'
 import { TabPanel, Tabs, type TabItem } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
@@ -326,25 +327,36 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
         <div className="min-w-0">
           <TabPanel idAwal="st" kunci="data" aktif={tab === 'data'}>
             <div className="grid gap-6">
+              <LegendaIsian />
               <Card>
                 <CardHeader>
                   <CardTitle>Surat tugas</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4 sm:grid-cols-2 items-start">
-                  <Field label="Nomor surat tugas" htmlFor="st-nomor" className="sm:col-span-2" error={peta.nomor}>
+                  <Field label="Nomor surat tugas" htmlFor="st-nomor" className="sm:col-span-2" error={peta.nomor} mode="wajib">
                     <Input id="st-nomor" value={st.nomor} onChange={(e) => ubahSt({ nomor: e.target.value })} placeholder="ST.226/PPS/PEMPS/PSL.04.02/B/09/2026" />
                   </Field>
-                  <Field label="Tanggal surat tugas" htmlFor="st-tanggal" error={peta.tanggal} hint={tanggalPanjang(st.tanggal) || undefined}>
+                  <Field label="Tanggal surat tugas" htmlFor="st-tanggal" error={peta.tanggal} hint={tanggalPanjang(st.tanggal) || undefined} mode="wajib">
                     <InputTanggal id="st-tanggal" label="Tanggal surat tugas" nilai={st.tanggal} onUbah={(iso) => ubahSt({ tanggal: iso ?? '' })} />
                   </Field>
                   <Field
                     label="Tanggal SPJ (tanggal dokumen)"
                     htmlFor="st-spj"
-                    hint={tanggalPanjang(st.tanggalSpj) || 'Kosong = tanggal saat dokumen dibuat. Isi bila ada tanggal SPJ khusus.'}
+                    mode="otomatis"
+                    otomatisAktif={!st.tanggalSpj}
+                    onKembaliOtomatis={() => ubahSt({ tanggalSpj: null })}
+                    hint={tanggalPanjang(st.tanggalSpj) || 'Otomatis: tanggal saat dokumen dibuat. Isi hanya bila ada tanggal SPJ khusus.'}
                   >
                     <InputTanggal id="st-spj" label="Tanggal SPJ" nilai={st.tanggalSpj} onUbah={(iso) => ubahSt({ tanggalSpj: iso })} />
                   </Field>
-                  <Field label="Tahun anggaran" htmlFor="st-tahun" hint={`Bawaan pengaturan: ${pengaturan.tahunAnggaran}`}>
+                  <Field
+                    label="Tahun anggaran"
+                    htmlFor="st-tahun"
+                    mode="otomatis"
+                    otomatisAktif={st.tahunAnggaran == null}
+                    onKembaliOtomatis={() => ubahSt({ tahunAnggaran: null })}
+                    hint={`Otomatis: ${pengaturan.tahunAnggaran} (dari Pengaturan).`}
+                  >
                     <Input
                       id="st-tahun"
                       type="number"
@@ -357,7 +369,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
                       }}
                     />
                   </Field>
-                  <Field label="Sumber dana (mata anggaran)" htmlFor="st-sumber-dana" hint="Pilih RM atau PNBP untuk otomatis menyesuaikan akun">
+                  <Field label="Sumber dana (mata anggaran)" htmlFor="st-sumber-dana" mode="wajib" hint="Memilih RM atau PNBP menyesuaikan kode akun otomatis.">
                     <div className="flex items-center gap-4 pt-1.5">
                       <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                         <input
@@ -383,10 +395,10 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
                       </label>
                     </div>
                   </Field>
-                  <Field label="Kode akun (mata anggaran)" htmlFor="st-akun" className="sm:col-span-2" error={peta.kodeAkun}>
+                  <Field label="Kode akun (mata anggaran)" htmlFor="st-akun" className="sm:col-span-2" error={peta.kodeAkun} mode="wajib">
                     <Input id="st-akun" value={st.kodeAkun} onChange={(e) => ubahSt({ kodeAkun: e.target.value })} />
                   </Field>
-                  <Field label="Catatan" htmlFor="st-catatan" className="sm:col-span-2">
+                  <Field label="Catatan" htmlFor="st-catatan" className="sm:col-span-2" mode="opsional">
                     <Textarea id="st-catatan" rows={2} value={st.catatan} onChange={(e) => ubahSt({ catatan: e.target.value })} />
                   </Field>
                 </CardContent>
@@ -512,6 +524,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
 
           <TabPanel idAwal="st" kunci="pelaksana" aktif={tab === 'pelaksana'}>
             <div className="grid gap-6">
+              <LegendaIsian />
               {st.pelaksana.length === 0 ? (
                 <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
                   Belum ada pelaksana. Klik &quot;Tambah pelaksana&quot; untuk memulai.

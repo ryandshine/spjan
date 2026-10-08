@@ -292,7 +292,7 @@ export default function BuatDariStPage() {
                   </div>
                   <div className="sm:col-span-2">
                     <span className="text-xs text-muted-foreground uppercase font-medium">Maksud / Kegiatan Penugasan</span>
-                    <p className="text-sm mt-0.5 leading-relaxed bg-muted/30 p-3 rounded-lg border">
+                    <p className="text-sm mt-0.5 leading-relaxed">
                       {maksudKegiatan || '-'}
                     </p>
                   </div>

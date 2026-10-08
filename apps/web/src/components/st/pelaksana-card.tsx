@@ -7,6 +7,7 @@ import {
   cocokkanKotaJakartaSekitar,
   etapeKosong,
   indeksBarisTransport,
+  INSTANSI_BAWAAN,
   isKotaJabodetabek,
   norm,
   tarifTerminal,
@@ -33,6 +34,7 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { InputTanggal } from '@/components/ui/input-tanggal'
 import { MenuAksi } from '@/components/ui/menu-aksi'
+import { PenandaIsian } from '@/components/ui/penanda-isian'
 import { TextareaOtomatis } from '@/components/ui/textarea-otomatis'
 import { Select } from '@/components/ui/select'
 import { rupiah } from '@/lib/format'
@@ -258,7 +260,7 @@ export function PelaksanaCard({
         <CardContent id={id('isi')} className="grid gap-5">
           <section className="grid gap-3">
             <div className="flex flex-wrap items-end gap-2">
-              <Field label="Pilih dari daftar pegawai" htmlFor={id('pil')} className="min-w-48 flex-1">
+              <Field label="Pilih dari daftar pegawai" htmlFor={id('pil')} className="min-w-48 flex-1" mode="opsional" hint="Memilih pegawai mengisi nama, NIP, jabatan, instansi, dan status secara otomatis.">
                 <Select
                   id={id('pil')}
                   value={p.pegawaiId ?? ''}
@@ -281,19 +283,26 @@ export function PelaksanaCard({
               </Button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 items-start">
-              <Field label="Nama (dengan gelar)" htmlFor={id('nama')} className="xl:col-span-2" error={galat?.nama}>
+              <Field label="Nama (dengan gelar)" htmlFor={id('nama')} className="xl:col-span-2" error={galat?.nama} mode="wajib">
                 <Input id={id('nama')} value={p.nama} onChange={(e) => onUbah((x) => ({ ...x, nama: e.target.value }))} />
               </Field>
-              <Field label="NIP" htmlFor={id('nip')} error={galat?.nip} warning={peringatanKode('NIP_KOSONG')}>
+              <Field label="NIP" htmlFor={id('nip')} error={galat?.nip} warning={peringatanKode('NIP_KOSONG')} mode="wajib">
                 <Input id={id('nip')} inputMode="numeric" value={p.nip} onChange={(e) => onUbah((x) => ({ ...x, nip: e.target.value }))} />
               </Field>
-              <Field label="Jabatan" htmlFor={id('jab')} error={galat?.jabatan}>
+              <Field label="Jabatan" htmlFor={id('jab')} error={galat?.jabatan} mode="opsional">
                 <TextareaOtomatis id={id('jab')} value={p.jabatan} onChange={(e) => onUbah((x) => ({ ...x, jabatan: e.target.value }))} />
               </Field>
-              <Field label="Instansi" htmlFor={id('instansi')} error={galat?.instansi}>
+              <Field
+                label="Instansi"
+                htmlFor={id('instansi')}
+                error={galat?.instansi}
+                mode="otomatis"
+                otomatisAktif={!p.instansi || p.instansi === INSTANSI_BAWAAN}
+                onKembaliOtomatis={() => onUbah((x) => ({ ...x, instansi: INSTANSI_BAWAAN }))}
+              >
                 <TextareaOtomatis id={id('instansi')} value={p.instansi ?? ''} onChange={(e) => onUbah((x) => ({ ...x, instansi: e.target.value }))} />
               </Field>
-              <Field label="Status / golongan" htmlFor={id('status')} className="xl:col-span-2" error={galat?.status} warning={peringatanKode('STATUS_PEGAWAI_KOSONG')}>
+              <Field label="Status / golongan" htmlFor={id('status')} className="xl:col-span-2" error={galat?.status} warning={peringatanKode('STATUS_PEGAWAI_KOSONG')} mode="wajib">
                 <Select
                   id={id('status')}
                   value={p.status ?? ''}
@@ -307,7 +316,7 @@ export function PelaksanaCard({
                   ))}
                 </Select>
               </Field>
-              <Field label="No. SPD" htmlFor={id('spd')} warning={peringatanKode('NO_SPD_KOSONG')}>
+              <Field label="No. SPD" htmlFor={id('spd')} warning={peringatanKode('NO_SPD_KOSONG')} mode="wajib" hint="Tombol Auto-isi No. SPD di bawah daftar pelaksana mengisi semua nomor berurutan.">
                 <Input
                   id={id('spd')}
                   placeholder="contoh: 401/SPD/PPS/2026"
@@ -315,7 +324,14 @@ export function PelaksanaCard({
                   onChange={(e) => onUbah((x) => ({ ...x, noSpd: e.target.value || null }))}
                 />
               </Field>
-              <Field label="Tanggal SPD" htmlFor={id('tgl-spd')} hint={tanggalPanjang(p.tanggalSpd) || 'Kosong: memakai tanggal surat tugas'}>
+              <Field
+                label="Tanggal SPD"
+                htmlFor={id('tgl-spd')}
+                mode="otomatis"
+                otomatisAktif={!p.tanggalSpd}
+                onKembaliOtomatis={() => onUbah((x) => ({ ...x, tanggalSpd: null }))}
+                hint={tanggalPanjang(p.tanggalSpd) || 'Otomatis: sama dengan tanggal surat tugas.'}
+              >
                 <InputTanggal id={id('tgl-spd')} label="Tanggal SPD" nilai={p.tanggalSpd} onUbah={(iso) => onUbah((x) => ({ ...x, tanggalSpd: iso }))} />
               </Field>
             </div>
@@ -394,6 +410,11 @@ export function PelaksanaCard({
 
           {hasil ? (
             <section className="grid gap-3 border-t pt-4">
+              <h3 className="flex flex-wrap items-center justify-between gap-2 text-sm font-semibold">
+                Hasil hitungan
+                <PenandaIsian mode="otomatis" />
+              </h3>
+              <p className="-mt-1 text-xs text-muted-foreground">Dihitung sendiri dari isian di atas dan tabel SBM. Tidak perlu diisi.</p>
               <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
                 {(
                   [

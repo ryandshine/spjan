@@ -134,13 +134,7 @@ function UsulanTransportCard({
 
   return (
     <div
-      className={`rounded-lg border p-4 transition-colors ${
-        isDiterapkan
-          ? 'border-success/40 bg-success/5'
-          : isDiabaikan
-            ? 'border-muted bg-muted/20 opacity-70'
-            : 'border-border bg-card'
-      }`}
+      className={`border-t pt-4 transition-colors first:border-t-0 first:pt-0 ${isDiabaikan ? 'opacity-60' : ''}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-2 border-b pb-3">
         <div className="space-y-1">
@@ -386,7 +380,7 @@ export function UsulanTransportPanel({ stId, pelaksanaList, onTerapkan }: Props)
           </div>
         ) : (
           adaProsesEkstraksi && (
-            <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
+            <div className="p-4 text-center text-sm text-muted-foreground">
               <Loader2Icon className="mx-auto mb-2 size-5 animate-spin text-primary" />
               Menunggu AI selesai mengekstrak rincian tiket atau kuitansi transport...
             </div>

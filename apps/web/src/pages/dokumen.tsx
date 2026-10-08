@@ -238,8 +238,8 @@ export default function DokumenPage() {
               onClick={() => setKunci(p.kunci)}
               aria-current={terpilih?.kunci === p.kunci ? 'true' : undefined}
               className={cn(
-                'flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-accent',
-                terpilih?.kunci === p.kunci ? 'border-primary bg-accent font-medium' : 'bg-card',
+                'flex items-center justify-between gap-2 rounded-r-md border-l-4 px-3 py-2 text-left text-sm transition-colors hover:bg-accent',
+                terpilih?.kunci === p.kunci ? 'border-primary bg-accent font-medium' : 'border-transparent',
               )}
             >
               <span className="flex items-center gap-1.5 [overflow-wrap:anywhere]">
