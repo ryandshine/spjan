@@ -34,6 +34,15 @@ describe("pegawai", () => {
     expect(kosong.json().instansi).toBe("Direktorat Pengendalian Perhutanan Sosial");
   });
 
+  it("pangkat/golongan pegawai bawaan kosong, dapat diisi dan diubah", async () => {
+    const dibuat = await call("POST", "/api/pegawai", { nama: "Contoh PPPK", nip: "199001012024212001", jabatan: "Analis Kebijakan Ahli Pertama", status: "ESELON_IV_GOL_III_II_I" });
+    expect(dibuat.json().pangkatGolongan).toBe("");
+    const id = dibuat.json().id;
+    const ubah = await call("PATCH", `/api/pegawai/${id}`, { pangkatGolongan: "Ahli Pertama - IX" });
+    expect(ubah.json().pangkatGolongan).toBe("Ahli Pertama - IX");
+    expect((await call("GET", `/api/pegawai/${id}`)).json().pangkatGolongan).toBe("Ahli Pertama - IX");
+  });
+
   it("pelaksana di surat tugas menyimpan instansi; tanpa instansi memakai bawaan", async () => {
     const pel = stResa.pelaksana[0]!;
     const tanpa = await call("POST", "/api/surat-tugas", stResa);

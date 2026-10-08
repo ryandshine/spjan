@@ -21,6 +21,7 @@ export function FormPegawai({ awal, onSelesai }: { awal: PegawaiDto | null; onSe
   const [nip, setNip] = useState(awal?.nip ?? '')
   const [jabatan, setJabatan] = useState(awal?.jabatan ?? '')
   const [instansi, setInstansi] = useState(awal?.instansi ?? INSTANSI_BAWAAN)
+  const [pangkatGolongan, setPangkatGolongan] = useState(awal?.pangkatGolongan ?? '')
   const [status, setStatus] = useState<StatusKode | ''>(awal?.status ?? '')
   const [galat, setGalat] = useState<Galat>({})
   const [galatServer, setGalatServer] = useState<string | null>(null)
@@ -29,7 +30,7 @@ export function FormPegawai({ awal, onSelesai }: { awal: PegawaiDto | null; onSe
   async function simpan(e: FormEvent) {
     e.preventDefault()
     setGalatServer(null)
-    const data = { nama: nama.trim(), nip: nip.replace(/\s/g, ''), jabatan: jabatan.trim(), instansi: instansi.trim(), status: status || null }
+    const data = { nama: nama.trim(), nip: nip.replace(/\s/g, ''), jabatan: jabatan.trim(), instansi: instansi.trim(), pangkatGolongan: pangkatGolongan.trim(), status: status || null }
     const hasil = PegawaiPayloadSchema.safeParse(data)
     if (!hasil.success) {
       const g: Galat = {}
@@ -65,7 +66,10 @@ export function FormPegawai({ awal, onSelesai }: { awal: PegawaiDto | null; onSe
       <Field label="Instansi" htmlFor="instansi" error={galat.instansi}>
         <Input id="instansi" value={instansi} onChange={(e) => setInstansi(e.target.value)} />
       </Field>
-      <Field label="Status / golongan" htmlFor="status" hint="Menentukan batas hotel, uang representasi, dan kelas tiket.">
+      <Field label="Pangkat / golongan" htmlFor="pangkatGolongan" error={galat.pangkatGolongan} hint="Dicetak pada SPD. Mis. Penata Muda - III/a atau Ahli Pertama - IX (PPPK).">
+        <Input id="pangkatGolongan" value={pangkatGolongan} onChange={(e) => setPangkatGolongan(e.target.value)} />
+      </Field>
+      <Field label="Status (kelompok SBM)" htmlFor="status" hint="Menentukan batas hotel, uang representasi, dan kelas tiket.">
         <Select id="status" value={status} onChange={(e) => setStatus(e.target.value as StatusKode | '')}>
           <option value="">- belum dipilih -</option>
           {STATUS_KODE.map((k) => (

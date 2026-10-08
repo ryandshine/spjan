@@ -8,29 +8,30 @@ interface Row {
   nip: string;
   jabatan: string;
   instansi: string;
+  pangkat_golongan: string;
   status_kode: StatusKode | null;
   aktif: boolean;
 }
 
-const map = (r: Row): PegawaiDto => ({ id: r.id, nama: r.nama, nip: r.nip, jabatan: r.jabatan, instansi: r.instansi, status: r.status_kode, aktif: r.aktif });
+const map = (r: Row): PegawaiDto => ({ id: r.id, nama: r.nama, nip: r.nip, jabatan: r.jabatan, instansi: r.instansi, pangkatGolongan: r.pangkat_golongan, status: r.status_kode, aktif: r.aktif });
 
 export async function listPegawai(db: Db, soloAktif: boolean): Promise<PegawaiDto[]> {
   const { rows } = await db.query<Row>(
-    `select id, nama, nip, jabatan, instansi, status_kode, aktif from pegawai ${soloAktif ? "where aktif" : ""} order by nama`,
+    `select id, nama, nip, jabatan, instansi, pangkat_golongan, status_kode, aktif from pegawai ${soloAktif ? "where aktif" : ""} order by nama`,
   );
   return rows.map(map);
 }
 
 export async function getPegawai(db: Db, id: number): Promise<PegawaiDto | null> {
-  const { rows } = await db.query<Row>("select id, nama, nip, jabatan, instansi, status_kode, aktif from pegawai where id = $1", [id]);
+  const { rows } = await db.query<Row>("select id, nama, nip, jabatan, instansi, pangkat_golongan, status_kode, aktif from pegawai where id = $1", [id]);
   return rows[0] ? map(rows[0]) : null;
 }
 
 export async function createPegawai(db: Db, p: PegawaiPayload): Promise<PegawaiDto> {
   const { rows } = await db.query<Row>(
-    `insert into pegawai (nama, nip, jabatan, instansi, status_kode) values ($1, $2, $3, $4, $5)
-     returning id, nama, nip, jabatan, instansi, status_kode, aktif`,
-    [p.nama, p.nip, p.jabatan, p.instansi?.trim() || INSTANSI_BAWAAN, p.status],
+    `insert into pegawai (nama, nip, jabatan, instansi, pangkat_golongan, status_kode) values ($1, $2, $3, $4, $5, $6)
+     returning id, nama, nip, jabatan, instansi, pangkat_golongan, status_kode, aktif`,
+    [p.nama, p.nip, p.jabatan, p.instansi?.trim() || INSTANSI_BAWAAN, p.pangkatGolongan?.trim() ?? "", p.status],
   );
   return map(rows[0] as Row);
 }
@@ -40,9 +41,9 @@ export async function updatePegawai(db: Db, id: number, p: Partial<PegawaiPayloa
   if (!sekarang) return null;
   const baru = { ...sekarang, ...p };
   const { rows } = await db.query<Row>(
-    `update pegawai set nama = $2, nip = $3, jabatan = $4, instansi = $6, status_kode = $5, aktif = true, updated_at = now()
-      where id = $1 returning id, nama, nip, jabatan, instansi, status_kode, aktif`,
-    [id, baru.nama, baru.nip, baru.jabatan, baru.status, baru.instansi?.trim() || INSTANSI_BAWAAN],
+    `update pegawai set nama = $2, nip = $3, jabatan = $4, instansi = $6, pangkat_golongan = $7, status_kode = $5, aktif = true, updated_at = now()
+      where id = $1 returning id, nama, nip, jabatan, instansi, pangkat_golongan, status_kode, aktif`,
+    [id, baru.nama, baru.nip, baru.jabatan, baru.status, baru.instansi?.trim() || INSTANSI_BAWAAN, baru.pangkatGolongan?.trim() ?? ""],
   );
   return rows[0] ? map(rows[0]) : null;
 }

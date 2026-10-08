@@ -332,7 +332,7 @@ export function SpdPage({
         <View style={s.barisTanpaBawah} wrap={false}>
           <Text style={s.kolNo}>3</Text>
           <Text style={s.kolLabel}>a.  Pangkat dan Golongan</Text>
-          <Text style={s.kolIsi}>{pangkat}</Text>
+          <Text style={s.kolIsi}>{payload?.pangkatGolongan?.trim() || pangkat}</Text>
         </View>
         <View style={s.barisTanpaBawah} wrap={false}>
           <Text style={s.kolNo} />

@@ -56,6 +56,7 @@ export function pelaksanaKosong(): PelaksanaPayload {
     nip: "",
     jabatan: "",
     instansi: INSTANSI_BAWAAN,
+    pangkatGolongan: "",
     status: null,
     noSpd: null,
     tanggalSpd: null,
@@ -161,9 +162,9 @@ export function indeksBarisTransport(
 /** Pelaksana baru dari data pegawai; mempertahankan etape/biaya yang sudah ada. */
 export function pelaksanaDariPegawai(
   awal: PelaksanaPayload,
-  pegawai: { id: number; nama: string; nip: string; jabatan: string; instansi?: string; status: PelaksanaPayload["status"] },
+  pegawai: { id: number; nama: string; nip: string; jabatan: string; instansi?: string; pangkatGolongan?: string; status: PelaksanaPayload["status"] },
 ): PelaksanaPayload {
-  return { ...awal, pegawaiId: pegawai.id, nama: pegawai.nama, nip: pegawai.nip, jabatan: pegawai.jabatan, instansi: pegawai.instansi || INSTANSI_BAWAAN, status: pegawai.status };
+  return { ...awal, pegawaiId: pegawai.id, nama: pegawai.nama, nip: pegawai.nip, jabatan: pegawai.jabatan, instansi: pegawai.instansi || INSTANSI_BAWAAN, pangkatGolongan: pegawai.pangkatGolongan ?? "", status: pegawai.status };
 }
 
 /** Menyalin isian surat tugas dari DTO server (membuang id, versi SBM, dan stempel waktu). */

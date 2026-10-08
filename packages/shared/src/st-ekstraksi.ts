@@ -183,6 +183,7 @@ export function petakanStKeUsulan(
       nip: match?.nip ?? (pel.nip ? pel.nip.trim() : ""),
       jabatan: match?.jabatan ?? pel.jabatan ?? "",
       instansi: match?.instansi ?? INSTANSI_BAWAAN,
+      pangkatGolongan: match?.pangkatGolongan ?? "",
       status: match?.status ?? null,
       noSpd: null,
       etape: etapePayload,

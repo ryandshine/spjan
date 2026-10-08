@@ -46,6 +46,8 @@ export const PelaksanaPayloadSchema = z.object({
   jabatan: teks(200),
   /** Kosong/tidak dikirim = INSTANSI_BAWAAN saat disimpan. */
   instansi: teks(200).optional(),
+  /** Teks bebas, mis. "Penata Muda - III/a" atau "Ahli Pertama - IX"; tampil pada butir 3a SPD. */
+  pangkatGolongan: teks(100).optional(),
   status: StatusKodeSchema.nullable(),
   noSpd: teks(100).nullish(),
   tanggalSpd: tanggalWajib.nullish(),
@@ -100,6 +102,7 @@ export const PegawaiPayloadSchema = z.object({
   jabatan: teks(200),
   /** Tidak dikirim = INSTANSI_BAWAAN saat disimpan. */
   instansi: teks(200).optional(),
+  pangkatGolongan: teks(100).optional(),
   status: StatusKodeSchema.nullable(),
 });
 export type PegawaiPayload = z.infer<typeof PegawaiPayloadSchema>;
@@ -135,6 +138,7 @@ export interface PegawaiDto extends PegawaiPayload {
   id: number;
   aktif: boolean;
   instansi: string;
+  pangkatGolongan: string;
 }
 
 export interface SbmVersiDto {

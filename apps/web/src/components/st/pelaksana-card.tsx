@@ -260,7 +260,7 @@ export function PelaksanaCard({
         <CardContent id={id('isi')} className="grid gap-5">
           <section className="grid gap-3">
             <div className="flex flex-wrap items-end gap-2">
-              <Field label="Pilih dari daftar pegawai" htmlFor={id('pil')} className="min-w-48 flex-1" mode="opsional" hint="Memilih pegawai mengisi nama, NIP, jabatan, instansi, dan status secara otomatis.">
+              <Field label="Pilih dari daftar pegawai" htmlFor={id('pil')} className="min-w-48 flex-1" mode="opsional" hint="Memilih pegawai mengisi nama, NIP, jabatan, instansi, pangkat/golongan, dan status secara otomatis.">
                 <Select
                   id={id('pil')}
                   value={p.pegawaiId ?? ''}
@@ -302,7 +302,10 @@ export function PelaksanaCard({
               >
                 <TextareaOtomatis id={id('instansi')} value={p.instansi ?? ''} onChange={(e) => onUbah((x) => ({ ...x, instansi: e.target.value }))} />
               </Field>
-              <Field label="Status / golongan" htmlFor={id('status')} className="xl:col-span-2" error={galat?.status} warning={peringatanKode('STATUS_PEGAWAI_KOSONG')} mode="wajib">
+              <Field label="Pangkat / golongan" htmlFor={id('pangkat')} error={galat?.pangkatGolongan} mode="opsional" hint="Dicetak pada SPD. Mis. Penata Muda - III/a atau Ahli Pertama - IX.">
+                <TextareaOtomatis id={id('pangkat')} value={p.pangkatGolongan ?? ''} onChange={(e) => onUbah((x) => ({ ...x, pangkatGolongan: e.target.value }))} />
+              </Field>
+              <Field label="Status (kelompok SBM)" htmlFor={id('status')} className="xl:col-span-2" error={galat?.status} warning={peringatanKode('STATUS_PEGAWAI_KOSONG')} mode="wajib">
                 <Select
                   id={id('status')}
                   value={p.status ?? ''}

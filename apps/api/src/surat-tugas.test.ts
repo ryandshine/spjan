@@ -29,7 +29,7 @@ describe("surat tugas", () => {
     const { id, versiSbmId, createdAt, updatedAt, ...isi } = dto;
     expect(isi).toEqual({
       ...stResa,
-      pelaksana: stResa.pelaksana.map((p) => ({ ...p, instansi: "Direktorat Pengendalian Perhutanan Sosial" })),
+      pelaksana: stResa.pelaksana.map((p) => ({ ...p, pangkatGolongan: "", instansi: "Direktorat Pengendalian Perhutanan Sosial" })),
     });
     expect(typeof createdAt).toBe("string");
     expect(typeof updatedAt).toBe("string");

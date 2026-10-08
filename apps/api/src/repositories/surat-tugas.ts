@@ -38,6 +38,7 @@ interface PelRow {
   nip: string;
   jabatan: string;
   instansi: string;
+  pangkat_golongan: string;
   status_kode: StatusKode | null;
 }
 interface EtapeRow {
@@ -105,6 +106,7 @@ export async function getSuratTugas(db: Db, id: number): Promise<SuratTugasDto |
       nip: p.nip,
       jabatan: p.jabatan,
       instansi: p.instansi,
+      pangkatGolongan: p.pangkat_golongan,
       status: p.status_kode,
       noSpd: p.no_spd,
       tanggalSpd: p.tanggal_spd ? String(p.tanggal_spd).slice(0, 10) : null,
@@ -144,9 +146,9 @@ export async function getSuratTugas(db: Db, id: number): Promise<SuratTugasDto |
 async function sisipkanPelaksana(client: PoolClient, stId: number, pelaksana: SuratTugasPayload["pelaksana"]): Promise<void> {
   for (const [i, p] of pelaksana.entries()) {
     const { rows } = await client.query<{ id: number }>(
-      `insert into pelaksana (st_id, urutan, pegawai_id, no_spd, tanggal_spd, nama, nip, jabatan, instansi, status_kode)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning id`,
-      [stId, i, p.pegawaiId ?? null, p.noSpd ?? null, p.tanggalSpd ?? null, p.nama, p.nip, p.jabatan, p.instansi?.trim() || INSTANSI_BAWAAN, p.status],
+      `insert into pelaksana (st_id, urutan, pegawai_id, no_spd, tanggal_spd, nama, nip, jabatan, instansi, pangkat_golongan, status_kode)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id`,
+      [stId, i, p.pegawaiId ?? null, p.noSpd ?? null, p.tanggalSpd ?? null, p.nama, p.nip, p.jabatan, p.instansi?.trim() || INSTANSI_BAWAAN, p.pangkatGolongan?.trim() ?? "", p.status],
     );
     const pelId = (rows[0] as { id: number }).id;
     for (const [j, e] of p.etape.entries()) {
