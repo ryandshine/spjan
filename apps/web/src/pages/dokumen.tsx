@@ -1,4 +1,5 @@
 import '../pdf/polyfill-buffer'
+import type * as React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeftIcon, DownloadIcon, ImageIcon, UserIcon } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
@@ -9,6 +10,7 @@ import { PdfPreview } from '@/components/pdf-preview'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 import { keteranganFoto } from '@/lib/gambar'
 import { muatDataUri } from '@/lib/berkas-data-uri'
 import { pesanGalat } from '@/lib/format'
@@ -25,8 +27,30 @@ interface Pilihan {
   label: string
   jenis: JenisDokumen
   indeks?: number
-  /** Judul kelompok di daftar dokumen (nama pelaksana); dokumen tanpa kelompok tampil di atas/bawah. */
-  grup?: string
+}
+
+/** Kelompok tombol bersambung (segmented control). */
+function Segmen({ children, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div role="group" className="inline-flex max-w-full flex-wrap overflow-hidden rounded-md border bg-card" {...props}>
+      {children}
+    </div>
+  )
+}
+
+function ItemSegmen({ aktif, className, ...props }: { aktif: boolean } & React.ComponentProps<'button'>) {
+  return (
+    <button
+      type="button"
+      aria-pressed={aktif}
+      className={cn(
+        'inline-flex h-9 items-center gap-1.5 border-r px-3 text-sm transition-colors last:border-r-0 hover:bg-accent focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
+        aktif ? 'bg-accent font-medium text-foreground' : 'text-muted-foreground',
+        className,
+      )}
+      {...props}
+    />
+  )
 }
 
 const FOTO_KOSONG: FotoDokumentasi[] = []
@@ -136,17 +160,17 @@ export default function DokumenPage() {
   const gambarSiap = idGambar.length === 0 || gambarTermuat?.kunci === kunciGambar
   const gambarLaporan = gambarTermuat?.kunci === kunciGambar ? gambarTermuat.data : undefined
   const [kunci, setKunci] = useState('sptb')
+  const [pelIdx, setPelIdx] = useState(0)
   const blobTerakhir = useRef<Blob | null>(null)
 
   const pilihan: Pilihan[] = useMemo(() => {
     const daftar: Pilihan[] = [{ kunci: 'sptb', label: 'SPTB', jenis: 'sptb' }]
     d?.pelaksana.forEach((p, i) => {
-      const nama = p.nama || `Pelaksana ${i + 1}`
-      daftar.push({ kunci: `spd:${i}`, label: 'SPD', jenis: 'spd', indeks: i, grup: nama })
-      daftar.push({ kunci: `rincian:${i}`, label: 'Rincian', jenis: 'rincian', indeks: i, grup: nama })
-      daftar.push({ kunci: `kuitansi:${i}`, label: 'Kuitansi', jenis: 'kuitansi', indeks: i, grup: nama })
+      daftar.push({ kunci: `spd:${i}`, label: 'SPD', jenis: 'spd', indeks: i })
+      daftar.push({ kunci: `rincian:${i}`, label: 'Rincian', jenis: 'rincian', indeks: i })
+      daftar.push({ kunci: `kuitansi:${i}`, label: 'Kuitansi', jenis: 'kuitansi', indeks: i })
       if (p.pengeluaranRiil && p.pengeluaranRiil.length > 0) {
-        daftar.push({ kunci: `dpr:${i}`, label: 'DPR', jenis: 'dpr', indeks: i, grup: nama })
+        daftar.push({ kunci: `dpr:${i}`, label: 'DPR', jenis: 'dpr', indeks: i })
       }
     })
     if (fotoDokumentasi.length > 0) {
@@ -160,18 +184,6 @@ export default function DokumenPage() {
     daftar.push({ kunci: 'semua', label: 'Semua dokumen (satu berkas)', jenis: 'semua' })
     return daftar
   }, [d, fotoDokumentasi])
-
-  // Baris pertama: dokumen umum (SPTB, dokumentasi, laporan, semua); lalu satu baris per pelaksana.
-  const kelompok = useMemo(() => {
-    const hasil: { grup?: string; item: Pilihan[] }[] = [{ item: pilihan.filter((p) => !p.grup) }]
-    for (const p of pilihan) {
-      if (!p.grup) continue
-      const akhir = hasil[hasil.length - 1]
-      if (akhir && akhir.grup === p.grup) akhir.item.push(p)
-      else hasil.push({ grup: p.grup, item: [p] })
-    }
-    return hasil
-  }, [pilihan])
 
   const terpilih = pilihan.find((p) => p.kunci === kunci) ?? pilihan[0]
 
@@ -200,8 +212,17 @@ export default function DokumenPage() {
   if (hasil.isError) return <Alert variant="destructive">{pesanGalat(hasil.error)}</Alert>
   if (!d) return <p className="text-sm text-muted-foreground">Memuat...</p>
 
-  // Nama pelaksana hanya perlu ditampilkan bila ada lebih dari satu; satu pelaksana sudah jelas dari isi dokumen.
+  // Pemilih pelaksana hanya muncul bila ada lebih dari satu; satu pelaksana sudah jelas dari isi dokumen.
   const banyakPelaksana = d.pelaksana.length > 1
+  const idx = Math.min(pelIdx, Math.max(d.pelaksana.length - 1, 0))
+  const umum = pilihan.filter((p) => p.indeks === undefined)
+  const jenisPelaksana = pilihan.filter((p) => p.indeks === idx)
+  function gantiPelaksana(baru: number) {
+    setPelIdx(baru)
+    const jenisSekarang = terpilih?.indeks !== undefined ? terpilih.jenis : 'spd'
+    const tujuan = pilihan.find((p) => p.indeks === baru && p.jenis === jenisSekarang) ?? pilihan.find((p) => p.indeks === baru && p.jenis === 'spd')
+    if (tujuan) setKunci(tujuan.kunci)
+  }
   const bermasalah = d.pelaksana.filter((p) => p.peringatan.length > 0)
   return (
     <div>
@@ -233,34 +254,48 @@ export default function DokumenPage() {
         </Alert>
       ) : null}
       <div className="grid gap-2">
-        <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b pb-2" aria-label="Daftar dokumen">
-          {kelompok.map((k, n) => (
-            <div key={k.grup ?? 'umum'} className={cn('flex flex-wrap items-center gap-1.5', n > 0 && 'border-l pl-5')}>
-              {k.grup && banyakPelaksana ? (
-                <p className="mr-1 flex max-w-full items-center gap-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
-                  <UserIcon className="size-3.5 shrink-0" aria-hidden /> {k.grup}
-                </p>
-              ) : null}
-              {k.item.map((p) => (
-                <button
-                  key={p.kunci}
-                  type="button"
-                  onClick={() => setKunci(p.kunci)}
-                  aria-current={terpilih?.kunci === p.kunci ? 'true' : undefined}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-left text-sm transition-colors hover:bg-accent',
-                    terpilih?.kunci === p.kunci ? 'border-primary bg-accent font-medium text-foreground' : 'border-border text-muted-foreground',
-                  )}
-                >
-                  {p.jenis === 'dokumentasi' ? <ImageIcon className="size-3.5 text-sky-600" /> : null}
-                  <span className="[overflow-wrap:anywhere]">{p.label}</span>
-                  {p.jenis !== 'sptb' && p.jenis !== 'semua' && p.indeks !== undefined && (d.pelaksana[p.indeks]?.peringatan.length ?? 0) > 0 ? (
-                    <Badge variant="warning">!</Badge>
-                  ) : null}
-                </button>
-              ))}
-            </div>
-          ))}
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b pb-2" aria-label="Daftar dokumen">
+          <Segmen aria-label="Dokumen umum">
+            {umum.map((p) => (
+              <ItemSegmen key={p.kunci} aktif={terpilih?.kunci === p.kunci} onClick={() => setKunci(p.kunci)}>
+                {p.jenis === 'dokumentasi' ? <ImageIcon className="size-3.5 text-sky-600" aria-hidden /> : null}
+                {p.label}
+              </ItemSegmen>
+            ))}
+          </Segmen>
+          {jenisPelaksana.length > 0 ? (
+            <>
+              <span className="hidden h-6 w-px bg-border sm:block" aria-hidden />
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                {banyakPelaksana ? (
+                  <div className="relative w-full sm:w-72">
+                    <UserIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                    <Select
+                      aria-label="Pelaksana"
+                      className="pl-8"
+                      value={idx}
+                      onChange={(e) => gantiPelaksana(Number(e.target.value))}
+                    >
+                      {d.pelaksana.map((p, i) => (
+                        <option key={i} value={i}>
+                          {p.nama || `Pelaksana ${i + 1}`}
+                          {p.peringatan.length > 0 ? ' (data belum lengkap)' : ''}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                ) : null}
+                <Segmen aria-label="Dokumen pelaksana">
+                  {jenisPelaksana.map((p) => (
+                    <ItemSegmen key={p.kunci} aktif={terpilih?.kunci === p.kunci} onClick={() => setKunci(p.kunci)}>
+                      {p.label}
+                    </ItemSegmen>
+                  ))}
+                </Segmen>
+                {(d.pelaksana[idx]?.peringatan.length ?? 0) > 0 ? <Badge variant="warning">Data belum lengkap</Badge> : null}
+              </div>
+            </>
+          ) : null}
         </nav>
         <div className="h-[calc(100vh-11.5rem)] min-h-[560px]">
           {(sedangMuatFoto || (terpilih?.jenis === 'laporan' && !gambarSiap)) && !dokumen ? (
