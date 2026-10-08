@@ -1,5 +1,6 @@
 import { Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import {
+  INSTANSI_BAWAAN,
   angkaKata,
   parseTanggal,
   proper,
@@ -317,7 +318,7 @@ export function SpdPage({
         <View style={s.baris} wrap={false}>
           <Text style={s.kolNo}>1</Text>
           <Text style={s.kolLabel}>Pejabat Pembuat Komitmen</Text>
-          <Text style={s.kolIsi}>{pp.namaSatker || 'Direktorat Pengendalian Perhutanan Sosial'}</Text>
+          <Text style={s.kolIsi}>{INSTANSI_BAWAAN.toUpperCase()}</Text>
         </View>
 
         {/* Butir 2 */}
@@ -336,7 +337,7 @@ export function SpdPage({
         <View style={s.barisTanpaBawah} wrap={false}>
           <Text style={s.kolNo} />
           <Text style={s.kolLabel}>b.  Jabatan/Instansi</Text>
-          <Text style={s.kolIsi}>{p.jabatan || 'Staf Dit. Pengendalian PS'}</Text>
+          <Text style={s.kolIsi}>{`${p.jabatan || 'Staf'}/${payload?.instansi || INSTANSI_BAWAAN}`}</Text>
         </View>
         <View style={s.baris} wrap={false}>
           <Text style={s.kolNo} />
@@ -428,7 +429,7 @@ export function SpdPage({
         <View style={s.barisTanpaBawah} wrap={false}>
           <Text style={s.kolNo} />
           <Text style={s.kolLabel}>a.  Instansi</Text>
-          <Text style={s.kolIsi}>{pp.namaSatker || 'Direktorat Pengendalian Perhutanan Sosial'}</Text>
+          <Text style={s.kolIsi}>{INSTANSI_BAWAAN.toUpperCase()}</Text>
         </View>
         <View style={s.baris} wrap={false}>
           <Text style={s.kolNo} />
