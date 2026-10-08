@@ -282,8 +282,8 @@ export function PelaksanaCard({
                 <UserPlusIcon /> Pegawai baru
               </Button>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 items-start">
-              <Field label="Nama (dengan gelar)" htmlFor={id('nama')} className="xl:col-span-2" error={galat?.nama} mode="wajib">
+            <div className="grid items-start gap-x-4 gap-y-3 sm:grid-cols-2">
+              <Field label="Nama (dengan gelar)" htmlFor={id('nama')} error={galat?.nama} mode="wajib">
                 <Input id={id('nama')} value={p.nama} onChange={(e) => onUbah((x) => ({ ...x, nama: e.target.value }))} />
               </Field>
               <Field label="NIP" htmlFor={id('nip')} error={galat?.nip} warning={peringatanKode('NIP_KOSONG')} mode="wajib">
@@ -305,7 +305,7 @@ export function PelaksanaCard({
               <Field label="Pangkat / golongan" htmlFor={id('pangkat')} error={galat?.pangkatGolongan} mode="opsional" hint="Dicetak pada SPD. Mis. Penata Muda - III/a atau Ahli Pertama - IX.">
                 <TextareaOtomatis id={id('pangkat')} value={p.pangkatGolongan ?? ''} onChange={(e) => onUbah((x) => ({ ...x, pangkatGolongan: e.target.value }))} />
               </Field>
-              <Field label="Status (kelompok SBM)" htmlFor={id('status')} className="xl:col-span-2" error={galat?.status} warning={peringatanKode('STATUS_PEGAWAI_KOSONG')} mode="wajib">
+              <Field label="Status (kelompok SBM)" htmlFor={id('status')} error={galat?.status} warning={peringatanKode('STATUS_PEGAWAI_KOSONG')} mode="wajib">
                 <Select
                   id={id('status')}
                   value={p.status ?? ''}

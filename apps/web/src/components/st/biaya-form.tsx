@@ -88,10 +88,13 @@ export function BiayaForm({
         : biaya.jenis === 'TAKSI_TERMINAL'
           ? 'Uraian (opsional)'
           : 'Uraian'
+  // Isian pilihan disusun berpasangan dua kolom; kolom uraian melebar penuh hanya bila pasangan sebelumnya sudah genap.
+  const jumlahPilihan = 1 + (perluEtape ? 1 : 0) + (perluProvinsi ? 1 : 0) + (biaya.jenis === 'TRANSPORT_JAKARTA_SEKITAR' ? 1 : 0)
+  const uraianMelebar = jumlahPilihan % 2 === 0
   return (
-    <div className="grid gap-2 border-t pt-4">
-      <div className="flex flex-wrap items-start gap-2">
-        <Sel label="Jenis biaya" className="min-w-72 flex-[2]" mode="wajib">
+    <div className="grid gap-3 border-t pt-4">
+      <div className="grid items-start gap-3 sm:grid-cols-2">
+        <Sel label="Jenis biaya" mode="wajib">
           <Select
             className="w-full"
             value={biaya.jenis}
@@ -121,7 +124,7 @@ export function BiayaForm({
           </Select>
         </Sel>
         {perluEtape ? (
-          <Sel label="Untuk tujuan" className="min-w-64 flex-1" mode="otomatis" otomatisAktif={biaya.etapeIndex == null} onKembali={() => onUbah({ etapeIndex: null })}>
+          <Sel label="Untuk tujuan" mode="otomatis" otomatisAktif={biaya.etapeIndex == null} onKembali={() => onUbah({ etapeIndex: null })}>
             <Select
               className="w-full"
               value={biaya.etapeIndex ?? ''}
@@ -137,7 +140,7 @@ export function BiayaForm({
           </Sel>
         ) : null}
         {perluProvinsi ? (
-          <Sel label="Provinsi (untuk pagu)" className="min-w-72 flex-1" mode="wajib">
+          <Sel label="Provinsi (untuk pagu)" mode="wajib">
             <Select
               className="w-full"
               value={biaya.provinsi ?? ''}
@@ -163,7 +166,7 @@ export function BiayaForm({
           </Sel>
         ) : null}
         {biaya.jenis === 'TRANSPORT_JAKARTA_SEKITAR' ? (
-          <Sel label="Kab/kota sekitar Jakarta" className="min-w-72 flex-1" mode="wajib">
+          <Sel label="Kab/kota sekitar Jakarta" mode="wajib">
             <Select
               className="w-full"
               value={biaya.uraian ?? ''}
@@ -188,7 +191,7 @@ export function BiayaForm({
         ) : perluUraian ? (
           <Sel
             label={uraianLabel}
-            className={cn('min-w-72 flex-1 basis-72', (biaya.jenis === 'TIKET_PERGI' || biaya.jenis === 'TIKET_KEMBALI') && 'flex-[2]')}
+            className={uraianMelebar ? 'sm:col-span-2' : undefined}
             mode={jenisButuhUraian(biaya.jenis) ? 'wajib' : 'otomatis'}
             otomatisAktif={!biaya.uraian}
             onKembali={() => onUbah({ uraian: null })}
@@ -200,9 +203,11 @@ export function BiayaForm({
             />
           </Sel>
         ) : null}
+      </div>
+      <div className="grid items-start gap-3 sm:grid-cols-[7rem_11rem_minmax(0,1fr)_auto]">
         <Sel label="Jumlah" mode="otomatis" otomatisAktif={biaya.qty == null} onKembali={() => onUbah({ qty: null })}>
           <Input
-            className="w-24 text-right"
+            className="w-full text-right"
             type="number"
             min={1}
             placeholder="1"
@@ -216,16 +221,16 @@ export function BiayaForm({
           otomatisAktif={tarifSbm !== undefined && biaya.tarif === tarifSbm}
           onKembali={tarifSbm !== undefined ? () => onUbah({ tarif: tarifSbm }) : undefined}
         >
-          <RupiahInput className="w-44" nolKosong value={biaya.tarif} onChange={(v) => onUbah({ tarif: v ?? 0 })} />
+          <RupiahInput className="w-full" nolKosong value={biaya.tarif} onChange={(v) => onUbah({ tarif: v ?? 0 })} />
         </Sel>
-        <Sel label="Keterangan" className="min-w-64 flex-1 basis-64" mode="opsional">
+        <Sel label="Keterangan" mode="opsional">
           <TextareaOtomatis
             placeholder={biaya.jenis === 'TAKSI_KEDUDUKAN' || biaya.jenis === 'TAKSI_TERMINAL' ? '' : 'Bukti terlampir'}
             value={biaya.keterangan ?? ''}
             onChange={(e) => onUbah({ keterangan: e.target.value || null })}
           />
         </Sel>
-        <Button variant="ghost" size="icon" className="ml-auto mt-5" onClick={onHapus} aria-label="Hapus biaya">
+        <Button variant="ghost" size="icon" className="justify-self-end sm:mt-5" onClick={onHapus} aria-label="Hapus biaya">
           <Trash2Icon className="text-destructive" />
         </Button>
       </div>
