@@ -44,9 +44,8 @@ export const LaporanIsiSchema = z
 export type LaporanIsi = z.infer<typeof LaporanIsiSchema>;
 
 const p = (teks = ""): Blok => ({ tipe: "paragraf", teks });
-const sj = (teks: string): Blok => ({ tipe: "subjudul", teks });
 
-/** Template "Pengawasan PS": semua bagian otomatis belum ditimpa (`ganti: null`), bagian narasi kosong. */
+/** Template "Pengawasan PS": semua bagian otomatis belum ditimpa (`ganti: null`); bagian narasi dikosongkan agar pengguna bebas menulis. */
 export function buatLaporanAwal(): LaporanIsi {
   return {
     versi: 1,
@@ -62,22 +61,15 @@ export function buatLaporanAwal(): LaporanIsi {
         id: "hasil",
         jenis: "teks",
         judul: "Hasil Kegiatan",
-        blok: [
-          sj("Pelaksanaan Pengawasan"), p(),
-          sj("Hasil Pengawasan"), p(),
-          sj("Pemenuhan Hak"), p(),
-          sj("Pelaksanaan Kewajiban Pengelolaan"), p(),
-          sj("Kepatuhan terhadap Larangan"), p(),
-          sj("Perlindungan Hutan dan Pengendalian Kebakaran"), p(),
-        ],
+        blok: [p()],
       },
       {
         id: "simpulan",
         jenis: "teks",
         judul: "Kesimpulan dan Rekomendasi Tindak Lanjut",
-        blok: [sj("Simpulan"), p(), sj("Saran dan Tindak Lanjut"), { tipe: "nomor", butir: [""] }],
+        blok: [p()],
       },
-      { id: "penutup", jenis: "teks", judul: "", blok: [p("Demikian laporan ini dibuat, semoga bermanfaat.")] },
+      { id: "penutup", jenis: "teks", judul: "", blok: [p()] },
       { id: "dokumentasi", jenis: "dokumentasi", judul: "Dokumentasi Kegiatan" },
     ],
   };

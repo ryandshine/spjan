@@ -130,7 +130,10 @@ export function laporanContoh(): LaporanIsi {
         if (b.id === 'hasil' && b.jenis === 'teks') {
           return {
             ...b,
-            blok: b.blok.map((x) => (x.tipe === 'paragraf' ? { ...x, teks: `${PARAGRAF_PANJANG} ${PARAGRAF_PANJANG}` } : x)),
+            blok: ['Pelaksanaan Pengawasan', 'Hasil Pengawasan', 'Pemenuhan Hak', 'Pelaksanaan Kewajiban Pengelolaan', 'Kepatuhan terhadap Larangan', 'Perlindungan Hutan dan Pengendalian Kebakaran'].flatMap((judul) => [
+              { tipe: 'subjudul' as const, teks: judul },
+              { tipe: 'paragraf' as const, teks: `${PARAGRAF_PANJANG} ${PARAGRAF_PANJANG}` },
+            ]),
           }
         }
         if (b.id === 'simpulan' && b.jenis === 'teks') {

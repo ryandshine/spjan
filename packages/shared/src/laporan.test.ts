@@ -99,6 +99,25 @@ describe("susunLaporan", () => {
     }
   });
 
+  it("instansi diambil dari pelaksana; isian manual di laporan menimpanya", () => {
+    const st = stUji();
+    const denganInstansi = stUji({ pelaksana: st.pelaksana.map((p) => ({ ...p, instansi: "Direktorat Pengendalian Perhutanan Sosial" })) });
+    const baris = (m: ReturnType<typeof susunLaporan>) => {
+      const isi = m.bagian.find((b) => b.jenis === "petugas")!.isi;
+      return isi.jenis === "petugas" ? isi.baris.map((r) => r.instansi) : [];
+    };
+    expect(baris(susunLaporan(denganInstansi, pengaturan, buatLaporanAwal(), []))).toEqual([
+      "Direktorat Pengendalian Perhutanan Sosial",
+      "Direktorat Pengendalian Perhutanan Sosial",
+    ]);
+    const awal = buatLaporanAwal();
+    const manual: LaporanIsi = {
+      ...awal,
+      bagian: awal.bagian.map((b) => (b.jenis === "petugas" ? { ...b, instansi: [{ kunci: "AISYAH", instansi: "Setditjen PS" }] } : b)),
+    };
+    expect(baris(susunLaporan(denganInstansi, pengaturan, manual, []))).toEqual(["Direktorat Pengendalian Perhutanan Sosial", "Setditjen PS"]);
+  });
+
   it("tanpa etape: bagian turunan kosong dan judul sampul bawaan", () => {
     const st = stUji();
     const kosong = stUji({ pelaksana: st.pelaksana.map((p) => ({ ...p, etape: [] })) });

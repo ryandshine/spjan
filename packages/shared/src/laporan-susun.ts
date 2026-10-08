@@ -149,7 +149,7 @@ export function susunLaporan(
           otomatis: null,
           isi: {
             jenis: "petugas",
-            baris: st.pelaksana.map((p, i) => ({ no: i + 1, nama: p.nama, instansi: instansi.get(norm(p.nama)) ?? "" })),
+            baris: st.pelaksana.map((p, i) => ({ no: i + 1, nama: p.nama, instansi: instansi.get(norm(p.nama)) ?? p.instansi ?? "" })),
           },
         });
         break;
