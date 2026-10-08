@@ -226,11 +226,8 @@ export function DokumentasiPage({ d }: { d: DataDokumen }) {
                     <View style={s.fotoInfo}>
                       <View style={{ flex: 1 }}>
                         <Text style={s.fotoCaption}>
-                          Foto {nomorGlobal}. {foto.keterangan || foto.namaAsli}
+                          Foto {nomorGlobal}{foto.keterangan ? `. ${foto.keterangan}` : ''}
                         </Text>
-                        {foto.keterangan && foto.keterangan !== foto.namaAsli ? (
-                          <Text style={s.fotoNama}>{foto.namaAsli}</Text>
-                        ) : null}
                       </View>
                     </View>
                   </View>
