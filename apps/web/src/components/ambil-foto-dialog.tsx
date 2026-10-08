@@ -67,7 +67,7 @@ export function AmbilFotoDialog({
             <span>Pratinjau Foto Bukti</span>
           </DialogTitle>
           <DialogDescription>
-            Periksa ketajaman dan kelengkapan foto dokumen sebelum diproses oleh AI.
+            Periksa ketajaman dan kelengkapan foto dokumen sebelum diproses.
           </DialogDescription>
         </DialogHeader>
 
@@ -158,7 +158,7 @@ export function AmbilFotoDialog({
               ) : (
                 <>
                   <SparklesIcon className="mr-1.5 size-4" />
-                  Gunakan & Ekstraksi AI
+                  Gunakan & Baca Otomatis
                 </>
               )}
             </Button>

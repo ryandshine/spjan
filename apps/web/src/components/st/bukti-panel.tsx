@@ -117,7 +117,7 @@ export function BuktiPanel({ stId }: { stId: number }) {
 
     setSedangUnggah(false)
     if (sukses > 0) {
-      toast.success(`${sukses} berkas berhasil diunggah. AI akan memproses otomatis.`)
+      toast.success(`${sukses} berkas berhasil diunggah. Berkas akan diproses otomatis.`)
       void refetch()
     }
     if (gagal > 0) {
@@ -140,7 +140,7 @@ export function BuktiPanel({ stId }: { stId: number }) {
   async function tanganiUlangi(id: number) {
     try {
       await ulangi.mutateAsync(id)
-      toast.success('Ekstraksi AI dijadwalkan ulang.')
+      toast.success('Pembacaan ulang dijadwalkan.')
     } catch (err) {
       toast.error(`Gagal menjadwalkan ulang: ${pesanGalat(err)}`)
     }
@@ -164,12 +164,12 @@ export function BuktiPanel({ stId }: { stId: number }) {
             {adaProsesAi && (
               <Badge variant="default" className="text-xs animate-pulse">
                 <Loader2Icon className="mr-1 size-3 animate-spin" />
-                AI sedang mengekstrak...
+                Sedang membaca berkas...
               </Badge>
             )}
           </CardTitle>
           <CardDescription>
-            Unggah kuitansi/invoice hotel, tiket pesawat, dan boarding pass. Berkas ini dibaca AI dan{' '}
+            Unggah kuitansi/invoice hotel, tiket pesawat, dan boarding pass. Berkas ini dibaca otomatis dan{' '}
             <strong>dipakai untuk menghitung biaya perjalanan dinas</strong>.
           </CardDescription>
         </div>
@@ -236,7 +236,7 @@ export function BuktiPanel({ stId }: { stId: number }) {
               <TableHead>Nama Berkas / Keterangan</TableHead>
               <TableHead className="w-28">Ukuran</TableHead>
               <TableHead className="w-36">Jenis</TableHead>
-              <TableHead className="w-40">Status AI</TableHead>
+              <TableHead className="w-40">Status Baca</TableHead>
               <TableHead className="w-28 text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
@@ -344,7 +344,7 @@ export function BuktiPanel({ stId }: { stId: number }) {
                         <Button
                           variant="ghost"
                           size="icon"
-                          title="Ulangi ekstraksi AI"
+                          title="Ulangi pembacaan berkas"
                           disabled={ulangi.isPending}
                           onClick={() => void tanganiUlangi(b.id)}
                         >

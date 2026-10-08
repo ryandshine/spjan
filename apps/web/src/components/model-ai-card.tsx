@@ -44,7 +44,7 @@ function FormModelAi({ awal }: { awal: ModelAiDto }) {
     }
     try {
       await simpan.mutateAsync(parsed.data)
-      toast.success('Model AI disimpan.')
+      toast.success('Model disimpan.')
     } catch (error) {
       setGalat(pesanGalat(error))
     }
@@ -97,7 +97,7 @@ export function ModelAiCard() {
   return (
     <Card className="max-w-4xl">
       <CardHeader>
-        <CardTitle>Model AI untuk membaca dokumen</CardTitle>
+        <CardTitle>Model pembaca dokumen</CardTitle>
         <CardDescription>
           Dokumen yang dibaca (surat tugas, invoice, tiket, struk) dikirim ke ollama.com bila memakai model cloud. Hasil bacaan selalu
           berupa usulan yang Anda setujui.

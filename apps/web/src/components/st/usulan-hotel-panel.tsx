@@ -313,12 +313,12 @@ export function UsulanHotelPanel({ stId, pelaksanaList, onTerapkan }: Props) {
           {adaProsesEkstraksi && (
             <Badge variant="warning" className="text-xs animate-pulse">
               <Loader2Icon className="mr-1 size-3 animate-spin" />
-              AI sedang menganalisis berkas...
+              Sedang membaca berkas...
             </Badge>
           )}
         </div>
         <CardDescription>
-          Hasil pembacaan invoice hotel oleh AI. Klik &quot;Terapkan ke Biaya&quot; untuk mengisi otomatis nama hotel, tarif per malam, dan durasi pada tujuan perjalanan pelaksana.
+          Hasil pembacaan invoice hotel otomatis. Klik &quot;Terapkan ke Biaya&quot; untuk mengisi otomatis nama hotel, tarif per malam, dan durasi pada tujuan perjalanan pelaksana.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -337,7 +337,7 @@ export function UsulanHotelPanel({ stId, pelaksanaList, onTerapkan }: Props) {
           adaProsesEkstraksi && (
             <div className="p-4 text-center text-sm text-muted-foreground">
               <Loader2Icon className="mx-auto mb-2 size-5 animate-spin text-primary" />
-              Menunggu AI selesai mengekstrak rincian invoice hotel...
+              Menunggu pembacaan selesai untuk rincian invoice hotel...
             </div>
           )
         )}

@@ -134,7 +134,7 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
   async function pindahKeBuktiBiaya(b: BerkasDto) {
     try {
       await ubahJenis.mutateAsync({ id: b.id, jenis: 'belum', ulangiAi: true })
-      toast.success('Foto dipindahkan ke Bukti Biaya. AI akan membacanya.')
+      toast.success('Foto dipindahkan ke Bukti Biaya dan akan dibaca otomatis.')
       if (previewFoto?.id === b.id) setPreviewFoto(null)
     } catch (err) {
       toast.error(`Gagal memindahkan foto: ${pesanGalat(err)}`)
@@ -155,7 +155,7 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
           </CardTitle>
           <CardDescription>
             Lampiran laporan saja: foto kegiatan dimuat di lembar <strong>Bukti Dokumentasi Kegiatan</strong>. Tidak dibaca
-            AI dan <strong>tidak memengaruhi hitungan biaya</strong>.
+            otomatis dan <strong>tidak memengaruhi hitungan biaya</strong>.
           </CardDescription>
         </div>
         <div className="flex flex-wrap items-center gap-2">

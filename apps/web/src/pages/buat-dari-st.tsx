@@ -73,7 +73,7 @@ export default function BuatDariStPage() {
       if (res.duplikat) {
         toast.info('Berkas identik telah ada, menggunakan data berkas yang tersimpan.')
       } else {
-        toast.success('Berkas berhasil diunggah. AI mulai memproses.')
+        toast.success('Berkas berhasil diunggah. Mulai diproses.')
       }
     } catch (err) {
       setPesanUnggah(pesanGalat(err))
@@ -119,7 +119,7 @@ export default function BuatDariStPage() {
     <div className="space-y-6">
       <PageHeader
         title="Buat dari Surat Tugas"
-        description="Unggah PDF Surat Tugas (ST). AI akan mengekstrak personil, tanggal, dan tujuan perjalanan dinas ke dalam draf SPJ."
+        description="Unggah PDF Surat Tugas (ST). Sistem akan membaca personil, tanggal, dan tujuan perjalanan dinas ke dalam draf SPJ."
         actions={
           <Link to="/" className={buttonVariants({ variant: 'outline' })}>
             Kembali ke Daftar
@@ -204,13 +204,13 @@ export default function BuatDariStPage() {
 
               {berkas && berkas.ekstraksi?.status === 'antre' && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                  <Loader2Icon className="size-4 animate-spin text-primary" /> Berkas dalam antrean ekstraksi AI...
+                  <Loader2Icon className="size-4 animate-spin text-primary" /> Berkas dalam antrean pembacaan...
                 </div>
               )}
 
               {berkas && berkas.ekstraksi?.status === 'berjalan' && (
                 <div className="flex items-center gap-2 text-sm text-primary py-2">
-                  <Loader2Icon className="size-4 animate-spin" /> AI sedang membaca dokumen dan mengekstrak rincian Surat Tugas...
+                  <Loader2Icon className="size-4 animate-spin" /> Sedang membaca dokumen dan mengambil rincian Surat Tugas...
                 </div>
               )}
 
@@ -220,7 +220,7 @@ export default function BuatDariStPage() {
                     <AlertCircleIcon className="size-4 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium">Ekstraksi berkas gagal</p>
-                      <p className="text-xs mt-0.5">{berkas.ekstraksi.galat ?? 'Terjadi kesalahan pada AI saat memproses berkas.'}</p>
+                      <p className="text-xs mt-0.5">{berkas.ekstraksi.galat ?? 'Terjadi kesalahan saat memproses berkas.'}</p>
                     </div>
                   </div>
                 </Alert>

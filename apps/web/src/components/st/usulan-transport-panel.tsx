@@ -358,12 +358,12 @@ export function UsulanTransportPanel({ stId, pelaksanaList, onTerapkan }: Props)
           {adaProsesEkstraksi && (
             <Badge variant="warning" className="text-xs animate-pulse">
               <Loader2Icon className="mr-1 size-3 animate-spin" />
-              AI sedang menganalisis berkas tiket/transport...
+              Sedang membaca berkas tiket/transport...
             </Badge>
           )}
         </div>
         <CardDescription>
-          Hasil ekstraksi e-ticket penerbangan/kereta dan struk transportasi riil oleh AI. Klik &quot;Terapkan ke Biaya&quot; untuk menyematkan baris pengeluaran ke pelaksana.
+          Hasil ekstraksi e-ticket penerbangan/kereta dan struk transportasi riil. Klik &quot;Terapkan ke Biaya&quot; untuk menyematkan baris pengeluaran ke pelaksana.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -382,7 +382,7 @@ export function UsulanTransportPanel({ stId, pelaksanaList, onTerapkan }: Props)
           adaProsesEkstraksi && (
             <div className="p-4 text-center text-sm text-muted-foreground">
               <Loader2Icon className="mx-auto mb-2 size-5 animate-spin text-primary" />
-              Menunggu AI selesai mengekstrak rincian tiket atau kuitansi transport...
+              Menunggu pembacaan selesai untuk rincian tiket atau kuitansi transport...
             </div>
           )
         )}
