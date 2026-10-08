@@ -32,7 +32,8 @@ export function AppShell() {
             <p className="text-sm font-semibold">SPJAN</p>
             <p className="text-xs text-muted-foreground">SPJ Perjalanan Dinas</p>
           </div>
-          <Button variant="ghost" size="icon" className="ml-auto md:hidden" onClick={keluar} disabled={logout.isPending} aria-label="Keluar">
+          <ZoomHalaman className="ml-auto md:hidden" />
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={keluar} disabled={logout.isPending} aria-label="Keluar">
             <LogOutIcon />
           </Button>
         </div>
@@ -54,17 +55,18 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
-        <div className="hidden items-center justify-between gap-2 border-t px-4 py-3 md:flex">
+        <div className="hidden items-center justify-between gap-2 border-t px-4 pt-2 md:flex">
+          <span className="text-xs text-muted-foreground">Zoom</span>
+          <ZoomHalaman />
+        </div>
+        <div className="hidden items-center justify-between gap-2 px-4 pb-3 pt-1 md:flex">
           <span className="min-w-0 text-xs text-muted-foreground [overflow-wrap:anywhere]">{me.data?.username}</span>
           <Button variant="ghost" size="sm" onClick={keluar} disabled={logout.isPending}>
             <LogOutIcon /> Keluar
           </Button>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 px-5 pb-6 pt-2 md:px-8">
-        <div className="mb-2 flex justify-end">
-          <ZoomHalaman />
-        </div>
+      <main className="min-w-0 flex-1 px-5 py-6 md:px-8">
         <Outlet />
       </main>
     </div>
