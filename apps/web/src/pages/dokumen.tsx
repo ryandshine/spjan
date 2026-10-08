@@ -1,6 +1,6 @@
 import '../pdf/polyfill-buffer'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeftIcon, DownloadIcon, ImageIcon } from 'lucide-react'
+import { ArrowLeftIcon, DownloadIcon, ImageIcon, UserIcon } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { buatLaporanAwal, idGambarLaporan, susunLaporan, type FotoDokumentasi } from '@spjan/shared'
 
@@ -200,6 +200,8 @@ export default function DokumenPage() {
   if (hasil.isError) return <Alert variant="destructive">{pesanGalat(hasil.error)}</Alert>
   if (!d) return <p className="text-sm text-muted-foreground">Memuat...</p>
 
+  // Nama pelaksana hanya perlu ditampilkan bila ada lebih dari satu; satu pelaksana sudah jelas dari isi dokumen.
+  const banyakPelaksana = d.pelaksana.length > 1
   const bermasalah = d.pelaksana.filter((p) => p.peringatan.length > 0)
   return (
     <div>
@@ -234,9 +236,9 @@ export default function DokumenPage() {
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b pb-2" aria-label="Daftar dokumen">
           {kelompok.map((k, n) => (
             <div key={k.grup ?? 'umum'} className={cn('flex flex-wrap items-center gap-1.5', n > 0 && 'border-l pl-5')}>
-              {k.grup ? (
-                <p className="mr-1 max-w-full text-sm font-medium text-foreground [overflow-wrap:anywhere]">
-                  {k.grup}
+              {k.grup && banyakPelaksana ? (
+                <p className="mr-1 flex max-w-full items-center gap-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                  <UserIcon className="size-3.5 shrink-0" aria-hidden /> {k.grup}
                 </p>
               ) : null}
               {k.item.map((p) => (
