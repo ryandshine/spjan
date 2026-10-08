@@ -166,3 +166,11 @@ export async function kompresGambar(
     img.src = url
   })
 }
+
+/** Keterangan foto yang benar-benar ditulis pengguna; nama berkas (dengan atau tanpa ekstensi) dianggap kosong. */
+export function keteranganFoto(b: { keterangan: string | null; namaAsli: string }): string {
+  const k = (b.keterangan ?? '').trim()
+  if (!k) return ''
+  const tanpaEkstensi = b.namaAsli.replace(/\.[^/.]+$/, '')
+  return k === b.namaAsli || k === tanpaEkstensi ? '' : k
+}

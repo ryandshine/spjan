@@ -17,6 +17,7 @@ import { PanelBagian } from '@/components/laporan/panel-bagian'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { keteranganFoto } from '@/lib/gambar'
 import { pesanGalat } from '@/lib/format'
 import { geser } from '@/lib/geser'
 import { labelBagian } from '@/lib/laporan-label'
@@ -83,7 +84,7 @@ export function LaporanEditor({ stId }: { stId: number }) {
     () =>
       (berkas.data ?? [])
         .filter((b) => b.jenis === 'dokumentasi')
-        .map((b) => ({ id: b.id, namaAsli: b.namaAsli, keterangan: b.keterangan || b.namaAsli, mime: b.mime, src: `/api/berkas/${b.id}/isi`, createdAt: b.createdAt })),
+        .map((b) => ({ id: b.id, namaAsli: b.namaAsli, keterangan: keteranganFoto(b), mime: b.mime, src: `/api/berkas/${b.id}/isi`, createdAt: b.createdAt })),
     [berkas.data],
   )
 

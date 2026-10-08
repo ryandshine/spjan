@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { api } from '@/lib/api'
 import { formatUkuran, pesanGalat, tanggalPendek } from '@/lib/format'
-import { kompresGambar, type HasilKompresi } from '@/lib/gambar'
+import { keteranganFoto, kompresGambar, type HasilKompresi } from '@/lib/gambar'
 import { useDaftarBerkas, useUbahJenisBerkas, useUpdateBerkas } from '@/lib/queries'
 
 /** Foto kegiatan untuk lembar "Bukti Dokumentasi Kegiatan". Tidak dibaca AI dan tidak memengaruhi hitungan biaya. */
@@ -63,7 +63,7 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
   async function tanganiUnggahKamera(file: File) {
     setSedangUnggahFoto(true)
     try {
-      await api.berkas.unggah(file, stId, { jenis: 'dokumentasi', keterangan: file.name.replace(/\.[^/.]+$/, '') })
+      await api.berkas.unggah(file, stId, { jenis: 'dokumentasi' })
       toast.success('Foto dokumentasi berhasil diunggah.')
       setModalFotoBuka(false)
       setHasilKompresiFoto(null)
@@ -104,7 +104,7 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
       }
 
       try {
-        await api.berkas.unggah(berkasFinal, stId, { jenis: 'dokumentasi', keterangan: file.name.replace(/\.[^/.]+$/, '') })
+        await api.berkas.unggah(berkasFinal, stId, { jenis: 'dokumentasi' })
         sukses += 1
       } catch (err) {
         toast.error(`Gagal mengunggah ${file.name}: ${pesanGalat(err)}`)
@@ -310,13 +310,13 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
                         className="group/caption cursor-pointer"
                         onClick={() => {
                           setEditCaptionId(b.id)
-                          setCaptionTeks(b.keterangan || '')
+                          setCaptionTeks(keteranganFoto(b))
                         }}
                         title="Klik untuk mengubah keterangan foto"
                       >
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-medium text-foreground [overflow-wrap:anywhere]">
-                            {b.keterangan || <span className="italic text-muted-foreground">Belum ada keterangan</span>}
+                            {keteranganFoto(b) || <span className="italic text-muted-foreground">Belum ada keterangan</span>}
                           </p>
                           <Edit2Icon className="ml-1 size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/caption:opacity-100" />
                         </div>

@@ -9,6 +9,7 @@ import { PdfPreview } from '@/components/pdf-preview'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { keteranganFoto } from '@/lib/gambar'
 import { muatDataUri } from '@/lib/berkas-data-uri'
 import { pesanGalat } from '@/lib/format'
 import { useDaftarBerkas, useHasilSuratTugas, useLaporan } from '@/lib/queries'
@@ -71,7 +72,7 @@ export default function DokumenPage() {
               return {
                 id: b.id,
                 namaAsli: b.namaAsli,
-                keterangan: b.keterangan || b.namaAsli,
+                keterangan: keteranganFoto(b),
                 mime: b.mime,
                 src: dataUrl,
                 createdAt: b.createdAt,
@@ -81,7 +82,7 @@ export default function DokumenPage() {
               return {
                 id: b.id,
                 namaAsli: b.namaAsli,
-                keterangan: b.keterangan || b.namaAsli,
+                keterangan: keteranganFoto(b),
                 mime: b.mime,
                 src: `/api/berkas/${b.id}/isi`,
                 createdAt: b.createdAt,
