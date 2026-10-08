@@ -1,3 +1,4 @@
+import { dokDariBlok, dokPunyaIsi, type Dok, type NodeDok } from "./laporan-dokumen.js";
 import type { Bagian, BarisTataWaktuLaporan, Blok, LaporanIsi } from "./laporan.js";
 import { bersihkanKegiatanUraian } from "./hitung.js";
 import type { PengaturanPayload, SuratTugasDto } from "./schemas.js";
@@ -16,7 +17,7 @@ import {
 import type { FotoDokumentasi } from "./berkas.js";
 
 export type IsiBagianModel =
-  | { jenis: "blok"; blok: Blok[] }
+  | { jenis: "dokumen"; dok: Dok }
   | { jenis: "petugas"; baris: { no: number; nama: string; instansi: string }[] }
   | { jenis: "tatawaktu"; baris: { no: number; kegiatan: string[]; tanggal: string }[] }
   | { jenis: "dokumentasi"; foto: FotoDokumentasi[] };
@@ -82,7 +83,7 @@ export function susunLaporan(
   const akhir = urut[urut.length - 1] ?? null;
   const hari = awal && akhir ? selisihHari(awal, akhir) + 1 : 0;
 
-  const otomatis: Record<"dasar" | "maksud" | "tempat" | "lama", Blok[]> = {
+  const blokOtomatis: Record<"dasar" | "maksud" | "tempat" | "lama", Blok[]> = {
     dasar: paragraf(`Surat Tugas Direktur Pengendalian Perhutanan Sosial nomor: ${st.nomor} tanggal ${tanggalIndonesia(st.tanggal)}.`),
     maksud: paragraf(kegiatan.length ? `Melakukan perjalanan dinas dalam rangka ${kegiatan.join("; ")}.` : ""),
     tempat: (() => {
@@ -128,13 +129,13 @@ export function susunLaporan(
     const dasar = { id: b.id, jenis: b.jenis, nomor: nomorBagian, judul: b.judul };
     switch (b.jenis) {
       case "teks":
-        bagian.push({ ...dasar, otomatis: null, isi: { jenis: "blok", blok: b.blok } });
+        bagian.push({ ...dasar, otomatis: null, isi: { jenis: "dokumen", dok: b.isi } });
         break;
       case "dasar":
       case "maksud":
       case "tempat":
       case "lama":
-        bagian.push({ ...dasar, otomatis: b.ganti === null, isi: { jenis: "blok", blok: b.ganti ?? otomatis[b.jenis] } });
+        bagian.push({ ...dasar, otomatis: b.ganti === null, isi: { jenis: "dokumen", dok: b.ganti ?? dokDariBlok(blokOtomatis[b.jenis]) } });
         break;
       case "tatawaktu":
         bagian.push({
@@ -167,4 +168,77 @@ export function susunLaporan(
     },
     bagian,
   };
+}
+
+/** Id berkas semua gambar yang disisipkan di dalam teks laporan (untuk dimuat sebelum mencetak PDF). */
+export function idGambarLaporan(m: ModelLaporan): number[] {
+  const id = new Set<number>();
+  const jalan = (n: NodeDok): void => {
+    const berkasId = n.type === "image" ? n.attrs?.berkasId : undefined;
+    if (typeof berkasId === "number") id.add(berkasId);
+    for (const anak of n.content ?? []) jalan(anak);
+  };
+  for (const b of m.bagian) if (b.isi.jenis === "dokumen") for (const n of b.isi.dok.content ?? []) jalan(n);
+  return [...id].sort((a, b) => a - b);
+}
+
+export type KelompokBagian = "tulis" | "otomatis" | "lampiran";
+export type KodeStatus = "kosong" | "terisi" | "otomatis" | "sendiri" | "lengkap" | "perlu" | "tanpa-data";
+
+export interface StatusBagian {
+  id: string;
+  kelompok: KelompokBagian;
+  status: KodeStatus;
+  /** Keterangan singkat, mis. "1/2" untuk instansi petugas atau jumlah foto. */
+  detail: string | null;
+  /** Wajib siap sebelum laporan dianggap lengkap (narasi ber-judul dan instansi petugas). */
+  wajib: boolean;
+  siap: boolean;
+}
+
+export interface RingkasanLaporan {
+  bagian: StatusBagian[];
+  wajibTotal: number;
+  wajibSiap: number;
+  /** Judul bagian wajib yang belum siap (untuk peringatan sebelum cetak). */
+  belumSiap: string[];
+}
+
+/** Status tiap bagian dan kemajuan penyusunan laporan; urutan mengikuti `laporan.bagian`. */
+export function ringkasStatusLaporan(m: ModelLaporan, laporan: LaporanIsi): RingkasanLaporan {
+  const model = new Map(m.bagian.map((b) => [b.id, b]));
+  const bagian: StatusBagian[] = [];
+  const belumSiap: string[] = [];
+  for (const b of laporan.bagian) {
+    if (b.jenis === "sampul") {
+      const sendiri = Boolean(b.judul?.trim() || b.tanggal);
+      bagian.push({ id: b.id, kelompok: "otomatis", status: sendiri ? "sendiri" : "otomatis", detail: null, wajib: false, siap: true });
+      continue;
+    }
+    const bm = model.get(b.id);
+    if (!bm) continue;
+    const isi = bm.isi;
+    let s: StatusBagian;
+    if (isi.jenis === "dokumen" && bm.otomatis === null) {
+      const wajib = bm.judul.trim().length > 0;
+      const terisi = dokPunyaIsi(isi.dok);
+      s = { id: b.id, kelompok: "tulis", status: terisi ? "terisi" : "kosong", detail: null, wajib, siap: terisi };
+    } else if (isi.jenis === "dokumen") {
+      const kosong = !dokPunyaIsi(isi.dok);
+      s = { id: b.id, kelompok: "otomatis", status: kosong ? "tanpa-data" : bm.otomatis ? "otomatis" : "sendiri", detail: null, wajib: false, siap: true };
+    } else if (isi.jenis === "tatawaktu") {
+      s = { id: b.id, kelompok: "otomatis", status: isi.baris.length === 0 ? "tanpa-data" : bm.otomatis ? "otomatis" : "sendiri", detail: null, wajib: false, siap: true };
+    } else if (isi.jenis === "petugas") {
+      const terisi = isi.baris.filter((r) => r.instansi.trim()).length;
+      const lengkap = isi.baris.length > 0 && terisi === isi.baris.length;
+      s = { id: b.id, kelompok: "otomatis", status: lengkap ? "lengkap" : "perlu", detail: `${terisi}/${isi.baris.length}`, wajib: true, siap: lengkap };
+    } else {
+      const n = isi.foto.length;
+      s = { id: b.id, kelompok: "lampiran", status: n > 0 ? "terisi" : "kosong", detail: `${n} foto`, wajib: false, siap: n > 0 };
+    }
+    if (s.wajib && !s.siap) belumSiap.push(bm.judul || "Bagian tanpa judul");
+    bagian.push(s);
+  }
+  const wajib = bagian.filter((x) => x.wajib);
+  return { bagian, wajibTotal: wajib.length, wajibSiap: wajib.filter((x) => x.siap).length, belumSiap };
 }

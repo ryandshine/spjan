@@ -124,7 +124,7 @@ export function bikinWorker(opsi: WorkerOpsi) {
               where id = $1`,
             [k.id, hasil.model, JSON.stringify(hasil.hasil)],
           );
-          if (hasil.jenis) await client.query("update berkas set jenis = $2 where id = $1 and jenis <> 'dokumentasi'", [berkas.id, hasil.jenis]);
+          if (hasil.jenis) await client.query("update berkas set jenis = $2 where id = $1 and jenis not in ('dokumentasi', 'laporan')", [berkas.id, hasil.jenis]);
           await client.query("commit");
         } catch (txErr) {
           await client.query("rollback");
@@ -138,7 +138,7 @@ export function bikinWorker(opsi: WorkerOpsi) {
             where id = $1`,
           [k.id, hasil.model, JSON.stringify(hasil.hasil)],
         );
-        if (hasil.jenis) await db.query("update berkas set jenis = $2 where id = $1 and jenis <> 'dokumentasi'", [berkas.id, hasil.jenis]);
+        if (hasil.jenis) await db.query("update berkas set jenis = $2 where id = $1 and jenis not in ('dokumentasi', 'laporan')", [berkas.id, hasil.jenis]);
       }
       console.log(`[ekstraksi] berkas=${k.berkasId} model=${model} status=selesai durasi=${Date.now() - mulai}ms`);
     } catch (error) {

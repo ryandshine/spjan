@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { buatLaporanAwal, LaporanIsiSchema, type LaporanIsi } from "./laporan.js";
-import { susunLaporan } from "./laporan-susun.js";
+import { dokDariBlok, dokKeTeks, dokKosong, dokPunyaIsi, DokSchema } from "./laporan-dokumen.js";
+import { buatLaporanAwal, LaporanIsiSchema, naikkanLaporan, type LaporanIsi } from "./laporan.js";
+import { ringkasStatusLaporan, susunLaporan } from "./laporan-susun.js";
 import type { PengaturanPayload, SuratTugasDto } from "./schemas.js";
 import { etapeKosong } from "./st-model.js";
 
@@ -22,9 +23,9 @@ function stUji(over: Partial<SuratTugasDto> = {}): SuratTugasDto {
     ...over,
   };
 }
-const teksBlok = (m: ReturnType<typeof susunLaporan>, id: string) => {
+const dokDari = (m: ReturnType<typeof susunLaporan>, id: string) => {
   const isi = m.bagian.find((b) => b.id === id)!.isi;
-  return isi.jenis === "blok" ? isi.blok : [];
+  return isi.jenis === "dokumen" ? isi.dok : null;
 };
 
 describe("buatLaporanAwal", () => {
@@ -38,7 +39,7 @@ describe("buatLaporanAwal", () => {
     const awal = buatLaporanAwal();
     const ganda = { ...awal, bagian: [...awal.bagian, awal.bagian[1]!] };
     expect(LaporanIsiSchema.safeParse(ganda).success).toBe(false);
-    const panjang: LaporanIsi = { versi: 1, bagian: [{ id: "x", jenis: "teks", judul: "A", blok: [{ tipe: "paragraf", teks: "a".repeat(10_001) }] }] };
+    const panjang: LaporanIsi = { versi: 2, bagian: [{ id: "x", jenis: "teks", judul: "A", isi: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "a".repeat(10_001) }] }] } }] };
     expect(LaporanIsiSchema.safeParse(panjang).success).toBe(false);
   });
 });
@@ -49,19 +50,17 @@ describe("susunLaporan", () => {
     expect(m.sampul.judul).toBe("PERJALANAN DINAS DALAM RANGKA PENGAWASAN DI DESA MUARA MERANG");
     expect(m.sampul.nama).toEqual(["Gunadi Firdaus", "Aisyah"]);
     expect(m.sampul.tempatTanggal).toBe("JAKARTA, 21 SEPTEMBER 2026");
-    expect(teksBlok(m, "dasar")).toEqual([
-      { tipe: "paragraf", teks: "Surat Tugas Direktur Pengendalian Perhutanan Sosial nomor: ST.228/PPS/PEMPS/PSL.04.02/B/09/2026 tanggal 14 September 2026." },
-    ]);
-    expect(teksBlok(m, "maksud")).toEqual([
-      { tipe: "paragraf", teks: "Melakukan perjalanan dinas dalam rangka Pengawasan di Desa Muara Merang." },
-    ]);
-    expect(teksBlok(m, "lama")).toEqual([
-      { tipe: "paragraf", teks: "Perjalanan dinas selama 3 (tiga) hari, pada tanggal 17 s.d. 19 September 2026." },
-    ]);
-    expect(teksBlok(m, "tempat")).toEqual([
-      { tipe: "paragraf", teks: "Perjalanan dinas dilaksanakan di tempat berikut:" },
-      { tipe: "daftar", butir: ["Musi Banyuasin, Provinsi Sumatera Selatan"] },
-    ]);
+    expect(dokKeTeks(dokDari(m, "dasar")!)).toBe(
+      "Surat Tugas Direktur Pengendalian Perhutanan Sosial nomor: ST.228/PPS/PEMPS/PSL.04.02/B/09/2026 tanggal 14 September 2026.",
+    );
+    expect(dokKeTeks(dokDari(m, "maksud")!)).toBe("Melakukan perjalanan dinas dalam rangka Pengawasan di Desa Muara Merang.");
+    expect(dokKeTeks(dokDari(m, "lama")!)).toBe("Perjalanan dinas selama 3 (tiga) hari, pada tanggal 17 s.d. 19 September 2026.");
+    expect(dokDari(m, "tempat")).toEqual(
+      dokDariBlok([
+        { tipe: "paragraf", teks: "Perjalanan dinas dilaksanakan di tempat berikut:" },
+        { tipe: "daftar", butir: ["Musi Banyuasin, Provinsi Sumatera Selatan"] },
+      ]),
+    );
     const tw = m.bagian.find((b) => b.id === "tatawaktu")!;
     expect(tw.isi).toEqual({ jenis: "tatawaktu", baris: [{ no: 1, kegiatan: ["Pengawasan di Desa Muara Merang"], tanggal: "17-19 September 2026" }] });
     expect(tw.otomatis).toBe(true);
@@ -77,12 +76,12 @@ describe("susunLaporan", () => {
     const awal = buatLaporanAwal();
     const laporan: LaporanIsi = {
       ...awal,
-      bagian: awal.bagian.map((b) => (b.id === "dasar" && b.jenis === "dasar" ? { ...b, ganti: [{ tipe: "paragraf" as const, teks: "Tulis sendiri" }] } : b)),
+      bagian: awal.bagian.map((b) => (b.id === "dasar" && b.jenis === "dasar" ? { ...b, ganti: dokDariBlok([{ tipe: "paragraf", teks: "Tulis sendiri" }]) } : b)),
     };
     const m = susunLaporan(stUji({ nomor: "ST.BARU" }), pengaturan, laporan, []);
-    expect(teksBlok(m, "dasar")).toEqual([{ tipe: "paragraf", teks: "Tulis sendiri" }]);
+    expect(dokKeTeks(dokDari(m, "dasar")!)).toBe("Tulis sendiri");
     expect(m.bagian.find((b) => b.id === "dasar")!.otomatis).toBe(false);
-    expect(JSON.stringify(teksBlok(m, "maksud"))).toContain("Pengawasan");
+    expect(dokKeTeks(dokDari(m, "maksud")!)).toContain("Pengawasan");
   });
 
   it("instansi terikat ke nama sehingga aman bila urutan pelaksana berubah", () => {
@@ -123,8 +122,8 @@ describe("susunLaporan", () => {
     const kosong = stUji({ pelaksana: st.pelaksana.map((p) => ({ ...p, etape: [] })) });
     const m = susunLaporan(kosong, pengaturan, buatLaporanAwal(), []);
     expect(m.sampul.judul).toBe("PERJALANAN DINAS");
-    expect(teksBlok(m, "lama")).toEqual([]);
-    expect(teksBlok(m, "maksud")).toEqual([]);
+    expect(dokPunyaIsi(dokDari(m, "lama")!)).toBe(false);
+    expect(dokPunyaIsi(dokDari(m, "maksud")!)).toBe(false);
     expect(m.bagian.find((b) => b.id === "tatawaktu")!.isi).toEqual({ jenis: "tatawaktu", baris: [] });
   });
 
@@ -140,6 +139,114 @@ describe("susunLaporan", () => {
     const m = susunLaporan(dua, pengaturan, buatLaporanAwal(), []);
     const tw = m.bagian.find((b) => b.id === "tatawaktu")!.isi;
     expect(tw.jenis === "tatawaktu" && tw.baris.map((r) => r.tanggal)).toEqual(["17-19 September 2026", "20 September 2026"]);
-    expect(teksBlok(m, "lama")[0]).toEqual({ tipe: "paragraf", teks: "Perjalanan dinas selama 4 (empat) hari, pada tanggal 17 s.d. 20 September 2026." });
+    expect(dokKeTeks(dokDari(m, "lama")!)).toBe("Perjalanan dinas selama 4 (empat) hari, pada tanggal 17 s.d. 20 September 2026.");
+  });
+});
+
+describe("dokumen teks kaya", () => {
+  const dokKaya = {
+    type: "doc",
+    content: [
+      { type: "heading", attrs: { level: 3, textAlign: "center" }, content: [{ type: "text", text: "Judul" }] },
+      {
+        type: "paragraph",
+        attrs: { textAlign: "justify" },
+        content: [
+          { type: "text", text: "tebal", marks: [{ type: "bold" }, { type: "underline" }] },
+          { type: "text", text: " tautan", marks: [{ type: "link", attrs: { href: "https://contoh.id", target: "_blank", rel: "noopener", class: null } }] },
+          { type: "hardBreak" },
+        ],
+      },
+      { type: "orderedList", attrs: { start: 1 }, content: [{ type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "satu" }] }] }] },
+      {
+        type: "table",
+        content: [{ type: "tableRow", content: [{ type: "tableHeader", attrs: { colspan: 1, rowspan: 1, colwidth: null }, content: [{ type: "paragraph" }] }] }],
+      },
+      { type: "image", attrs: { src: "/api/berkas/5/isi", alt: null, title: null, berkasId: 5 } },
+    ],
+  };
+
+  it("menerima dokumen TipTap yang memakai semua fitur", () => {
+    expect(DokSchema.safeParse(dokKaya).success).toBe(true);
+    expect(dokPunyaIsi(dokKaya as never)).toBe(true);
+    expect(dokPunyaIsi(dokKosong())).toBe(false);
+  });
+
+  it("menolak tautan berbahaya, node asing, gambar tanpa berkasId, teks kosong, dan sarang terlalu dalam", () => {
+    const dengan = (node: unknown) => DokSchema.safeParse({ type: "doc", content: [node] }).success;
+    expect(dengan({ type: "paragraph", content: [{ type: "text", text: "x", marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }] }] })).toBe(false);
+    expect(dengan({ type: "script" })).toBe(false);
+    expect(dengan({ type: "image", attrs: { src: "http://luar/x.png" } })).toBe(false);
+    expect(dengan({ type: "paragraph", content: [{ type: "text", text: "" }] })).toBe(false);
+    let dalam: unknown = { type: "paragraph" };
+    for (let i = 0; i < 15; i++) dalam = { type: "listItem", content: [dalam] };
+    expect(dengan(dalam)).toBe(false);
+  });
+
+  it("naikkanLaporan mengonversi versi 1 dan menolak bentuk tak dikenal", () => {
+    const v1 = {
+      versi: 1,
+      bagian: [
+        { id: "sampul", jenis: "sampul", judul: null, tanggal: null },
+        { id: "dasar", jenis: "dasar", judul: "Dasar", ganti: [{ tipe: "paragraf", teks: "Teks lama" }] },
+        { id: "hasil", jenis: "teks", judul: "Hasil", blok: [{ tipe: "subjudul", teks: "Sub" }, { tipe: "nomor", butir: ["a", "b"] }] },
+      ],
+    };
+    const baru = naikkanLaporan(v1)!;
+    expect(baru.versi).toBe(2);
+    const dasar = baru.bagian.find((b) => b.id === "dasar")!;
+    expect(dasar.jenis === "dasar" && dasar.ganti && dokKeTeks(dasar.ganti)).toBe("Teks lama");
+    const hasil = baru.bagian.find((b) => b.id === "hasil")!;
+    expect(hasil.jenis === "teks" && dokKeTeks(hasil.isi)).toBe("Sub\na\nb");
+    expect(LaporanIsiSchema.safeParse(baru).success).toBe(true);
+    expect(naikkanLaporan(baru)).toEqual(baru);
+    expect(naikkanLaporan({ versi: 9 })).toBeNull();
+    expect(naikkanLaporan(null)).toBeNull();
+  });
+});
+
+describe("ringkasStatusLaporan", () => {
+  const ringkas = (st = stUji(), laporan = buatLaporanAwal()) => ringkasStatusLaporan(susunLaporan(st, pengaturan, laporan, []), laporan);
+  const status = (r: ReturnType<typeof ringkas>, id: string) => r.bagian.find((b) => b.id === id)!;
+
+  it("laporan baru: narasi kosong, instansi belum lengkap, bagian otomatis siap", () => {
+    const r = ringkas();
+    expect(status(r, "hasil")).toMatchObject({ kelompok: "tulis", status: "kosong", wajib: true, siap: false });
+    expect(status(r, "simpulan")).toMatchObject({ status: "kosong", wajib: true });
+    expect(status(r, "penutup")).toMatchObject({ kelompok: "tulis", wajib: false, siap: false });
+    expect(status(r, "petugas")).toMatchObject({ kelompok: "otomatis", status: "perlu", detail: "0/2", wajib: true });
+    expect(status(r, "dasar")).toMatchObject({ kelompok: "otomatis", status: "otomatis" });
+    expect(status(r, "sampul").status).toBe("otomatis");
+    expect(status(r, "dokumentasi")).toMatchObject({ kelompok: "lampiran", status: "kosong", detail: "0 foto", wajib: false });
+    expect(r.wajibTotal).toBe(3);
+    expect(r.wajibSiap).toBe(0);
+    expect(r.belumSiap).toEqual(["Petugas yang Melaksanakan Perjalanan Dinas", "Hasil Kegiatan", "Kesimpulan dan Rekomendasi Tindak Lanjut"]);
+  });
+
+  it("kemajuan naik saat narasi terisi dan instansi lengkap; status sendiri dan tanpa data", () => {
+    const awal = buatLaporanAwal();
+    const isi = dokDariBlok([{ tipe: "paragraf", teks: "Temuan lapangan." }]);
+    const laporan: LaporanIsi = {
+      ...awal,
+      bagian: awal.bagian.map((b) => {
+        if (b.id === "hasil" && b.jenis === "teks") return { ...b, isi };
+        if (b.jenis === "dasar") return { ...b, ganti: dokDariBlok([{ tipe: "paragraf", teks: "Sendiri" }]) };
+        if (b.jenis === "sampul") return { ...b, judul: "Judul saya" };
+        return b;
+      }),
+    };
+    const st = stUji();
+    const denganInstansi = stUji({ pelaksana: st.pelaksana.map((p) => ({ ...p, instansi: "Direktorat PPS" })) });
+    const r = ringkas(denganInstansi, laporan);
+    expect(status(r, "hasil")).toMatchObject({ status: "terisi", siap: true });
+    expect(status(r, "petugas")).toMatchObject({ status: "lengkap", detail: "2/2", siap: true });
+    expect(status(r, "dasar").status).toBe("sendiri");
+    expect(status(r, "sampul").status).toBe("sendiri");
+    expect(r.wajibSiap).toBe(2);
+    expect(r.belumSiap).toEqual(["Kesimpulan dan Rekomendasi Tindak Lanjut"]);
+
+    const tanpaEtape = ringkas(stUji({ pelaksana: st.pelaksana.map((p) => ({ ...p, etape: [] })) }));
+    expect(status(tanpaEtape, "lama").status).toBe("tanpa-data");
+    expect(status(tanpaEtape, "tatawaktu").status).toBe("tanpa-data");
   });
 });

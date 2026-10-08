@@ -127,7 +127,7 @@ export async function tambahBerkas(
 
   const jenisAwal = input.jenis ?? "belum";
   const keteranganAwal = input.keterangan ?? null;
-  const isDokumentasi = jenisAwal === "dokumentasi";
+  const tanpaAi = jenisAwal === "dokumentasi" || jenisAwal === "laporan";
 
   const { rows } = await db.query<{ id: number }>(
     `with b as (
@@ -136,8 +136,8 @@ export async function tambahBerkas(
      ), e as (
        insert into ekstraksi (berkas_id, status, hasil)
        select id,
-              ${isDokumentasi ? "'selesai'" : "'antre'"},
-              ${isDokumentasi ? "'{\"ringkasan\":\"Dokumentasi foto kegiatan\"}'::jsonb" : "null"}
+              ${tanpaAi ? "'selesai'" : "'antre'"},
+              ${tanpaAi ? "'{\"ringkasan\":\"Berkas laporan, tanpa ekstraksi\"}'::jsonb" : "null"}
        from b returning id
      )
      select id from b`,

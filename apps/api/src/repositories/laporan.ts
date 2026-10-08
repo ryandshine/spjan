@@ -1,4 +1,4 @@
-import type { LaporanIsi } from "@spjan/shared";
+import { naikkanLaporan, type LaporanIsi } from "@spjan/shared";
 
 import type { Db } from "../db.js";
 
@@ -13,9 +13,11 @@ export async function stAda(db: Db, stId: number): Promise<boolean> {
 }
 
 export async function getLaporan(db: Db, stId: number): Promise<LaporanDto> {
-  const { rows } = await db.query<{ isi: LaporanIsi; updated_at: Date }>("select isi, updated_at from laporan where st_id = $1", [stId]);
+  const { rows } = await db.query<{ isi: unknown; updated_at: Date }>("select isi, updated_at from laporan where st_id = $1", [stId]);
   const r = rows[0];
-  return r ? { isi: r.isi, updatedAt: r.updated_at.toISOString() } : { isi: null, updatedAt: null };
+  // Laporan versi lama dikonversi saat dibaca; bentuk tak dikenal dianggap belum ada.
+  const isi = r ? naikkanLaporan(r.isi) : null;
+  return r && isi ? { isi, updatedAt: r.updated_at.toISOString() } : { isi: null, updatedAt: null };
 }
 
 export async function simpanLaporan(db: Db, stId: number, isi: LaporanIsi): Promise<LaporanDto> {

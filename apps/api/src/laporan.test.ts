@@ -45,9 +45,33 @@ describe("laporan perjalanan dinas", () => {
     expect(rows[0].n).toBe(1);
   });
 
+  it("laporan versi 1 yang tersimpan dikonversi ke versi 2 saat dibaca", async () => {
+    const id = await buatSt();
+    const v1 = {
+      versi: 1,
+      bagian: [
+        { id: "sampul", jenis: "sampul", judul: null, tanggal: null },
+        { id: "hasil", jenis: "teks", judul: "Hasil", blok: [{ tipe: "paragraf", teks: "Isi lama" }] },
+      ],
+    };
+    await pool.query("insert into laporan (st_id, isi) values ($1, $2)", [id, JSON.stringify(v1)]);
+    const get = (await call("GET", `/api/surat-tugas/${id}/laporan`)).json();
+    expect(get.isi.versi).toBe(2);
+    expect(get.isi.bagian[1]).toMatchObject({ jenis: "teks", isi: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Isi lama" }] }] } });
+  });
+
+  it("menyimpan dokumen kaya, menolak tautan berbahaya", async () => {
+    const id = await buatSt();
+    const isi = (node: unknown) => ({ versi: 2, bagian: [{ id: "a", jenis: "teks", judul: "A", isi: { type: "doc", content: [node] } }] });
+    const bagus = { type: "paragraph", content: [{ type: "text", text: "x", marks: [{ type: "bold" }, { type: "link", attrs: { href: "https://contoh.id" } }] }] };
+    expect((await call("PUT", `/api/surat-tugas/${id}/laporan`, isi(bagus))).statusCode).toBe(200);
+    const jahat = { type: "paragraph", content: [{ type: "text", text: "x", marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }] }] };
+    expect((await call("PUT", `/api/surat-tugas/${id}/laporan`, isi(jahat))).statusCode).toBe(400);
+  });
+
   it("menolak isi tidak valid dengan 400", async () => {
     const id = await buatSt();
-    const res = await call("PUT", `/api/surat-tugas/${id}/laporan`, { versi: 1, bagian: [] });
+    const res = await call("PUT", `/api/surat-tugas/${id}/laporan`, { versi: 2, bagian: [] });
     expect(res.statusCode).toBe(400);
   });
 

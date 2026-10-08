@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const JENIS_BERKAS = ["belum", "st", "hotel", "tiket", "transport", "dokumentasi", "lainnya"] as const;
+export const JENIS_BERKAS = ["belum", "st", "hotel", "tiket", "transport", "dokumentasi", "laporan", "lainnya"] as const;
 export type JenisBerkas = (typeof JENIS_BERKAS)[number];
 
 export const JENIS_BERKAS_LABEL: Record<JenisBerkas, string> = {
@@ -10,6 +10,7 @@ export const JENIS_BERKAS_LABEL: Record<JenisBerkas, string> = {
   tiket: "Tiket",
   transport: "Bukti transport",
   dokumentasi: "Dokumentasi kegiatan",
+  laporan: "Gambar laporan",
   lainnya: "Lainnya",
 };
 

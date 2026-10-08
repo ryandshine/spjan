@@ -248,6 +248,13 @@ describe("isi, hapus, dan ulang", () => {
     expect(updated.pelaksanaId).toBe(pelId);
   });
 
+  it("gambar jenis 'laporan' langsung selesai tanpa antre AI", async () => {
+    const stId = await buatSt();
+    const res = await unggah("gambar-laporan.jpg", pngUnik(106), `?stId=${stId}&jenis=laporan`);
+    expect(res.statusCode).toBe(201);
+    expect(res.json().berkas).toMatchObject({ jenis: "laporan", ekstraksi: { status: "selesai" } });
+  });
+
   it("dapat mengunggah foto dokumentasi dengan jenis dan keterangan serta update via PATCH /:id", async () => {
     const stId = await buatSt();
     const res = await unggah("kegiatan-lapangan.jpg", pngUnik(105), `?stId=${stId}&jenis=dokumentasi&keterangan=Rapat+Koordinasi+KPS`);
