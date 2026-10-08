@@ -1,3 +1,4 @@
+import '../pdf/polyfill-buffer'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeftIcon, DownloadIcon, ImageIcon } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
