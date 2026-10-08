@@ -101,10 +101,9 @@ export function buatLaporanAwal(): LaporanIsi {
       {
         id: "simpulan",
         jenis: "teks",
-        judul: "Kesimpulan dan Rekomendasi Tindak Lanjut",
+        judul: "Kesimpulan dan Rekomendasi",
         isi: dokKosong(),
       },
-      { id: "penutup", jenis: "teks", judul: "", isi: dokKosong() },
       { id: "dokumentasi", jenis: "dokumentasi", judul: "Dokumentasi Kegiatan" },
     ],
   };

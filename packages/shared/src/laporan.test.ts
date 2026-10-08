@@ -66,9 +66,9 @@ describe("susunLaporan", () => {
     expect(tw.otomatis).toBe(true);
   });
 
-  it("menomori bagian ber-judul saja; penutup tanpa judul tidak bernomor", () => {
+  it("menomori bagian ber-judul secara berurutan tanpa sampul", () => {
     const m = susunLaporan(stUji(), pengaturan, buatLaporanAwal(), []);
-    expect(m.bagian.map((b) => b.nomor)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, null, 9]);
+    expect(m.bagian.map((b) => b.nomor)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     expect(m.bagian.some((b) => b.jenis === "sampul")).toBe(false);
   });
 
@@ -213,14 +213,13 @@ describe("ringkasStatusLaporan", () => {
     const r = ringkas();
     expect(status(r, "hasil")).toMatchObject({ kelompok: "tulis", status: "kosong", wajib: true, siap: false });
     expect(status(r, "simpulan")).toMatchObject({ status: "kosong", wajib: true });
-    expect(status(r, "penutup")).toMatchObject({ kelompok: "tulis", wajib: false, siap: false });
     expect(status(r, "petugas")).toMatchObject({ kelompok: "otomatis", status: "perlu", detail: "0/2", wajib: true });
     expect(status(r, "dasar")).toMatchObject({ kelompok: "otomatis", status: "otomatis" });
     expect(status(r, "sampul").status).toBe("otomatis");
     expect(status(r, "dokumentasi")).toMatchObject({ kelompok: "lampiran", status: "kosong", detail: "0 foto", wajib: false });
     expect(r.wajibTotal).toBe(3);
     expect(r.wajibSiap).toBe(0);
-    expect(r.belumSiap).toEqual(["Petugas yang Melaksanakan Perjalanan Dinas", "Hasil Kegiatan", "Kesimpulan dan Rekomendasi Tindak Lanjut"]);
+    expect(r.belumSiap).toEqual(["Petugas yang Melaksanakan Perjalanan Dinas", "Hasil Kegiatan", "Kesimpulan dan Rekomendasi"]);
   });
 
   it("kemajuan naik saat narasi terisi dan instansi lengkap; status sendiri dan tanpa data", () => {
@@ -243,7 +242,7 @@ describe("ringkasStatusLaporan", () => {
     expect(status(r, "dasar").status).toBe("sendiri");
     expect(status(r, "sampul").status).toBe("sendiri");
     expect(r.wajibSiap).toBe(2);
-    expect(r.belumSiap).toEqual(["Kesimpulan dan Rekomendasi Tindak Lanjut"]);
+    expect(r.belumSiap).toEqual(["Kesimpulan dan Rekomendasi"]);
 
     const tanpaEtape = ringkas(stUji({ pelaksana: st.pelaksana.map((p) => ({ ...p, etape: [] })) }));
     expect(status(tanpaEtape, "lama").status).toBe("tanpa-data");

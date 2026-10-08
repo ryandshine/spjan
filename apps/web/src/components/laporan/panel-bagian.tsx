@@ -20,7 +20,6 @@ const PLACEHOLDER: Record<string, string> = {
 
 function placeholderNarasi(b: Extract<Bagian, { jenis: 'teks' }>): string {
   if (PLACEHOLDER[b.id]) return PLACEHOLDER[b.id] as string
-  if (!b.judul.trim()) return 'Contoh: Demikian laporan ini dibuat, semoga bermanfaat.'
   return 'Tulis isi bagian ini.'
 }
 
