@@ -208,7 +208,7 @@ function satuanBagian(b: BagianModel, gambar: Gambar): React.ReactNode[] {
       {dua.map((f) => (
         <View key={f.id} style={s.foto}>
           <Image style={s.gambar} src={f.src} />
-          <Text style={s.keterangan}>{f.keterangan || f.namaAsli}</Text>
+          {f.keterangan ? <Text style={s.keterangan}>{f.keterangan}</Text> : null}
         </View>
       ))}
     </View>
