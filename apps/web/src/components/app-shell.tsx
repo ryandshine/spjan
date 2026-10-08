@@ -2,6 +2,7 @@ import { BookOpenIcon, FileTextIcon, LogOutIcon, SettingsIcon, UsersIcon } from 
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
+import { ZoomHalaman } from '@/components/zoom-halaman'
 import { useLogout, useMe } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
@@ -60,7 +61,10 @@ export function AppShell() {
           </Button>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 px-5 py-6 md:px-8">
+      <main className="min-w-0 flex-1 px-5 pb-6 pt-2 md:px-8">
+        <div className="mb-2 flex justify-end">
+          <ZoomHalaman />
+        </div>
         <Outlet />
       </main>
     </div>
