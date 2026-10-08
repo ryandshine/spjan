@@ -3,13 +3,13 @@ import { PlusIcon, Trash2Icon } from 'lucide-react'
 import { dokPunyaIsi, norm, type Bagian, type BagianModel, type BarisTataWaktuLaporan, type ModelLaporan } from '@spjan/shared'
 
 import { EditorTeks } from '@/components/laporan/editor-teks'
-import { InputTanggalId } from '@/components/laporan/input-tanggal-id'
 import { labelBagian } from '@/lib/laporan-label'
 import { MenuBagian } from '@/components/laporan/menu-bagian'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { InputTanggal } from '@/components/ui/input-tanggal'
 import { Textarea } from '@/components/ui/textarea'
 
 const PLACEHOLDER: Record<string, string> = {
@@ -152,7 +152,7 @@ export function PanelBagian({
             </label>
             <div className="grid gap-1 text-xs text-muted-foreground">
               Tanggal laporan (kosongkan untuk otomatis)
-              <InputTanggalId label="Tanggal laporan" nilai={bagian.tanggal} onUbah={(iso) => onUbah({ ...bagian, tanggal: iso })} />
+              <InputTanggal label="Tanggal laporan" nilai={bagian.tanggal} onUbah={(iso) => onUbah({ ...bagian, tanggal: iso })} />
             </div>
             <p className="text-xs text-muted-foreground sm:col-span-2">Tercetak: {sampul.tempatTanggal}</p>
           </div>

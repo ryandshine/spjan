@@ -1,4 +1,4 @@
-import { Trash2Icon } from 'lucide-react'
+import { Trash2Icon, TriangleAlertIcon } from 'lucide-react'
 import {
   JENIS_BIAYA,
   JENIS_LABEL,
@@ -16,6 +16,7 @@ import { Istilah } from '@/components/ui/istilah'
 import { RupiahInput } from '@/components/st/rupiah-input'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { TextareaOtomatis } from '@/components/ui/textarea-otomatis'
 import { Select } from '@/components/ui/select'
 import { rupiah } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -68,8 +69,8 @@ export function BiayaForm({
           : 'Uraian'
   return (
     <div className="grid gap-2 rounded-lg border bg-card p-3">
-      <div className="flex flex-wrap items-end gap-2">
-        <Sel label="Jenis biaya" className="min-w-56 flex-[2]">
+      <div className="flex flex-wrap items-start gap-2">
+        <Sel label="Jenis biaya" className="min-w-72 flex-[2]">
           <Select
             className="w-full"
             value={biaya.jenis}
@@ -99,7 +100,7 @@ export function BiayaForm({
           </Select>
         </Sel>
         {perluEtape ? (
-          <Sel label="Untuk tujuan" className="min-w-40 flex-1">
+          <Sel label="Untuk tujuan" className="min-w-64 flex-1">
             <Select
               className="w-full"
               value={biaya.etapeIndex ?? ''}
@@ -115,7 +116,7 @@ export function BiayaForm({
           </Sel>
         ) : null}
         {perluProvinsi ? (
-          <Sel label="Provinsi (untuk pagu)" className="min-w-40 flex-1">
+          <Sel label="Provinsi (untuk pagu)" className="min-w-72 flex-1">
             <Select
               className="w-full"
               value={biaya.provinsi ?? ''}
@@ -141,7 +142,7 @@ export function BiayaForm({
           </Sel>
         ) : null}
         {biaya.jenis === 'TRANSPORT_JAKARTA_SEKITAR' ? (
-          <Sel label="Kab/kota sekitar Jakarta" className="min-w-48 flex-1">
+          <Sel label="Kab/kota sekitar Jakarta" className="min-w-72 flex-1">
             <Select
               className="w-full"
               value={biaya.uraian ?? ''}
@@ -164,10 +165,9 @@ export function BiayaForm({
             </Select>
           </Sel>
         ) : perluUraian ? (
-          <Sel label={uraianLabel} className={cn('min-w-48 flex-1', (biaya.jenis === 'TIKET_PERGI' || biaya.jenis === 'TIKET_KEMBALI') && 'flex-[2]')}>
-            <Input
-              className="w-full"
-              placeholder={biaya.jenis === 'TAKSI_TERMINAL' ? 'Otomatis: Taksi bandara...' : undefined}
+          <Sel label={uraianLabel} className={cn('min-w-72 flex-1 basis-72', (biaya.jenis === 'TIKET_PERGI' || biaya.jenis === 'TIKET_KEMBALI') && 'flex-[2]')}>
+            <TextareaOtomatis
+              placeholder={biaya.jenis === 'TAKSI_TERMINAL' ? 'Otomatis: Taksi/transport dari-ke bandara/terminal sesuai provinsi' : undefined}
               value={biaya.uraian ?? ''}
               onChange={(e) => onUbah({ uraian: e.target.value || null })}
             />
@@ -175,7 +175,7 @@ export function BiayaForm({
         ) : null}
         <Sel label="Jumlah">
           <Input
-            className="w-20 text-right"
+            className="w-24 text-right"
             type="number"
             min={1}
             placeholder="1"
@@ -184,17 +184,16 @@ export function BiayaForm({
           />
         </Sel>
         <Sel label="Tarif / harga (Rp)">
-          <RupiahInput className="w-36" nolKosong value={biaya.tarif} onChange={(v) => onUbah({ tarif: v ?? 0 })} />
+          <RupiahInput className="w-44" nolKosong value={biaya.tarif} onChange={(v) => onUbah({ tarif: v ?? 0 })} />
         </Sel>
-        <Sel label="Keterangan" className="min-w-36 flex-1">
-          <Input
-            className="w-full"
+        <Sel label="Keterangan" className="min-w-64 flex-1 basis-64">
+          <TextareaOtomatis
             placeholder={biaya.jenis === 'TAKSI_KEDUDUKAN' || biaya.jenis === 'TAKSI_TERMINAL' ? '' : 'Bukti terlampir'}
             value={biaya.keterangan ?? ''}
             onChange={(e) => onUbah({ keterangan: e.target.value || null })}
           />
         </Sel>
-        <Button variant="ghost" size="icon" className="ml-auto" onClick={onHapus} aria-label="Hapus biaya">
+        <Button variant="ghost" size="icon" className="ml-auto mt-5" onClick={onHapus} aria-label="Hapus biaya">
           <Trash2Icon className="text-destructive" />
         </Button>
       </div>
@@ -206,8 +205,8 @@ export function BiayaForm({
             onChange={(e) => onUbah({ pengeluaranRiil: e.target.checked })}
             className="size-3.5 rounded border-muted text-primary focus:ring-primary"
           />
-          <span title="Biaya ini dimasukkan ke lembar Daftar Pengeluaran Riil (Lampiran IX PMK 113).">
-            Pengeluaran riil tanpa kuitansi resmi (masuk <Istilah kata="DPR" />)
+          <span>
+            Tanpa kuitansi resmi (dicatat di <Istilah kata="DPR" />)
           </span>
         </label>
       </div>
@@ -215,6 +214,11 @@ export function BiayaForm({
         <p className="text-xs text-amber-600 dark:text-amber-500">
           Tarif taksi bandara untuk {namaProvinsiPagu} belum ada di tabel SBM (PMK 32 Tahun 2025), jadi tidak bisa terisi otomatis.
           Isi tarif secara manual sesuai bukti pengeluaran.
+        </p>
+      ) : null}
+      {!biaya.tarif ? (
+        <p className="flex items-start gap-1.5 text-xs font-medium text-warning-foreground">
+          <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> Tarif kosong, baris ini tidak dicetak.
         </p>
       ) : null}
       {baris ? (

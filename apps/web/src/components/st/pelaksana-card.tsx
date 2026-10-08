@@ -25,13 +25,15 @@ import {
 import { FormPegawai } from '@/components/pegawai-form'
 import { BiayaForm } from '@/components/st/biaya-form'
 import { EtapeForm } from '@/components/st/etape-form'
-import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { InputTanggal } from '@/components/ui/input-tanggal'
+import { MenuAksi } from '@/components/ui/menu-aksi'
+import { TextareaOtomatis } from '@/components/ui/textarea-otomatis'
 import { Select } from '@/components/ui/select'
 import { rupiah } from '@/lib/format'
 import { tanggalPanjang } from '@/lib/format'
@@ -222,7 +224,7 @@ export function PelaksanaCard({
   const jumlahPeringatan = hasil?.peringatan.length ?? 0
   // Kartu yang belum diisi apa pun dihapus langsung; yang sudah berisi minta konfirmasi karena hapusnya tidak bisa dibatalkan.
   const masihKosong = !p.nama && !p.nip && p.biaya.length === 0 && p.etape.every((e) => !e.kota && !e.kegiatan && !e.berangkat)
-  const umum = hasil?.peringatan.filter((w) => w.etape === undefined) ?? []
+  const peringatanKode = (kode: string) => hasil?.peringatan.find((w) => w.kode === kode && w.etape === undefined)?.pesan
 
   return (
     <Card>
@@ -231,11 +233,12 @@ export function PelaksanaCard({
           type="button"
           onClick={() => setBuka(!bukaManual)}
           aria-expanded={buka}
+          id={id('toggle')}
           aria-controls={id('isi')}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="flex min-w-0 flex-1 items-start gap-2 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         >
-          <ChevronDownIcon className={cn('size-4 shrink-0 text-muted-foreground transition-transform', !buka && '-rotate-90')} />
-          <CardTitle className="min-w-0 truncate">
+          <ChevronDownIcon className={cn('mt-1 size-4 shrink-0 text-muted-foreground transition-transform', !buka && '-rotate-90')} />
+          <CardTitle className="min-w-0 [overflow-wrap:anywhere]">
             Pelaksana {nomor}
             {p.nama ? <span className="ml-2 font-normal text-muted-foreground">{p.nama}</span> : null}
           </CardTitle>
@@ -246,10 +249,10 @@ export function PelaksanaCard({
             <span className="text-sm font-medium tabular-nums">{rupiah(hasil.total)}</span>
           </div>
         ) : null}
-        <Button variant="ghost" size="sm" onClick={() => (masihKosong ? onHapus() : setDialogHapus(true))}>
-          <Trash2Icon className="text-destructive" /> <span className="hidden sm:inline">Hapus pelaksana</span>
-          <span className="sr-only sm:hidden">Hapus pelaksana {nomor}</span>
-        </Button>
+        <MenuAksi
+          label={`Atur pelaksana ${nomor}`}
+          item={[{ label: 'Hapus pelaksana', ikon: <Trash2Icon className="size-4" />, bahaya: true, onPilih: () => (masihKosong ? onHapus() : setDialogHapus(true)) }]}
+        />
       </CardHeader>
       {buka ? (
         <CardContent id={id('isi')} className="grid gap-5">
@@ -281,16 +284,16 @@ export function PelaksanaCard({
               <Field label="Nama (dengan gelar)" htmlFor={id('nama')} className="xl:col-span-2" error={galat?.nama}>
                 <Input id={id('nama')} value={p.nama} onChange={(e) => onUbah((x) => ({ ...x, nama: e.target.value }))} />
               </Field>
-              <Field label="NIP" htmlFor={id('nip')} error={galat?.nip}>
+              <Field label="NIP" htmlFor={id('nip')} error={galat?.nip} warning={peringatanKode('NIP_KOSONG')}>
                 <Input id={id('nip')} inputMode="numeric" value={p.nip} onChange={(e) => onUbah((x) => ({ ...x, nip: e.target.value }))} />
               </Field>
               <Field label="Jabatan" htmlFor={id('jab')} error={galat?.jabatan}>
-                <Input id={id('jab')} value={p.jabatan} onChange={(e) => onUbah((x) => ({ ...x, jabatan: e.target.value }))} />
+                <TextareaOtomatis id={id('jab')} value={p.jabatan} onChange={(e) => onUbah((x) => ({ ...x, jabatan: e.target.value }))} />
               </Field>
               <Field label="Instansi" htmlFor={id('instansi')} error={galat?.instansi}>
-                <Input id={id('instansi')} value={p.instansi ?? ''} onChange={(e) => onUbah((x) => ({ ...x, instansi: e.target.value }))} />
+                <TextareaOtomatis id={id('instansi')} value={p.instansi ?? ''} onChange={(e) => onUbah((x) => ({ ...x, instansi: e.target.value }))} />
               </Field>
-              <Field label="Status / golongan" htmlFor={id('status')} className="xl:col-span-2" error={galat?.status}>
+              <Field label="Status / golongan" htmlFor={id('status')} className="xl:col-span-2" error={galat?.status} warning={peringatanKode('STATUS_PEGAWAI_KOSONG')}>
                 <Select
                   id={id('status')}
                   value={p.status ?? ''}
@@ -304,7 +307,7 @@ export function PelaksanaCard({
                   ))}
                 </Select>
               </Field>
-              <Field label="No. SPD" htmlFor={id('spd')}>
+              <Field label="No. SPD" htmlFor={id('spd')} warning={peringatanKode('NO_SPD_KOSONG')}>
                 <Input
                   id={id('spd')}
                   placeholder="contoh: 401/SPD/PPS/2026"
@@ -312,13 +315,8 @@ export function PelaksanaCard({
                   onChange={(e) => onUbah((x) => ({ ...x, noSpd: e.target.value || null }))}
                 />
               </Field>
-              <Field label="Tanggal SPD" htmlFor={id('tgl-spd')} hint={tanggalPanjang(p.tanggalSpd) || 'Kosong = tanggal surat tugas'}>
-                <Input
-                  id={id('tgl-spd')}
-                  type="date"
-                  value={p.tanggalSpd ?? ''}
-                  onChange={(e) => onUbah((x) => ({ ...x, tanggalSpd: e.target.value || null }))}
-                />
+              <Field label="Tanggal SPD" htmlFor={id('tgl-spd')} hint={tanggalPanjang(p.tanggalSpd) || 'Kosong: memakai tanggal surat tugas'}>
+                <InputTanggal id={id('tgl-spd')} label="Tanggal SPD" nilai={p.tanggalSpd} onUbah={(iso) => onUbah((x) => ({ ...x, tanggalSpd: iso }))} />
               </Field>
             </div>
           </section>
@@ -415,15 +413,6 @@ export function PelaksanaCard({
                 <span className="text-sm text-muted-foreground">{hasil.terbilang}</span>
                 <span className="text-lg font-semibold tabular-nums">{rupiah(hasil.total)}</span>
               </div>
-              {umum.length > 0 ? (
-                <Alert variant="warning">
-                  <ul className="grid gap-0.5">
-                    {umum.map((w, i) => (
-                      <li key={i}>{w.pesan}</li>
-                    ))}
-                  </ul>
-                </Alert>
-              ) : null}
               {hasil.catatan.length > 0 ? (
                 <ul className="grid gap-0.5 text-xs text-muted-foreground">
                   {hasil.catatan.map((c, i) => (

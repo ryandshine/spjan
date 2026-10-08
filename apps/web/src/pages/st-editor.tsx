@@ -23,7 +23,7 @@ import { LaporanEditor } from '@/components/laporan/laporan-editor'
 import { BuktiPanel } from '@/components/st/bukti-panel'
 import { FotoDokumentasiPanel } from '@/components/st/foto-dokumentasi-panel'
 import { PelaksanaCard } from '@/components/st/pelaksana-card'
-import { RingkasanPanel } from '@/components/st/ringkasan'
+import { PanelPeriksa } from '@/components/st/panel-periksa'
 import { UsulanHotelPanel } from '@/components/st/usulan-hotel-panel'
 import { UsulanTransportPanel } from '@/components/st/usulan-transport-panel'
 import { Alert } from '@/components/ui/alert'
@@ -32,6 +32,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { InputTanggal } from '@/components/ui/input-tanggal'
+import { MenuAksi } from '@/components/ui/menu-aksi'
 import { Select } from '@/components/ui/select'
 import { TabPanel, Tabs, type TabItem } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
@@ -276,9 +278,6 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
             </div>
             {id !== null ? (
               <>
-                <Button variant="ghost" onClick={() => setDialogHapus(true)}>
-                  <Trash2Icon className="text-destructive" /> Hapus
-                </Button>
                 <Link
                   to={`/st/${id}/dokumen`}
                   className={buttonVariants({ variant: 'outline' })}
@@ -297,6 +296,12 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
             <Button onClick={kirim} disabled={simpan.isPending || (!kotor && id !== null)}>
               <SaveIcon /> {simpan.isPending ? 'Menyimpan...' : 'Simpan'}
             </Button>
+            {id !== null ? (
+              <MenuAksi
+                label="Atur surat tugas"
+                item={[{ label: 'Hapus surat tugas', ikon: <Trash2Icon className="size-4" />, bahaya: true, onPilih: () => setDialogHapus(true) }]}
+              />
+            ) : null}
           </>
           )
         }
@@ -330,14 +335,14 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
                     <Input id="st-nomor" value={st.nomor} onChange={(e) => ubahSt({ nomor: e.target.value })} placeholder="ST.226/PPS/PEMPS/PSL.04.02/B/09/2026" />
                   </Field>
                   <Field label="Tanggal surat tugas" htmlFor="st-tanggal" error={peta.tanggal} hint={tanggalPanjang(st.tanggal) || undefined}>
-                    <Input id="st-tanggal" type="date" value={st.tanggal} onChange={(e) => ubahSt({ tanggal: e.target.value })} />
+                    <InputTanggal id="st-tanggal" label="Tanggal surat tugas" nilai={st.tanggal} onUbah={(iso) => ubahSt({ tanggal: iso ?? '' })} />
                   </Field>
                   <Field
                     label="Tanggal SPJ (tanggal dokumen)"
                     htmlFor="st-spj"
                     hint={tanggalPanjang(st.tanggalSpj) || 'Kosong = tanggal saat dokumen dibuat. Isi bila ada tanggal SPJ khusus.'}
                   >
-                    <Input id="st-spj" type="date" value={st.tanggalSpj ?? ''} onChange={(e) => ubahSt({ tanggalSpj: e.target.value || null })} />
+                    <InputTanggal id="st-spj" label="Tanggal SPJ" nilai={st.tanggalSpj} onUbah={(iso) => ubahSt({ tanggalSpj: iso })} />
                   </Field>
                   <Field label="Tahun anggaran" htmlFor="st-tahun" hint={`Bawaan pengaturan: ${pengaturan.tahunAnggaran}`}>
                     <Input
@@ -547,7 +552,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
         </div>
         {modeLaporan ? null : (
           <div className="min-w-0">
-            <RingkasanPanel hasil={hasil} />
+            <PanelPeriksa hasil={hasil} />
           </div>
         )}
       </div>

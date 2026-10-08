@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 export const ARTI_ISTILAH = {
   SBM: 'Standar Biaya Masukan: batas tarif resmi (uang harian, hotel, transport) per provinsi.',
   SPTB: 'Surat Pernyataan Tanggung Jawab Belanja.',
+  SPD: 'Surat Perintah Dinas.',
   DPR: 'Daftar Pengeluaran Riil: lembar untuk biaya yang tidak punya bukti resmi (Lampiran IX PMK 113).',
   Fullboard: 'Paket rapat di hotel yang sudah termasuk penginapan dan makan, sehingga pelaksana menerima uang saku, bukan uang harian penuh.',
 } as const

@@ -20,6 +20,9 @@ import type { PetaGalat } from '@/lib/validasi'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { InputTanggal } from '@/components/ui/input-tanggal'
+import { TextareaOtomatis } from '@/components/ui/textarea-otomatis'
+import { DasarAturan } from '@/components/st/dasar-aturan'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { rupiah, tanggalPanjang } from '@/lib/format'
@@ -62,6 +65,9 @@ export function EtapeForm({
   onHapus: () => void
 }) {
   const { hari, malam } = ringkasEtape(etape)
+  const peringatanKode = (kode: string) => peringatan.find((w) => w.kode === kode)?.pesan
+  // Peringatan yang sudah tampil di isiannya tidak diulang di bawah.
+  const sisaPeringatan = peringatan.filter((w) => !['TARIF_HOTEL_KOSONG', 'HOTEL_MELEBIHI_BATAS', 'TANGGAL_SALAH'].includes(w.kode))
   const id = (k: string) => `etape-${idAwal}-${k}`
   const tarif30 = batasHotel !== null ? Math.round(batasHotel * 0.3) : null
   const provNorm = norm(etape.provinsi)
@@ -131,7 +137,7 @@ export function EtapeForm({
         ) : null}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 items-start">
+      <div className="grid gap-3 sm:grid-cols-2 items-start">
         <Field label="Provinsi tujuan" htmlFor={id('prov')} error={galat?.provinsi}>
           <Select id={id('prov')} value={etape.provinsi} onChange={(e) => onUbah({ provinsi: e.target.value })}>
             <option value="">- pilih provinsi -</option>
@@ -169,13 +175,13 @@ export function EtapeForm({
             ))}
           </datalist>
         </Field>
-        <Field label="Berangkat" htmlFor={id('brkt')} error={galat?.berangkat} hint={tanggalPanjang(etape.berangkat) || undefined}>
-          <Input
+        <Field label="Berangkat" htmlFor={id('brkt')} error={galat?.berangkat} hint={tanggalPanjang(etape.berangkat) || undefined} warning={peringatanKode('TANGGAL_SALAH')}>
+          <InputTanggal
             id={id('brkt')}
-            type="date"
-            value={etape.berangkat}
-            onChange={(e) => {
-              const val = e.target.value
+            label="Tanggal berangkat"
+            nilai={etape.berangkat}
+            onUbah={(iso) => {
+              const val = iso ?? ''
               const baru = { ...etape, berangkat: val }
               const { hari: hariBaru } = ringkasEtape(baru)
               const patch: Partial<EtapePayload> = { berangkat: val }
@@ -188,12 +194,12 @@ export function EtapeForm({
           />
         </Field>
         <Field label="Pulang" htmlFor={id('plg')} error={galat?.pulang} hint={tanggalPanjang(etape.pulang) || undefined}>
-          <Input
+          <InputTanggal
             id={id('plg')}
-            type="date"
-            value={etape.pulang}
-            onChange={(e) => {
-              const val = e.target.value
+            label="Tanggal pulang"
+            nilai={etape.pulang}
+            onUbah={(iso) => {
+              const val = iso ?? ''
               const baru = { ...etape, pulang: val }
               const { hari: hariBaru } = ringkasEtape(baru)
               const patch: Partial<EtapePayload> = { pulang: val }
@@ -231,18 +237,19 @@ export function EtapeForm({
         </div>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 items-start">
-            <Field label="Nama hotel / penginapan" htmlFor={id('hotel')} className="xl:col-span-2">
-              <Input
+          <div className="grid gap-3 sm:grid-cols-2 items-start">
+            <Field label="Nama hotel / penginapan" htmlFor={id('hotel')} className="sm:col-span-2">
+              <TextareaOtomatis
                 id={id('hotel')}
                 value={etape.hotelNama ?? ''}
-                placeholder={etape.hotel30Persen ? 'Biaya Penginapan 30% SBM' : 'Nama hotel / penginapan...'}
+                placeholder={etape.hotel30Persen ? 'Biaya Penginapan 30% SBM' : 'Nama hotel atau penginapan'}
                 onChange={(e) => onUbah({ hotelNama: e.target.value || null })}
               />
             </Field>
             <Field
               label="Tarif hotel per malam"
               htmlFor={id('tarif')}
+              warning={peringatanKode('TARIF_HOTEL_KOSONG') ?? peringatanKode('HOTEL_MELEBIHI_BATAS')}
               hint={
                 etape.hotel30Persen
                   ? `30% SBM: ${tarif30 !== null ? rupiah(tarif30) : 'Otomatis'}`
@@ -265,13 +272,14 @@ export function EtapeForm({
                   ? 'Otomatis 0 malam (fullboard).'
                   : hari === 1 && etape.malamOverride
                     ? 'Override menginap pada perjalanan 1 hari.'
-                    : 'Kosong = otomatis.'
+                    : 'Dikosongkan: dihitung otomatis dari tanggal.'
               }
             >
               <Input
                 id={id('malam')}
                 type="number"
                 min={0}
+                placeholder={malam !== null ? `Otomatis: ${malam} malam` : 'Otomatis'}
                 value={etape.malamOverride ?? ''}
                 onChange={(e) => onUbah({ malamOverride: e.target.value === '' ? null : Number(e.target.value) })}
               />
@@ -304,15 +312,15 @@ export function EtapeForm({
         >
           <span className="flex items-center gap-2">
             <ChevronDownIcon className={cn('size-4 text-muted-foreground transition-transform', !bukaOpsi && '-rotate-90')} />
-            Opsi khusus perhitungan
+            Opsi tambahan
           </span>
           <span className="flex flex-wrap items-center gap-1.5">
             {etape.dalamKota8Jam ? <Badge variant="default">PP Jakarta</Badge> : null}
-            {jmlFullboard > 0 ? <Badge variant="default">Fullboard {jmlFullboard} hari</Badge> : null}
+            {jmlFullboard > 0 ? <Badge variant="default">Paket rapat {jmlFullboard} hari</Badge> : null}
             {etape.hotel30Persen ? <Badge variant="default">Hotel 30% SBM</Badge> : null}
             {etape.dinasJabatan ? <Badge variant="default">Dinas jabatan</Badge> : null}
             {!adaOpsiAktif ? (
-              <span className="text-xs font-normal text-muted-foreground">Fullboard, PP Jakarta, hotel 30% SBM, dinas jabatan</span>
+              <span className="text-xs font-normal text-muted-foreground">Paket rapat, pulang-pergi Jakarta, hotel 30%, dinas jabatan</span>
             ) : null}
           </span>
         </button>
@@ -334,14 +342,19 @@ export function EtapeForm({
                     }}
                   />
                   <div className="grid gap-0.5">
-                    <span className="font-medium text-foreground">Pulang-pergi di hari yang sama di sekitar Jakarta (&gt; 8 jam, tanpa menginap)</span>
+                    <span className="font-medium text-foreground">Pulang-pergi di hari yang sama di sekitar Jakarta (lebih dari 8 jam, tanpa menginap)</span>
                     <p className="text-xs text-muted-foreground">
                       Dihitung sebagai <strong>uang harian dalam kota</strong>
                       {tarifDalamKota ? ` ${rupiah(tarifDalamKota)}/hari` : ''}, bukan luar kota
-                      {tarifLuarKota ? ` ${rupiah(tarifLuarKota)}/hari` : ''}. Dasar: PMK 113/PMK.05/2012 Pasal 14 ayat (3).
+                      {tarifLuarKota ? ` ${rupiah(tarifLuarKota)}/hari` : ''}.
                     </p>
                   </div>
                 </label>
+                <div className="mt-1.5 pl-6">
+                  <DasarAturan judul="Uang harian dalam kota lebih dari 8 jam">
+                    <p>PMK 113/PMK.05/2012 Pasal 14 ayat (3): perjalanan dinas dalam kota lebih dari 8 jam dibayarkan uang harian dalam kota sebesar satu hari penuh sesuai tarif SBM.</p>
+                  </DasarAturan>
+                </div>
                 {catatanOtomatis ? (
                   <p className="mt-2 rounded bg-amber-500/10 px-2 py-1 text-xs text-amber-800 dark:text-amber-300">
                     Dicentang otomatis karena {etape.kota} termasuk Jabodetabek dan perjalanan hanya 1 hari. Hapus centang bila ini perjalanan luar kota biasa.
@@ -363,7 +376,7 @@ export function EtapeForm({
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-foreground">
-                          Paket Rapat / Pertemuan (<Istilah kata="Fullboard" />)
+                          Ada paket rapat di hotel (<Istilah kata="Fullboard" />)
                         </span>
                         {bukaFullboard && jmlFullboard > 0 ? (
                           <Badge variant="default" className="text-[10px] px-1.5 py-0 font-medium">
@@ -372,7 +385,7 @@ export function EtapeForm({
                         ) : null}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Centang jika perjalanan dinas ini mencakup paket pertemuan/rapat di hotel.
+                        Centang bila rapat atau pertemuan di hotel sudah termasuk makan dan akomodasi paket (fullboard), lalu pilih tanggal yang tercakup.
                       </p>
                     </div>
                   </label>
@@ -404,7 +417,7 @@ export function EtapeForm({
                 {bukaFullboard ? (
                   <div className="space-y-2.5 border-t pt-3">
                     <p className="text-xs font-medium text-foreground">
-                      Tandai tanggal kegiatan fullboard:
+                      Pilih tanggal yang tercakup paket rapat:
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {listHari.map((tgl) => {
@@ -441,24 +454,24 @@ export function EtapeForm({
                         <div className="flex items-center gap-2 text-foreground">
                           <span className="size-2 rounded-full bg-primary inline-block" />
                           <span>
-                            <strong>{jmlFullboard} hari</strong> Fullboard (Uang Saku SBM)
+                            <strong>{jmlFullboard} hari</strong> paket rapat (uang saku)
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <span className="size-2 rounded-full bg-muted-foreground/40 inline-block" />
                           <span>
-                            <strong>{jmlBiasa} hari</strong> Transit PP (Uang Harian Penuh)
+                            <strong>{jmlBiasa} hari</strong> lain (uang harian penuh)
                           </span>
                         </div>
                         {jmlFullboard === listHari.length ? (
                           <p className="sm:col-span-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium pt-0.5">
-                            Seluruh hari adalah fullboard. Penginapan ditanggung panitia (malam menginap otomatis 0).
+                            Seluruh hari tercakup paket rapat. Penginapan ditanggung panitia (malam menginap otomatis 0).
                           </p>
                         ) : null}
                       </div>
                     ) : (
                       <p className="flex items-start gap-1.5 text-xs text-warning-foreground">
-                        <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" /> Belum ada tanggal fullboard yang dipilih. Klik tombol tanggal di atas untuk menandai hari kegiatan rapat.
+                        <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" /> Belum ada tanggal yang dipilih. Klik tombol tanggal di atas untuk menandai hari kegiatan rapat.
                       </p>
                     )}
                   </div>
@@ -483,14 +496,17 @@ export function EtapeForm({
                       }}
                     />
                     <div className="grid gap-0.5">
-                      <span className="font-medium text-foreground">
-                        Menginap tanpa fasilitas hotel (dapat biaya penginapan 30% tarif SBM)
-                      </span>
+                      <span className="font-medium text-foreground">Menginap tanpa fasilitas hotel (biaya penginapan 30%)</span>
                       <p className="text-xs text-muted-foreground">
-                        Sesuai PMK 113/PMK.05/2012 Pasal 16 ayat (2), pelaksana yang tidak menggunakan fasilitas hotel/penginapan berhak atas 30% dari batas tertinggi SBM penginapan {tarif30 !== null ? `(${rupiah(tarif30)}/malam)` : ''} dan otomatis dicantumkan pada Daftar Pengeluaran Riil (DPR).
+                        Pelaksana yang tidak memakai hotel berhak atas 30% dari batas tertinggi SBM penginapan{tarif30 !== null ? ` (${rupiah(tarif30)}/malam)` : ''}, dan otomatis tercatat di <Istilah kata="DPR" />.
                       </p>
                     </div>
                   </label>
+                  <div className="mt-1.5 pl-6">
+                    <DasarAturan judul="Penginapan 30% tarif SBM">
+                      <p>PMK 113/PMK.05/2012 Pasal 16 ayat (2): pelaksana perjalanan dinas yang tidak menggunakan fasilitas hotel atau penginapan lainnya diberikan biaya penginapan sebesar 30% (tiga puluh persen) dari tarif hotel di kota tempat tujuan sesuai SBM.</p>
+                    </DasarAturan>
+                  </div>
                 </div>
             ) : null}
             {bolehRepresentasi ? (
@@ -503,9 +519,9 @@ export function EtapeForm({
         ) : null}
       </div>
 
-      {peringatan.length > 0 ? (
+      {sisaPeringatan.length > 0 ? (
         <ul className="grid gap-1 text-xs text-warning-foreground">
-          {peringatan.map((p, i) => (
+          {sisaPeringatan.map((p, i) => (
             <li key={i} className="flex items-start gap-1.5">
               <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" /> {p.pesan}
             </li>

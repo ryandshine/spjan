@@ -54,7 +54,7 @@ export function AppShell() {
           ))}
         </nav>
         <div className="hidden items-center justify-between gap-2 border-t px-4 py-3 md:flex">
-          <span className="truncate text-xs text-muted-foreground">{me.data?.username}</span>
+          <span className="min-w-0 text-xs text-muted-foreground [overflow-wrap:anywhere]">{me.data?.username}</span>
           <Button variant="ghost" size="sm" onClick={keluar} disabled={logout.isPending}>
             <LogOutIcon /> Keluar
           </Button>

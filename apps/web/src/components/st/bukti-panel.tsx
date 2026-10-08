@@ -265,11 +265,11 @@ export function BuktiPanel({ stId }: { stId: number }) {
                         ikonBerkas(b.mime)
                       )}
                       <div className="flex flex-col min-w-0">
-                        <span className="truncate font-medium text-sm text-foreground">
+                        <span className="font-medium text-sm text-foreground [overflow-wrap:anywhere]">
                           {b.namaAsli}
                         </span>
                         {b.keterangan ? (
-                          <span className="text-xs text-foreground/80 line-clamp-1 italic">
+                          <span className="text-xs text-foreground/80 italic [overflow-wrap:anywhere]">
                             &ldquo;{b.keterangan}&rdquo;
                           </span>
                         ) : null}
@@ -392,7 +392,7 @@ export function BuktiPanel({ stId }: { stId: number }) {
       <Dialog open={previewFoto !== null} onOpenChange={(open) => !open && setPreviewFoto(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="truncate">{previewFoto?.namaAsli}</DialogTitle>
+            <DialogTitle className="[overflow-wrap:anywhere]">{previewFoto?.namaAsli}</DialogTitle>
             <DialogDescription className="text-xs">
               {previewFoto ? formatUkuran(previewFoto.ukuran) : ''} &bull;{' '}
               {previewFoto?.createdAt ? tanggalPendek(previewFoto.createdAt.slice(0, 10)) : ''}

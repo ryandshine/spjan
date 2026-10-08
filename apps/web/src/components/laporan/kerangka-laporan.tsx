@@ -59,7 +59,7 @@ export function KerangkaLaporan({
                         aktif ? 'border-primary bg-accent font-medium' : 'border-l-transparent bg-card',
                       )}
                     >
-                      <span className="min-w-0 truncate">{labelBagian(b)}</span>
+                      <span className="min-w-0 [overflow-wrap:anywhere]">{labelBagian(b)}</span>
                       {s ? <StatusChip status={s.status} detail={s.detail} /> : null}
                     </button>
                   </li>

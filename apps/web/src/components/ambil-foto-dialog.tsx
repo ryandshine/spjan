@@ -92,7 +92,7 @@ export function AmbilFotoDialog({
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/50 p-2.5 text-xs text-muted-foreground border">
                 <div className="flex items-center gap-1.5 font-medium text-foreground">
                   <ImageIcon className="size-3.5 text-sky-600" />
-                  <span className="truncate max-w-[220px] sm:max-w-[280px]">
+                  <span className="[overflow-wrap:anywhere]">
                     {hasilFoto.file.name}
                   </span>
                 </div>

@@ -315,12 +315,12 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
                         title="Klik untuk mengubah keterangan foto"
                       >
                         <div className="flex items-center justify-between">
-                          <p className="line-clamp-2 text-xs font-medium text-foreground">
+                          <p className="text-xs font-medium text-foreground [overflow-wrap:anywhere]">
                             {b.keterangan || <span className="italic text-muted-foreground">Belum ada keterangan</span>}
                           </p>
                           <Edit2Icon className="ml-1 size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/caption:opacity-100" />
                         </div>
-                        <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{b.namaAsli}</p>
+                        <p className="mt-0.5 text-[10px] text-muted-foreground [overflow-wrap:anywhere]">{b.namaAsli}</p>
                       </div>
                     )}
                     <div className="mt-auto flex items-center justify-between border-t pt-2 text-[10px] text-muted-foreground">
@@ -346,7 +346,7 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
       <Dialog open={previewFoto !== null} onOpenChange={(open) => !open && setPreviewFoto(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="truncate">{previewFoto?.keterangan || previewFoto?.namaAsli}</DialogTitle>
+            <DialogTitle className="[overflow-wrap:anywhere]">{previewFoto?.keterangan || previewFoto?.namaAsli}</DialogTitle>
             <DialogDescription className="text-xs">
               {previewFoto?.namaAsli} &bull; {previewFoto ? formatUkuran(previewFoto.ukuran) : ''} &bull;{' '}
               {previewFoto?.createdAt ? tanggalPendek(previewFoto.createdAt.slice(0, 10)) : ''}

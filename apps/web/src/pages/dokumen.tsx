@@ -229,7 +229,7 @@ export default function DokumenPage() {
           {pilihan.map((p, n) => (
             <Fragment key={p.kunci}>
             {p.grup && p.grup !== pilihan[n - 1]?.grup ? (
-              <p className="mt-3 truncate px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground first:mt-0" title={p.grup}>
+              <p className="mt-3 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground [overflow-wrap:anywhere] first:mt-0">
                 {p.grup}
               </p>
             ) : null}
@@ -242,7 +242,7 @@ export default function DokumenPage() {
                 terpilih?.kunci === p.kunci ? 'border-primary bg-accent font-medium' : 'bg-card',
               )}
             >
-              <span className="truncate flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 [overflow-wrap:anywhere]">
                 {p.jenis === 'dokumentasi' ? <ImageIcon className="size-3.5 text-sky-600" /> : null}
                 {p.label}
               </span>
