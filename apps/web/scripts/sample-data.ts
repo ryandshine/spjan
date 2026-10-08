@@ -1,8 +1,10 @@
 import {
   SBM_2026,
+  buatLaporanAwal,
   hitungSpj,
   toSpjInput,
   type HasilSuratTugasDto,
+  type LaporanIsi,
   type PengaturanPayload,
   type SuratTugasDto,
   type SuratTugasPayload,
@@ -103,4 +105,54 @@ export const ST_CONTOH: SuratTugasPayload = {
 export function hasilContoh(st: SuratTugasPayload = ST_CONTOH, pengaturan: PengaturanPayload = PENGATURAN_CONTOH): HasilSuratTugasDto {
   const dto: SuratTugasDto = { ...st, id: 1, versiSbmId: 1, createdAt: '2026-10-04T00:00:00.000Z', updatedAt: '2026-10-04T00:00:00.000Z' }
   return { suratTugas: dto, pengaturan, hasil: hitungSpj(toSpjInput(st, pengaturan), SBM_2026) }
+}
+
+const PARAGRAF_PANJANG =
+  'Pelaksanaan kegiatan mencakup pengumpulan informasi mengenai kondisi kelembagaan, pemanfaatan areal, perkembangan usaha masyarakat, penyusunan dokumen perencanaan, serta perlindungan dan pengamanan hutan. Pemantauan juga mencatat permasalahan pengelolaan areal dan kebutuhan dukungan yang disampaikan oleh kelompok. Penilaian dilakukan terhadap aspek hak, kewajiban, dan kepatuhan terhadap larangan.'
+
+/** Laporan contoh yang meniru struktur contoh Muara Merang, untuk memeriksa tata letak PDF. */
+export function laporanContoh(): LaporanIsi {
+  const awal = buatLaporanAwal()
+  return {
+    ...awal,
+    bagian: [
+      ...awal.bagian.map((b) => {
+        if (b.jenis === 'petugas') {
+          return {
+            ...b,
+            instansi: [
+              { kunci: 'GUNADI FIRDAUS, S.HUT., M.SI.', instansi: 'Direktorat PPS' },
+              { kunci: 'R RESA ADAM GUNAWAN, S.T.', instansi: 'Direktorat PPS' },
+              { kunci: 'DR. MARCUS OCTAVIANUS SUSATYO, S.HUT., M.P.', instansi: 'Direktorat PPS' },
+            ],
+          }
+        }
+        if (b.id === 'hasil' && b.jenis === 'teks') {
+          return {
+            ...b,
+            blok: b.blok.map((x) => (x.tipe === 'paragraf' ? { ...x, teks: `${PARAGRAF_PANJANG} ${PARAGRAF_PANJANG}` } : x)),
+          }
+        }
+        if (b.id === 'simpulan' && b.jenis === 'teks') {
+          return {
+            ...b,
+            blok: [
+              { tipe: 'subjudul' as const, teks: 'Simpulan' },
+              { tipe: 'paragraf' as const, teks: PARAGRAF_PANJANG },
+              { tipe: 'subjudul' as const, teks: 'Saran dan Tindak Lanjut' },
+              {
+                tipe: 'nomor' as const,
+                butir: [
+                  'Memfasilitasi penyelesaian RKPS dan RKT dengan memperhatikan kondisi aktual areal, perlindungan hutan, pengembangan usaha, serta rencana pemulihan tutupan lahan.',
+                  'Melakukan verifikasi lapangan terhadap bukaan lahan, penanaman sawit, pertambahan permukiman, dan informasi penebangan sebagai dasar penanganan bersama pihak terkait.',
+                  'Melakukan inventarisasi dan pemulihan patok batas yang hilang serta meningkatkan pemahaman masyarakat mengenai batas areal kerja.',
+                ],
+              },
+            ],
+          }
+        }
+        return b
+      }),
+    ],
+  }
 }

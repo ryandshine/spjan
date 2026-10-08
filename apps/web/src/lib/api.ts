@@ -2,6 +2,7 @@ import type {
   BerkasDto,
   HasilSuratTugasDto,
   JenisBerkas,
+  LaporanIsi,
   ModelAiDto,
   ModelAiPayload,
   PegawaiDto,
@@ -21,6 +22,11 @@ import type {
   UsulanStHasil,
   UsulanTransportItem,
 } from '@spjan/shared'
+
+export interface LaporanDto {
+  isi: LaporanIsi | null
+  updatedAt: string | null
+}
 
 export class ApiError extends Error {
   readonly status: number
@@ -132,5 +138,9 @@ export const api = {
     hasil: (id: number) => request<HasilSuratTugasDto>('GET', `/api/surat-tugas/${id}/hasil`),
     usulanHotel: (id: number) => request<UsulanHotelItem[]>('GET', `/api/surat-tugas/${id}/usulan-hotel`),
     usulanTransport: (id: number) => request<UsulanTransportItem[]>('GET', `/api/surat-tugas/${id}/usulan-transport`),
+    laporan: {
+      get: (id: number) => request<LaporanDto>('GET', `/api/surat-tugas/${id}/laporan`),
+      simpan: (id: number, isi: LaporanIsi) => request<LaporanDto>('PUT', `/api/surat-tugas/${id}/laporan`, isi),
+    },
   },
 }

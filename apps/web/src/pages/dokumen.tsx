@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeftIcon, DownloadIcon, ImageIcon } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
-import type { FotoDokumentasi } from '@spjan/shared'
+import { buatLaporanAwal, susunLaporan, type FotoDokumentasi } from '@spjan/shared'
 
 import { PageHeader } from '@/components/page-header'
 import { PdfPreview } from '@/components/pdf-preview'
@@ -9,7 +9,7 @@ import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { pesanGalat } from '@/lib/format'
-import { useDaftarBerkas, useHasilSuratTugas } from '@/lib/queries'
+import { useDaftarBerkas, useHasilSuratTugas, useLaporan } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 import { siapkanDokumen } from '@/pdf/data'
 import { daftarkanFont } from '@/pdf/fonts'
@@ -34,6 +34,7 @@ export default function DokumenPage() {
   const stIdValid = Number.isInteger(id) && id > 0 ? id : undefined
   const hasil = useHasilSuratTugas(stIdValid)
   const berkasQuery = useDaftarBerkas(stIdValid ?? null)
+  const laporanQuery = useLaporan(stIdValid)
 
   // Hanya foto dokumentasi; gambar bukti biaya (kuitansi, tiket) tidak ikut lembar foto.
   const fotoFiles = useMemo(
@@ -101,6 +102,10 @@ export default function DokumenPage() {
     () => (hasil.data ? siapkanDokumen(hasil.data, fotoDokumentasi) : null),
     [hasil.data, fotoDokumentasi],
   )
+  const modelLaporan = useMemo(
+    () => (d ? susunLaporan(d.st, d.pengaturan, laporanQuery.data?.isi ?? buatLaporanAwal(), fotoDokumentasi) : null),
+    [d, laporanQuery.data, fotoDokumentasi],
+  )
   const [kunci, setKunci] = useState('sptb')
   const blobTerakhir = useRef<Blob | null>(null)
 
@@ -122,6 +127,7 @@ export default function DokumenPage() {
         jenis: 'dokumentasi',
       })
     }
+    daftar.push({ kunci: 'laporan', label: 'Laporan Perjalanan Dinas', jenis: 'laporan' })
     daftar.push({ kunci: 'semua', label: 'Semua dokumen (satu berkas)', jenis: 'semua' })
     return daftar
   }, [d, fotoDokumentasi])
@@ -129,8 +135,8 @@ export default function DokumenPage() {
   const terpilih = pilihan.find((p) => p.kunci === kunci) ?? pilihan[0]
 
   const dokumen = useMemo(
-    () => (d && terpilih ? <SpjDocument d={d} jenis={terpilih.jenis} indeks={terpilih.indeks} /> : null),
-    [d, terpilih],
+    () => (d && terpilih ? <SpjDocument d={d} jenis={terpilih.jenis} indeks={terpilih.indeks} laporan={modelLaporan ?? undefined} /> : null),
+    [d, terpilih, modelLaporan],
   )
   const simpanBlob = useCallback((b: Blob) => {
     blobTerakhir.current = b
@@ -142,7 +148,7 @@ export default function DokumenPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `SPJ-${d.st.nomor.replace(/[^A-Za-z0-9]+/g, '-')}-${terpilih.kunci.replace(':', '-')}.pdf`
+    a.download = `${terpilih.jenis === 'laporan' ? 'Laporan' : 'SPJ'}-${d.st.nomor.replace(/[^A-Za-z0-9]+/g, '-')}-${terpilih.kunci.replace(':', '-')}.pdf`
     a.click()
     window.setTimeout(() => URL.revokeObjectURL(url), 1_000)
   }

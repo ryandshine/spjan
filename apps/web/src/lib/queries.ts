@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { JenisBerkas, ModelAiPayload, PegawaiPayload, PengaturanPayload, StatusKode, StatusKonfigurasi, SuratTugasPayload, UpdateUsulanBerkasPayload } from '@spjan/shared'
+import type { JenisBerkas, LaporanIsi, ModelAiPayload, PegawaiPayload, PengaturanPayload, StatusKode, StatusKonfigurasi, SuratTugasPayload, UpdateUsulanBerkasPayload } from '@spjan/shared'
 
 import { api, ApiError } from '@/lib/api'
 
@@ -13,6 +13,7 @@ export const keys = {
   stList: ['st', 'list'] as const,
   st: (id: number) => ['st', id] as const,
   hasil: (id: number) => ['st', id, 'hasil'] as const,
+  laporan: (id: number) => ['st', id, 'laporan'] as const,
 }
 
 export function useMe() {
@@ -272,5 +273,21 @@ export function useUbahJenisBerkas() {
       qc.invalidateQueries({ queryKey: ['berkas'] })
       qc.invalidateQueries({ queryKey: ['st'] })
     },
+  })
+}
+
+export function useLaporan(id: number | undefined) {
+  return useQuery({
+    queryKey: keys.laporan(id ?? 0),
+    queryFn: () => api.suratTugas.laporan.get(id as number),
+    enabled: id !== undefined,
+  })
+}
+
+export function useSimpanLaporan(id: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (isi: LaporanIsi) => api.suratTugas.laporan.simpan(id, isi),
+    onSuccess: (data) => qc.setQueryData(keys.laporan(id), data),
   })
 }

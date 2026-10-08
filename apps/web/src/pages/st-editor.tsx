@@ -19,6 +19,7 @@ import {
 } from '@spjan/shared'
 
 import { PageHeader } from '@/components/page-header'
+import { LaporanEditor } from '@/components/laporan/laporan-editor'
 import { BuktiPanel } from '@/components/st/bukti-panel'
 import { FotoDokumentasiPanel } from '@/components/st/foto-dokumentasi-panel'
 import { PelaksanaCard } from '@/components/st/pelaksana-card'
@@ -46,7 +47,7 @@ import {
 } from '@/lib/queries'
 import { cakupanGalat, pesanValidasi, petaGalat } from '@/lib/validasi'
 
-type TabKunci = 'data' | 'pelaksana' | 'bukti'
+type TabKunci = 'data' | 'pelaksana' | 'bukti' | 'laporan'
 
 function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratTugasPayload; sbm: Sbm; pengaturan: PengaturanPayload }) {
   const navigate = useNavigate()
@@ -238,6 +239,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
     { kunci: 'data', label: 'Data surat tugas', galat: galatTabData },
     { kunci: 'pelaksana', label: 'Pelaksana', jumlah: st.pelaksana.length, galat: galatTabPelaksana },
     ...(id !== null ? [{ kunci: 'bukti' as const, label: 'Bukti & usulan' }] : []),
+    ...(id !== null ? [{ kunci: 'laporan' as const, label: 'Laporan' }] : []),
   ]
 
   return (
@@ -473,6 +475,12 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
                 <UsulanTransportPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanTransport} />
                 <FotoDokumentasiPanel stId={id} />
               </div>
+            </TabPanel>
+          ) : null}
+
+          {id !== null ? (
+            <TabPanel idAwal="st" kunci="laporan" aktif={tab === 'laporan'}>
+              <LaporanEditor stId={id} />
             </TabPanel>
           ) : null}
 
