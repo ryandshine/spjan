@@ -39,7 +39,7 @@ function Sel({
 }) {
   return (
     <label className={cn('grid gap-1 text-xs text-muted-foreground', className)}>
-      <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
+      <span className="flex min-h-6 flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
         {label}
         {mode ? <PenandaIsian mode={mode} otomatisAktif={otomatisAktif} onKembali={onKembali} /> : null}
       </span>
@@ -91,10 +91,12 @@ export function BiayaForm({
   // Isian pilihan disusun berpasangan dua kolom; kolom uraian melebar penuh hanya bila pasangan sebelumnya sudah genap.
   const jumlahPilihan = 1 + (perluEtape ? 1 : 0) + (perluProvinsi ? 1 : 0) + (biaya.jenis === 'TRANSPORT_JAKARTA_SEKITAR' ? 1 : 0)
   const uraianMelebar = jumlahPilihan % 2 === 0
+  // Tanpa pasangan di sebelahnya, pilihan jenis memenuhi lebar penuh agar tidak ada sel kosong.
+  const jenisMelebar = jumlahPilihan === 1 && !perluUraian
   return (
     <div className="grid gap-3 border-t pt-4">
       <div className="grid items-start gap-3 sm:grid-cols-2">
-        <Sel label="Jenis biaya" mode="wajib">
+        <Sel label="Jenis biaya" mode="wajib" className={jenisMelebar ? 'sm:col-span-2' : undefined}>
           <Select
             className="w-full"
             value={biaya.jenis}
@@ -204,7 +206,7 @@ export function BiayaForm({
           </Sel>
         ) : null}
       </div>
-      <div className="grid items-start gap-3 sm:grid-cols-[7rem_11rem_minmax(0,1fr)_auto]">
+      <div className="grid items-start gap-3 sm:grid-cols-[9.5rem_12rem_minmax(0,1fr)_auto]">
         <Sel label="Jumlah" mode="otomatis" otomatisAktif={biaya.qty == null} onKembali={() => onUbah({ qty: null })}>
           <Input
             className="w-full text-right"
