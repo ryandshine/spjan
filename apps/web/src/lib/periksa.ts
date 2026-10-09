@@ -1,4 +1,4 @@
-import type { Peringatan } from '@spjan/shared'
+import type { PelaksanaHasil, Peringatan } from '@spjan/shared'
 
 /** Id elemen isian yang perlu diperbaiki untuk satu peringatan (nomor pelaksana mulai dari 1; id dipasang di PelaksanaCard dan EtapeForm). */
 export function sasaranPeringatan(w: Peringatan, nomorPelaksana: number): string {
@@ -36,4 +36,26 @@ export function lompatKeIsian(sasaranId: string, nomorPelaksana: number): void {
     const lagi = cari()
     if (lagi) sorot(lagi)
   }, 80)
+}
+
+/** Berpindah ke isian yang bermasalah (id elemen, nomor pelaksana mulai dari 1). */
+export type PerbaikiIsian = (sasaranId: string, nomorPelaksana: number) => void
+
+export interface ItemPeriksa {
+  pesan: string
+  nomorPelaksana: number
+  namaPelaksana: string
+  sasaranId: string
+}
+
+/** Meratakan peringatan semua pelaksana menjadi satu daftar berurutan, lengkap dengan isian yang harus diperbaiki. */
+export function kumpulkanPeriksa(pelaksana: ReadonlyArray<Pick<PelaksanaHasil, 'nama' | 'peringatan'>>): ItemPeriksa[] {
+  return pelaksana.flatMap((p, i) =>
+    p.peringatan.map((w) => ({
+      pesan: w.pesan,
+      nomorPelaksana: i + 1,
+      namaPelaksana: p.nama || `Pelaksana ${i + 1}`,
+      sasaranId: sasaranPeringatan(w, i + 1),
+    })),
+  )
 }

@@ -409,6 +409,29 @@ export function PelaksanaCard({
               </Select>
             </div>
           </BlokForm>
+
+          {hasil ? (
+            <section aria-label="Hasil hitungan pelaksana" className="grid gap-2 rounded-lg bg-muted/40 px-4 py-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <p className="flex flex-wrap gap-x-3 text-xs text-muted-foreground tabular-nums">
+                  <span>Transport: {rupiah(hasil.totalTransport)}</span>
+                  <span>Uang harian: {rupiah(hasil.totalUangHarian)}</span>
+                  <span>Representasi: {rupiah(hasil.totalRepresentasi)}</span>
+                  <span>Penginapan: {rupiah(hasil.totalPenginapan)}</span>
+                </p>
+                <p className="text-sm font-semibold tabular-nums" title={hasil.terbilang}>
+                  Total {rupiah(hasil.total)}
+                </p>
+              </div>
+              {hasil.catatan.length > 0 ? (
+                <ul className="grid gap-0.5 text-xs leading-snug text-muted-foreground">
+                  {hasil.catatan.map((c, i) => (
+                    <li key={i}>{c}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </section>
+          ) : null}
         </CardContent>
       ) : null}
 

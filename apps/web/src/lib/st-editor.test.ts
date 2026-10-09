@@ -130,9 +130,9 @@ describe('rincianTotal', () => {
   it('menjumlahkan tiap komponen biaya lintas pelaksana', () => {
     expect(rincianTotal([a, b])).toEqual([
       { label: 'Transport', nilai: 110 },
+      { label: 'Penginapan', nilai: 330 },
       { label: 'Uang harian', nilai: 220 },
       { label: 'Representasi', nilai: 5 },
-      { label: 'Penginapan', nilai: 330 },
     ])
   })
 

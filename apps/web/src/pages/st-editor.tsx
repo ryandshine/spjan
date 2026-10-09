@@ -20,12 +20,13 @@ import {
 import { PageHeader } from '@/components/page-header'
 import { LaporanEditor } from '@/components/laporan/laporan-editor'
 import { AksiHeaderSt, PeringatanBelumSimpan } from '@/components/st/aksi-header-st'
+import { BannerPeriksa } from '@/components/st/banner-periksa'
+import { BarBawahSt } from '@/components/st/bar-bawah-st'
 import { BuktiPanel } from '@/components/st/bukti-panel'
 import { DialogHapusSt, DialogNoSpd, DialogTinggalkanHalaman } from '@/components/st/dialog-editor-st'
 import { FotoDokumentasiPanel } from '@/components/st/foto-dokumentasi-panel'
 import { KartuDataSt } from '@/components/st/kartu-data-st'
 import { KartuPejabatSt } from '@/components/st/kartu-pejabat-st'
-import { PanelRingkasan } from '@/components/st/panel-ringkasan'
 import { TabPelaksanaSt } from '@/components/st/tab-pelaksana-st'
 import { UsulanHotelPanel } from '@/components/st/usulan-hotel-panel'
 import { UsulanTransportPanel } from '@/components/st/usulan-transport-panel'
@@ -200,21 +201,13 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
 
   let aksiHeader: ReactNode = null
   if (!modeLaporan) {
-    aksiHeader = (
-      <AksiHeaderSt
-        id={id}
-        kotor={kotor}
-        menyimpan={simpan.isPending}
-        onSimpan={kirim}
-        onHapus={() => setDialogHapus(true)}
-      />
-    )
+    if (id !== null) aksiHeader = <AksiHeaderSt onHapus={() => setDialogHapus(true)} />
   } else if (kotor) {
     aksiHeader = <PeringatanBelumSimpan menyimpan={simpan.isPending} onSimpan={kirim} />
   }
 
   return (
-    <div>
+    <div className={modeLaporan ? undefined : 'pb-24'}>
       <PageHeader
         lengket={!modeLaporan}
         title={id === null ? 'Surat tugas baru' : st.nomor || 'Surat tugas'}
@@ -235,56 +228,55 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
         </div>
       ) : null}
 
+      {modeLaporan ? null : <BannerPeriksa hasil={hasil} onPerbaiki={perbaikiIsian} />}
+
       <Tabs item={itemTab} aktif={tab} onPilih={setTab} idAwal="st" label="Bagian surat tugas" />
 
-      <div className={modeLaporan ? 'grid items-start gap-6' : 'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]'}>
-        <div className="min-w-0">
-          <TabPanel idAwal="st" kunci="data" aktif={tab === 'data'}>
-            <div className="grid gap-6">
-              <KartuDataSt st={st} peta={peta} pengaturan={pengaturan} onUbah={ubahSt} onUbahSumberDana={ubahSumberDana} />
-              <KartuPejabatSt st={st} pengaturan={pengaturan} pegawai={daftarPegawai} onUbah={ubahSt} />
-            </div>
-          </TabPanel>
+      <div className={modeLaporan ? 'min-w-0' : 'min-w-0 max-w-6xl'}>
+        <TabPanel idAwal="st" kunci="data" aktif={tab === 'data'}>
+          <div className="grid gap-6">
+            <KartuDataSt st={st} peta={peta} pengaturan={pengaturan} onUbah={ubahSt} onUbahSumberDana={ubahSumberDana} />
+            <KartuPejabatSt st={st} pengaturan={pengaturan} pegawai={daftarPegawai} onUbah={ubahSt} />
+          </div>
+        </TabPanel>
 
-          {id !== null ? (
-            <>
-              <TabPanel idAwal="st" kunci="bukti" aktif={tab === 'bukti'}>
-                <div className="grid gap-6">
-                  <BuktiPanel stId={id} />
-                  <UsulanHotelPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanHotel} />
-                  <UsulanTransportPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanTransport} />
-                  <FotoDokumentasiPanel stId={id} />
-                </div>
-              </TabPanel>
-              <TabPanel idAwal="st" kunci="laporan" aktif={tab === 'laporan'}>
-                <LaporanEditor stId={id} />
-              </TabPanel>
-            </>
-          ) : null}
+        {id !== null ? (
+          <>
+            <TabPanel idAwal="st" kunci="bukti" aktif={tab === 'bukti'}>
+              <div className="grid gap-6">
+                <BuktiPanel stId={id} />
+                <UsulanHotelPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanHotel} />
+                <UsulanTransportPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanTransport} />
+                <FotoDokumentasiPanel stId={id} />
+              </div>
+            </TabPanel>
+            <TabPanel idAwal="st" kunci="laporan" aktif={tab === 'laporan'}>
+              <LaporanEditor stId={id} />
+            </TabPanel>
+          </>
+        ) : null}
 
-          <TabPanel idAwal="st" kunci="pelaksana" aktif={tab === 'pelaksana'}>
-            <TabPelaksanaSt
-              pelaksana={st.pelaksana}
-              kunci={kunciPelaksana}
-              hasil={hasil.pelaksana}
-              sbm={sbm}
-              pegawai={daftarPegawai}
-              provinsi={provinsi}
-              provinsiKedudukan={pengaturan.provinsiKedudukan}
-              peta={peta}
-              onUbah={ubahPelaksana}
-              onHapus={hapusPelaksana}
-              onTambah={tambahPelaksana}
-              onAutoIsiNoSpd={autoIsiNoSpd}
-            />
-          </TabPanel>
-        </div>
-        {modeLaporan ? null : (
-          <aside aria-label="Ringkasan" className="min-w-0 xl:sticky xl:top-24">
-            <PanelRingkasan hasil={hasil} onPerbaiki={perbaikiIsian} />
-          </aside>
-        )}
+        <TabPanel idAwal="st" kunci="pelaksana" aktif={tab === 'pelaksana'}>
+          <TabPelaksanaSt
+            pelaksana={st.pelaksana}
+            kunci={kunciPelaksana}
+            hasil={hasil.pelaksana}
+            sbm={sbm}
+            pegawai={daftarPegawai}
+            provinsi={provinsi}
+            provinsiKedudukan={pengaturan.provinsiKedudukan}
+            peta={peta}
+            onUbah={ubahPelaksana}
+            onHapus={hapusPelaksana}
+            onTambah={tambahPelaksana}
+            onAutoIsiNoSpd={autoIsiNoSpd}
+          />
+        </TabPanel>
       </div>
+
+      {modeLaporan ? null : (
+        <BarBawahSt id={id} hasil={hasil} kotor={kotor} menyimpan={simpan.isPending} onSimpan={kirim} onPerbaiki={perbaikiIsian} />
+      )}
 
       <DialogNoSpd
         buka={dialogSpd}
