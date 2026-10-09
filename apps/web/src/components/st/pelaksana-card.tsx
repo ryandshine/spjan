@@ -24,7 +24,7 @@ import {
 } from '@spjan/shared'
 
 import { FormPegawai } from '@/components/pegawai-form'
-import { BiayaForm } from '@/components/st/biaya-form'
+import { BiayaBaris } from '@/components/st/biaya-form'
 import { BlokForm } from '@/components/st/blok-form'
 import { EtapeForm } from '@/components/st/etape-form'
 import { Badge } from '@/components/ui/badge'
@@ -373,40 +373,66 @@ export function PelaksanaCard({
           </BlokForm>
 
           <BlokForm judul="Transportasi">
-            {p.biaya.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada biaya.</p> : null}
-            {p.biaya.map((b, i) => (
-              <BiayaForm
-                key={i}
-                biaya={b}
-                etapeJumlah={p.etape.length}
-                etapeLabel={(k) => `Tujuan ${k + 1}${p.etape[k]?.kota ? ` - ${p.etape[k]?.kota}` : ''}`}
-                provinsi={provinsi}
-                provinsiKedudukan={provinsiKedudukan}
-                baris={indeks[i] != null ? hasil?.transport[indeks[i] as number] : null}
-                sbm={sbm}
-                onUbah={(patch) => ubahBiaya(i, patch)}
-                onHapus={() => onUbah((x) => ({ ...x, biaya: x.biaya.filter((_, j) => j !== i) }))}
-              />
-            ))}
-            <div>
-              <Select
-                aria-label="Tambah biaya"
-                className="w-auto min-w-60"
-                value=""
-                onChange={(e) => tambahDariMenu(e.target.value)}
-              >
-                <option value="">+ Tambah biaya...</option>
-                <optgroup label="Tiket pesawat">
-                  <option value="TIKET_PERGI">Tiket pergi</option>
-                  <option value="TIKET_KEMBALI">Tiket kembali</option>
-                </optgroup>
-                <optgroup label="Taksi dan transport lokal">
-                  <option value="TAKSI_KEDUDUKAN">Taksi dari tempat kedudukan ke bandara</option>
-                  <option value="TAKSI_TERMINAL">Taksi dari/ke bandara di kota tujuan</option>
-                  <option value="TRANSPORT_JAKARTA_SEKITAR">Transport Jakarta - sekitarnya (PP)</option>
-                </optgroup>
-                <option value="LAINNYA">Biaya lain</option>
-              </Select>
+            <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[56rem] table-fixed border-collapse text-sm">
+                  <thead className="bg-slate-50 text-xs text-muted-foreground dark:bg-slate-900/40">
+                    <tr className="text-left [&>th]:px-2 [&>th]:py-2 [&>th]:font-medium">
+                      <th className="w-[30%]">Komponen Biaya &amp; Pagu</th>
+                      <th className="w-[8%] text-center">Qty</th>
+                      <th className="w-[18%]">Tarif Satuan (Rp)</th>
+                      <th className="w-[16%] text-right">Subtotal</th>
+                      <th className="w-[20%]">Keterangan / No. Tiket</th>
+                      <th className="w-[5%] text-center" title="Tanpa kuitansi resmi (DPR)">
+                        DPR
+                      </th>
+                      <th className="w-[3%]">
+                        <span className="sr-only">Aksi</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {p.biaya.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-3 py-4 text-center text-sm text-muted-foreground">
+                          Belum ada biaya.
+                        </td>
+                      </tr>
+                    ) : null}
+                    {p.biaya.map((b, i) => (
+                      <BiayaBaris
+                        key={i}
+                        biaya={b}
+                        etapeJumlah={p.etape.length}
+                        etapeLabel={(k) => `Tujuan ${k + 1}${p.etape[k]?.kota ? ` - ${p.etape[k]?.kota}` : ''}`}
+                        provinsi={provinsi}
+                        provinsiKedudukan={provinsiKedudukan}
+                        baris={indeks[i] != null ? hasil?.transport[indeks[i] as number] : null}
+                        sbm={sbm}
+                        onUbah={(patch) => ubahBiaya(i, patch)}
+                        onHapus={() => onUbah((x) => ({ ...x, biaya: x.biaya.filter((_, j) => j !== i) }))}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50/60 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/30">
+                <MenuAksi
+                  label="Tambah biaya"
+                  teks="Tambah Biaya"
+                  item={[
+                    { label: 'Tiket Pergi', onPilih: () => tambahDariMenu('TIKET_PERGI') },
+                    { label: 'Tiket Kembali', onPilih: () => tambahDariMenu('TIKET_KEMBALI') },
+                    { label: 'Taksi Asal (tempat kedudukan - bandara)', onPilih: () => tambahDariMenu('TAKSI_KEDUDUKAN') },
+                    { label: 'Taksi Tujuan (bandara - kota tujuan)', onPilih: () => tambahDariMenu('TAKSI_TERMINAL') },
+                    { label: 'Transport Jakarta - sekitarnya (PP)', onPilih: () => tambahDariMenu('TRANSPORT_JAKARTA_SEKITAR') },
+                    { label: 'Biaya Riil Lainnya', onPilih: () => tambahDariMenu('LAINNYA') },
+                  ]}
+                />
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  Subtotal Transportasi: <span className="font-mono tabular-nums">{rupiah(hasil?.totalTransport ?? 0)}</span>
+                </p>
+              </div>
             </div>
           </BlokForm>
 

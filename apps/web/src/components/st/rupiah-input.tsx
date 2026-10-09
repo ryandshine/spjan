@@ -2,6 +2,7 @@ import type { ComponentProps } from 'react'
 import { formatAngka } from '@spjan/shared'
 
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 
 /** Input angka rupiah dengan pemisah ribuan titik. Nilai kosong = null. */
 export function RupiahInput({
@@ -9,6 +10,7 @@ export function RupiahInput({
   onChange,
   nolKosong = false,
   awalan = false,
+  className,
   ...props
 }: Omit<ComponentProps<typeof Input>, 'value' | 'onChange'> & {
   value: number | null | undefined
@@ -22,7 +24,7 @@ export function RupiahInput({
   const input = (
     <Input
       inputMode="numeric"
-      className={awalan ? 'pl-9 text-right tabular-nums' : 'text-right tabular-nums'}
+      className={cn('text-right tabular-nums', awalan && 'pl-9', className)}
       value={tampil}
       onChange={(e) => {
         const digit = e.target.value.replace(/\D/g, '')

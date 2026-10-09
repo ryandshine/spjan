@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { MoreHorizontalIcon } from 'lucide-react'
+import { ChevronDownIcon, MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
@@ -12,7 +12,7 @@ export interface ItemAksi {
 }
 
 /** Menu "⋯" untuk aksi jarang dipakai atau merusak, agar tidak sejajar dengan aksi utama. */
-export function MenuAksi({ label, item }: { label: string; item: ItemAksi[] }) {
+export function MenuAksi({ label, item, teks }: { label: string; item: ItemAksi[]; /** Bila diisi, pemicu berupa tombol teks "+ teks" dan menu terbuka rata kiri. */ teks?: string }) {
   const [buka, setBuka] = useState(false)
   const akar = useRef<HTMLDivElement>(null)
 
@@ -32,11 +32,17 @@ export function MenuAksi({ label, item }: { label: string; item: ItemAksi[] }) {
 
   return (
     <div ref={akar} className="relative">
-      <Button type="button" variant="outline" size="icon" aria-label={label} aria-haspopup="menu" aria-expanded={buka} onClick={() => setBuka((b) => !b)}>
-        <MoreHorizontalIcon className="size-4" />
-      </Button>
+      {teks ? (
+        <Button type="button" variant="outline" size="sm" aria-label={label} aria-haspopup="menu" aria-expanded={buka} onClick={() => setBuka((b) => !b)}>
+          <PlusIcon /> {teks} <ChevronDownIcon className="opacity-60" />
+        </Button>
+      ) : (
+        <Button type="button" variant="outline" size="icon" aria-label={label} aria-haspopup="menu" aria-expanded={buka} onClick={() => setBuka((b) => !b)}>
+          <MoreHorizontalIcon className="size-4" />
+        </Button>
+      )}
       {buka ? (
-        <div role="menu" className="absolute right-0 z-30 mt-1 min-w-56 rounded-md border bg-card p-1 shadow-md">
+        <div role="menu" className={`absolute z-30 mt-1 ${teks ? 'left-0' : 'right-0'} min-w-56 rounded-md border bg-card p-1 shadow-md`}>
           {item.map((x) => (
             <button
               key={x.label}
