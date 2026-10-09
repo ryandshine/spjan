@@ -55,6 +55,8 @@ function UsulanTransportCard({
       : null
   })
 
+  // Tiket multi-penumpang: status berkas dipakai bersama, jadi "sudah diterapkan" dilacak per kartu.
+  const [diterapkanLokal, setDiterapkanLokal] = useState(false)
   const [selectedJenisBiaya, setSelectedJenisBiaya] = useState<JenisBiaya>(item.jenisBiaya)
 
   const pelaksanaTerpilih = pelaksanaList[selectedPelaksana]
@@ -82,13 +84,15 @@ function UsulanTransportCard({
       }
 
       await onTerapkan(selectedPelaksana, biayaBaru)
-      await updateUsulan.mutateAsync({
-        id: item.berkasId,
-        payload: {
-          usulanStatus: 'diterapkan',
-          pelaksanaId,
-        },
-      })
+      if (item.jumlahPenerima > 1) setDiterapkanLokal(true)
+      else
+        await updateUsulan.mutateAsync({
+          id: item.berkasId,
+          payload: {
+            usulanStatus: 'diterapkan',
+            pelaksanaId,
+          },
+        })
       toast.success(
         `Biaya ${JENIS_LABEL[selectedJenisBiaya]} (${rupiah(item.tarifRiil)}) berhasil ditambahkan ke ${pelaksanaTerpilih?.nama || 'pelaksana'}.`
       )
@@ -125,7 +129,7 @@ function UsulanTransportCard({
     }
   }
 
-  const isDiterapkan = item.usulanStatus === 'diterapkan'
+  const isDiterapkan = item.jumlahPenerima > 1 ? diterapkanLokal : item.usulanStatus === 'diterapkan'
   const isDiabaikan = item.usulanStatus === 'diabaikan'
 
   return (
@@ -307,7 +311,7 @@ export function UsulanTransportPanel({ stId, pelaksanaList, onTerapkan }: Props)
           <div className="space-y-3">
             {usulanList.map((item) => (
               <UsulanTransportCard
-                key={item.berkasId}
+                key={`${item.berkasId}-${item.pelaksanaIndex}`}
                 item={item}
                 pelaksanaList={pelaksanaList}
                 onTerapkan={onTerapkan}

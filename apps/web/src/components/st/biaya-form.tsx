@@ -339,3 +339,35 @@ export function BiayaBaris({
     </tr>
   );
 }
+
+/** Baris judul kelompok dalam tabel biaya, dengan subtotal kelompok di kanan. */
+export function BarisKelompok({ judul, subtotal, catatan }: { judul: string; subtotal: number; catatan?: string }) {
+  return (
+    <tr className="border-t border-slate-200 bg-slate-50/70 first:border-t-0 dark:border-slate-800 dark:bg-slate-900/40">
+      <th colSpan={3} scope="colgroup" className="px-2 py-1.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-300">
+        {judul}
+        {catatan ? <span className="ml-2 font-normal text-muted-foreground">{catatan}</span> : null}
+      </th>
+      <td className="px-2 py-1.5 text-right font-mono text-xs font-semibold tabular-nums">{rupiah(subtotal)}</td>
+      <td colSpan={3} />
+    </tr>
+  )
+}
+
+/** Baris hasil hitung otomatis (uang harian, penginapan): hanya baca. */
+export function BarisHitung({ baris }: { baris: BarisBiaya }) {
+  return (
+    <tr className="align-top border-t border-slate-200 dark:border-slate-800">
+      <td className="p-2 text-xs">
+        <p>{baris.uraian}</p>
+        {baris.catatan ? <p className="mt-0.5 text-muted-foreground">{baris.catatan}</p> : null}
+      </td>
+      <td className="p-2 text-center text-xs tabular-nums">{baris.qty ? `${baris.qty}${baris.satuan ? ` ${baris.satuan}` : ''}` : '-'}</td>
+      <td className="p-2 text-right text-xs tabular-nums">{baris.tarif ? rupiah(baris.tarif) : '-'}</td>
+      <td className="p-2 text-right font-mono text-sm font-medium tabular-nums">{rupiah(baris.jumlah)}</td>
+      <td colSpan={3} className="p-2 text-xs text-muted-foreground">
+        {baris.keterangan}
+      </td>
+    </tr>
+  )
+}

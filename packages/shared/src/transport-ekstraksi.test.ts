@@ -371,4 +371,118 @@ describe("petakanTransportKeUsulan", () => {
     expect(usulan[0]!.pelaksanaIndex).toBe(1);
     expect(usulan[0]!.jenisBiaya).toBe("TIKET_PERGI");
   });
+
+  it("membagi tarif tiket dua penumpang rata ke dua pelaksana", () => {
+    const st = {
+      pelaksana: [
+        {
+          nama: "Riandi Eko Priantoro, S.Hut",
+          etape: [
+            {
+              berangkat: "2026-10-07",
+              pulang: "2026-10-09",
+              provinsi: "PAPUA BARAT DAYA",
+            },
+          ],
+        },
+        {
+          nama: "Lusi Ardiputri, S.Hut",
+          etape: [
+            {
+              berangkat: "2026-10-07",
+              pulang: "2026-10-09",
+              provinsi: "PAPUA BARAT DAYA",
+            },
+          ],
+        },
+      ],
+    } as unknown as SuratTugasPayload;
+    const berkas = [
+      {
+        id: 23,
+        jenis: "tiket",
+        namaAsli: "tiket.pdf",
+        pelaksanaId: null,
+        ekstraksi: {
+          status: "selesai",
+          usulanStatus: "menunggu",
+          hasil: {
+            maskapai: "Garuda Indonesia",
+            kodeBooking: "DND22S",
+            nomorTiket: "126-2148945518",
+            penumpang: "MR Riandi Eko Priantoro",
+            daftarPenumpang: ["MR Riandi Eko Priantoro", "MRS Lusi Ardiputri"],
+            asal: "Jakarta (CGK)",
+            tujuan: "Sorong (SOQ)",
+            tanggal: "2026-10-07",
+            tarif: 12597345,
+            arah: "pergi",
+          },
+        },
+      },
+    ] as unknown as BerkasDto[];
+    const hasil = petakanTransportKeUsulan(berkas, st);
+    expect(hasil).toHaveLength(2);
+    expect(hasil.map((u) => u.pelaksanaIndex)).toEqual([0, 1]);
+    expect(hasil.map((u) => u.tarifRiil)).toEqual([6298673, 6298672]);
+    expect(hasil.reduce((a, u) => a + u.tarifRiil, 0)).toBe(12597345);
+    expect(hasil[0]?.jumlahPenerima).toBe(2);
+  });
+
+  it("memakai harga apa adanya bila basis tarif per penumpang", () => {
+    const st = {
+      pelaksana: [
+        {
+          nama: "Riandi Eko Priantoro, S.Hut",
+          etape: [
+            {
+              berangkat: "2026-10-07",
+              pulang: "2026-10-09",
+              provinsi: "PAPUA BARAT DAYA",
+            },
+          ],
+        },
+        {
+          nama: "Lusi Ardiputri, S.Hut",
+          etape: [
+            {
+              berangkat: "2026-10-07",
+              pulang: "2026-10-09",
+              provinsi: "PAPUA BARAT DAYA",
+            },
+          ],
+        },
+      ],
+    } as unknown as SuratTugasPayload;
+    const berkas = [
+      {
+        id: 23,
+        jenis: "tiket",
+        namaAsli: "tiket.pdf",
+        pelaksanaId: null,
+        ekstraksi: {
+          status: "selesai",
+          usulanStatus: "menunggu",
+          hasil: {
+            maskapai: "Garuda Indonesia",
+            kodeBooking: "DND22S",
+            nomorTiket: "126-2148945518",
+            penumpang: "MR Riandi Eko Priantoro",
+            daftarPenumpang: ["MR Riandi Eko Priantoro", "MRS Lusi Ardiputri"],
+            asal: "Jakarta (CGK)",
+            tujuan: "Sorong (SOQ)",
+            tanggal: "2026-10-07",
+            tarif: 6298672,
+            basisTarif: "per_penumpang",
+            arah: "pergi",
+          },
+        },
+      },
+    ] as unknown as BerkasDto[];
+    const hasil = petakanTransportKeUsulan(berkas, st);
+    expect(hasil).toHaveLength(2);
+    expect(hasil.map((u) => u.pelaksanaIndex)).toEqual([0, 1]);
+    expect(hasil.map((u) => u.tarifRiil)).toEqual([6298672, 6298672]);
+    expect(hasil[0]?.jumlahPenerima).toBe(2);
+  });
 });

@@ -24,7 +24,7 @@ import {
 } from '@spjan/shared'
 
 import { FormPegawai } from '@/components/pegawai-form'
-import { BiayaBaris } from '@/components/st/biaya-form'
+import { BarisHitung, BarisKelompok, BiayaBaris } from '@/components/st/biaya-form'
 import { BlokForm } from '@/components/st/blok-form'
 import { EtapeForm } from '@/components/st/etape-form'
 import { Badge } from '@/components/ui/badge'
@@ -372,7 +372,7 @@ export function PelaksanaCard({
             </div>
           </BlokForm>
 
-          <BlokForm judul="Transportasi">
+          <BlokForm judul="Biaya Perjalanan">
             <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[56rem] table-fixed border-collapse text-sm">
@@ -392,6 +392,7 @@ export function PelaksanaCard({
                     </tr>
                   </thead>
                   <tbody>
+                    <BarisKelompok judul="Transportasi" subtotal={hasil?.totalTransport ?? 0} />
                     {p.biaya.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="px-3 py-4 text-center text-sm text-muted-foreground">
@@ -413,6 +414,22 @@ export function PelaksanaCard({
                         onHapus={() => onUbah((x) => ({ ...x, biaya: x.biaya.filter((_, j) => j !== i) }))}
                       />
                     ))}
+                    {hasil && hasil.uangHarian.length > 0 ? (
+                      <>
+                        <BarisKelompok judul="Uang harian" subtotal={hasil.totalUangHarian} catatan="dihitung otomatis dari tanggal" />
+                        {hasil.uangHarian.map((r, k) => (
+                          <BarisHitung key={k} baris={r} />
+                        ))}
+                      </>
+                    ) : null}
+                    {hasil && hasil.penginapan.length > 0 ? (
+                      <>
+                        <BarisKelompok judul="Penginapan" subtotal={hasil.totalPenginapan} catatan="tarif & hotel diisi di Tujuan Perjalanan" />
+                        {hasil.penginapan.map((r, k) => (
+                          <BarisHitung key={k} baris={r} />
+                        ))}
+                      </>
+                    ) : null}
                   </tbody>
                 </table>
               </div>
