@@ -14,16 +14,13 @@ import {
   UploadCloudIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import {
-  BATAS_BERKAS,
-  JENIS_BERKAS_LABEL,
-  type BerkasDto,
-} from '@spjan/shared'
+import { BATAS_BERKAS, type BerkasDto } from '@spjan/shared'
 
+import { ChipJenisBerkas } from '@/components/st/chip-jenis-berkas'
 import { HapusBerkasDialog } from '@/components/st/hapus-berkas-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -152,8 +149,8 @@ export function BuktiPanel({ stId }: { stId: number }) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1.5">
+      <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
           <CardTitle className="flex flex-wrap items-center gap-2">
             <span>Bukti Biaya Perjalanan</span>
             {daftarBerkas.length > 0 && (
@@ -168,7 +165,6 @@ export function BuktiPanel({ stId }: { stId: number }) {
               </Badge>
             )}
           </CardTitle>
-          <CardDescription>Kuitansi/invoice hotel, tiket pesawat, dan boarding pass.</CardDescription>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input
@@ -207,15 +203,17 @@ export function BuktiPanel({ stId }: { stId: number }) {
             setDragOver(false)
             if (e.dataTransfer.files) void prosesUnggah(e.dataTransfer.files)
           }}
-          className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
-            dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'
+          className={`flex min-h-16 items-center gap-3 rounded-lg border border-dashed px-4 py-3 transition-colors ${
+            dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/30 hover:border-primary/50'
           }`}
         >
-          <UploadCloudIcon className="mb-2 size-7 text-muted-foreground" />
-          <p className="text-sm font-medium">Tarik & lepaskan bukti biaya ke sini, atau gunakan tombol Unggah Berkas</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Mendukung PDF, JPG, PNG, WebP hingga {BATAS_BERKAS.maksUkuranMb} MB per berkas.
-          </p>
+          <UploadCloudIcon className="size-6 shrink-0 text-muted-foreground" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Tarik & lepaskan kuitansi, invoice hotel, atau tiket ke sini</p>
+            <p className="text-xs text-muted-foreground">
+              PDF, JPG, PNG, WebP · maksimal {BATAS_BERKAS.maksUkuranMb} MB per berkas
+            </p>
+          </div>
         </div>
 
     {/* Tabel Berkas */}
@@ -229,7 +227,6 @@ export function BuktiPanel({ stId }: { stId: number }) {
           <TableHeader>
             <TableRow>
               <TableHead>Nama Berkas / Keterangan</TableHead>
-              <TableHead className="w-28">Ukuran</TableHead>
               <TableHead className="w-36">Jenis</TableHead>
               <TableHead className="w-40">Status Baca</TableHead>
               <TableHead className="w-28 text-right">Aksi</TableHead>
@@ -268,22 +265,14 @@ export function BuktiPanel({ stId }: { stId: number }) {
                             &ldquo;{b.keterangan}&rdquo;
                           </span>
                         ) : null}
-                        <span className="text-[11px] text-muted-foreground">
-                          {tanggalPendek(b.createdAt.slice(0, 10))}
+                        <span className="text-xs text-muted-foreground">
+                          {tanggalPendek(b.createdAt.slice(0, 10))} · {formatUkuran(b.ukuran)}
                         </span>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {formatUkuran(b.ukuran)}
-                  </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={b.jenis === 'dokumentasi' ? 'default' : 'muted'}
-                      className="text-xs font-normal"
-                    >
-                      {JENIS_BERKAS_LABEL[b.jenis]}
-                    </Badge>
+                    <ChipJenisBerkas jenis={b.jenis} />
                   </TableCell>
                   <TableCell>
                     {status === 'antre' && (

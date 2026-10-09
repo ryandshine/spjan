@@ -2,13 +2,9 @@ import { useState } from 'react'
 import {
   AlertTriangleIcon,
   CarIcon,
-  CheckCircle2Icon,
-  CheckIcon,
   Loader2Icon,
   PlaneIcon,
-  RotateCcwIcon,
   TicketIcon,
-  XIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -22,9 +18,9 @@ import {
   type UsulanTransportItem,
 } from '@spjan/shared'
 
+import { FormTerapkan, PilihanTerapkan, StatusUsulanChip } from '@/components/st/kartu-usulan'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select } from '@/components/ui/select'
 import { pesanGalat, rupiah } from '@/lib/format'
@@ -160,25 +156,11 @@ function UsulanTransportCard({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Badge variant="outline" className="text-xs">
             {JENIS_LABEL[item.jenisBiaya]}
           </Badge>
-          {isDiterapkan && (
-            <Badge variant="success" className="text-xs">
-              <CheckCircle2Icon className="mr-1 size-3" /> Diterapkan
-            </Badge>
-          )}
-          {isDiabaikan && (
-            <Badge variant="muted" className="text-xs">
-              Diabaikan
-            </Badge>
-          )}
-          {!isDiterapkan && !isDiabaikan && (
-            <Badge variant="warning" className="text-xs">
-              Usulan Baru
-            </Badge>
-          )}
+          <StatusUsulanChip status={item.usulanStatus} sedangProses={updateUsulan.isPending} onReset={() => void handleResetStatus()} />
         </div>
       </div>
 
@@ -230,88 +212,45 @@ function UsulanTransportCard({
         </div>
       )}
 
-      {/* Pemilihan Pelaksana, Tujuan Perjalanan, & Jenis Biaya */}
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="text-xs text-muted-foreground">Terapkan ke:</label>
-          <Select
-            className="w-52 text-xs"
-            value={selectedPelaksana}
-            onChange={(e) => {
-              const pIdx = Number(e.target.value)
-              setSelectedPelaksana(pIdx)
-              setSelectedEtape(0)
-            }}
-          >
-            {pelaksanaList.map((p, idx) => (
-              <option key={idx} value={idx}>
-                {idx + 1}. {p.nama || '(Tanpa nama)'}
-              </option>
-            ))}
-          </Select>
-
-          {etapeList.length > 0 && (
-            <Select
-              className="w-44 text-xs"
-              value={selectedEtape ?? ''}
-              onChange={(e) => setSelectedEtape(e.target.value === '' ? null : Number(e.target.value))}
-            >
-              <option value="">Otomatis (Tujuan Terdekat)</option>
-              {etapeList.map((e, idx) => (
-                <option key={idx} value={idx}>
-                  Tujuan {idx + 1}: {e.kota || e.provinsi || '-'}
+      {isDiterapkan || isDiabaikan ? null : (
+        <FormTerapkan
+          pelaksanaList={pelaksanaList}
+          pelaksana={selectedPelaksana}
+          onPilihPelaksana={(idx) => {
+            setSelectedPelaksana(idx)
+            setSelectedEtape(0)
+          }}
+          sedangProses={updateUsulan.isPending}
+          onAbaikan={() => void handleAbaikan()}
+          onTerapkan={() => void handleTerapkan()}
+        >
+          {etapeList.length > 0 ? (
+            <PilihanTerapkan label="Tujuan perjalanan">
+              <Select
+                className="w-full text-xs"
+                value={selectedEtape ?? ''}
+                onChange={(e) => setSelectedEtape(e.target.value === '' ? null : Number(e.target.value))}
+              >
+                <option value="">Otomatis (Tujuan Terdekat)</option>
+                {etapeList.map((e, idx) => (
+                  <option key={idx} value={idx}>
+                    Tujuan {idx + 1}: {e.kota || e.provinsi || '-'}
+                  </option>
+                ))}
+              </Select>
+            </PilihanTerapkan>
+          ) : null}
+          <PilihanTerapkan label="Jenis biaya">
+            <Select className="w-full text-xs" value={selectedJenisBiaya} onChange={(e) => setSelectedJenisBiaya(e.target.value as JenisBiaya)}>
+              {JENIS_BIAYA.map((j) => (
+                <option key={j} value={j}>
+                  {JENIS_LABEL[j]}
                 </option>
               ))}
             </Select>
-          )}
-
-          <Select
-            className="w-48 text-xs"
-            value={selectedJenisBiaya}
-            onChange={(e) => setSelectedJenisBiaya(e.target.value as JenisBiaya)}
-          >
-            {JENIS_BIAYA.map((j) => (
-              <option key={j} value={j}>
-                {JENIS_LABEL[j]}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {isDiterapkan || isDiabaikan ? (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={updateUsulan.isPending}
-              onClick={() => void handleResetStatus()}
-              className="text-xs"
-            >
-              <RotateCcwIcon className="mr-1 size-3.5" /> Reset Status
-            </Button>
-          ) : (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={updateUsulan.isPending}
-                onClick={() => void handleAbaikan()}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                <XIcon className="mr-1 size-3.5" /> Abaikan
-              </Button>
-              <Button
-                size="sm"
-                disabled={updateUsulan.isPending || pelaksanaList.length === 0}
-                onClick={() => void handleTerapkan()}
-                className="text-xs"
-              >
-                <CheckIcon className="mr-1 size-3.5" /> Terapkan ke Biaya
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+          </PilihanTerapkan>
+        </FormTerapkan>
+      )}
     </div>
   )
 }

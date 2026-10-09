@@ -143,8 +143,8 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1.5">
+      <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0 space-y-1.5">
           <CardTitle className="flex flex-wrap items-center gap-2">
             <span>Foto Dokumentasi Kegiatan</span>
             {foto.length > 0 ? (
@@ -198,16 +198,17 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
               setDragOver(false)
               if (e.dataTransfer.files) void prosesUnggah(e.dataTransfer.files)
             }}
-            className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
-              dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
+            className={`flex min-h-16 items-center gap-3 rounded-lg border border-dashed px-4 py-3 transition-colors ${
+              dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/30'
             }`}
           >
-            <ImageIcon className="mb-2 size-10 text-muted-foreground/40" />
-            <p className="text-sm font-medium">Belum ada foto dokumentasi</p>
-            <p className="mt-1 max-w-sm text-xs text-muted-foreground">
-              Tarik foto kegiatan ke sini, atau gunakan tombol di atas. Mendukung JPG, PNG, WebP hingga{' '}
-              {BATAS_BERKAS.maksUkuranMb} MB per foto.
-            </p>
+            <ImageIcon className="size-6 shrink-0 text-muted-foreground/50" aria-hidden />
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Belum ada foto dokumentasi</p>
+              <p className="text-xs text-muted-foreground">
+                Tarik foto kegiatan ke sini · JPG, PNG, WebP · maksimal {BATAS_BERKAS.maksUkuranMb} MB per foto
+              </p>
+            </div>
           </div>
         ) : (
           <div
@@ -221,27 +222,22 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
               setDragOver(false)
               if (e.dataTransfer.files) void prosesUnggah(e.dataTransfer.files)
             }}
-            className={`grid grid-cols-1 gap-4 rounded-lg sm:grid-cols-2 md:grid-cols-3 ${dragOver ? 'ring-2 ring-primary/50' : ''}`}
+            className={`grid grid-cols-2 gap-3 rounded-lg sm:grid-cols-3 xl:grid-cols-4 ${dragOver ? 'ring-2 ring-primary/50' : ''}`}
           >
             {foto.map((b, idx) => {
               const sedangEdit = editCaptionId === b.id
               return (
                 <div
                   key={b.id}
-                  className="group relative flex flex-col gap-1"
+                  className="group relative flex min-w-0 flex-col overflow-hidden rounded-lg border bg-card"
                 >
-                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-muted">
+                  <div className="relative aspect-square w-full overflow-hidden bg-muted">
                     <img
                       src={`/api/berkas/${b.id}/isi`}
                       alt={b.keterangan || b.namaAsli}
                       className="h-full w-full object-cover transition-transform group-hover:scale-105"
                       loading="lazy"
                     />
-                    <div className="absolute left-2 top-2">
-                      <span className="inline-flex items-center rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
-                        Foto #{idx + 1}
-                      </span>
-                    </div>
                     <div className="absolute right-2 top-2 flex gap-1">
                       <Button
                         size="icon"
@@ -274,7 +270,13 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
                     </div>
                   </div>
 
-                  <div className="flex flex-1 flex-col gap-2">
+                  <div className="flex flex-1 flex-col gap-1.5 p-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge variant="default">Foto #{idx + 1}</Badge>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {tanggalPendek(b.createdAt.slice(0, 10))} · {formatUkuran(b.ukuran)}
+                      </span>
+                    </div>
                     {sedangEdit ? (
                       <div className="space-y-1.5">
                         <Input
@@ -317,13 +319,11 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
                           </p>
                           <Edit2Icon className="ml-1 size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/caption:opacity-100" />
                         </div>
-                        <p className="mt-0.5 text-[10px] text-muted-foreground [overflow-wrap:anywhere]">{b.namaAsli}</p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground" title={b.namaAsli}>
+                          {b.namaAsli}
+                        </p>
                       </div>
                     )}
-                    <div className="mt-auto flex items-center justify-between pt-1 text-[10px] text-muted-foreground">
-                      <span>{formatUkuran(b.ukuran)}</span>
-                      <span>{tanggalPendek(b.createdAt.slice(0, 10))}</span>
-                    </div>
                   </div>
                 </div>
               )

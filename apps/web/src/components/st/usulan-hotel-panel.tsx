@@ -1,19 +1,15 @@
 import { useState } from 'react'
 import {
   AlertTriangleIcon,
-  CheckCircle2Icon,
-  CheckIcon,
   HotelIcon,
   Loader2Icon,
-  RotateCcwIcon,
-  XIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { PelaksanaPayload, UsulanHotelItem } from '@spjan/shared'
 
+import { FormTerapkan, PilihanTerapkan, StatusUsulanChip } from '@/components/st/kartu-usulan'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select } from '@/components/ui/select'
 import { pesanGalat, rupiah } from '@/lib/format'
@@ -125,7 +121,7 @@ function UsulanHotelCard({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {item.statusPlafon === 'sesuai' && (
             <Badge variant="success" className="text-xs">
               Sesuai SBM ({item.plafonSbmPerMalam ? rupiah(item.plafonSbmPerMalam) : '-'})
@@ -142,21 +138,7 @@ function UsulanHotelCard({
             </Badge>
           )}
 
-          {isDiterapkan && (
-            <Badge variant="success" className="text-xs">
-              <CheckCircle2Icon className="mr-1 size-3" /> Diterapkan
-            </Badge>
-          )}
-          {isDiabaikan && (
-            <Badge variant="muted" className="text-xs">
-              Diabaikan
-            </Badge>
-          )}
-          {!isDiterapkan && !isDiabaikan && (
-            <Badge variant="warning" className="text-xs">
-              Usulan Baru
-            </Badge>
-          )}
+          <StatusUsulanChip status={item.usulanStatus} sedangProses={updateUsulan.isPending} onReset={() => void handleResetStatus()} />
         </div>
       </div>
 
@@ -198,75 +180,31 @@ function UsulanHotelCard({
         </div>
       )}
 
-      {/* Pemilihan Pelaksana & Tujuan Perjalanan */}
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="text-xs text-muted-foreground">Terapkan ke:</label>
-          <Select
-            className="w-56 text-xs"
-            value={selectedPelaksana}
-            onChange={(e) => {
-              const pIdx = Number(e.target.value)
-              setSelectedPelaksana(pIdx)
-              setSelectedEtape(0)
-            }}
-          >
-            {pelaksanaList.map((p, idx) => (
-              <option key={idx} value={idx}>
-                {idx + 1}. {p.nama || '(Tanpa nama)'}
-              </option>
-            ))}
-          </Select>
-
-          {etapeList.length > 0 && (
-            <Select
-              className="w-48 text-xs"
-              value={selectedEtape}
-              onChange={(e) => setSelectedEtape(Number(e.target.value))}
-            >
-              {etapeList.map((e, idx) => (
-                <option key={idx} value={idx}>
-                  Tujuan {idx + 1}: {e.kota || e.provinsi || '-'}
-                </option>
-              ))}
-            </Select>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {isDiterapkan || isDiabaikan ? (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={updateUsulan.isPending}
-              onClick={() => void handleResetStatus()}
-              className="text-xs"
-            >
-              <RotateCcwIcon className="mr-1 size-3.5" /> Reset Status
-            </Button>
-          ) : (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={updateUsulan.isPending}
-                onClick={() => void handleAbaikan()}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                <XIcon className="mr-1 size-3.5" /> Abaikan
-              </Button>
-              <Button
-                size="sm"
-                disabled={updateUsulan.isPending || pelaksanaList.length === 0}
-                onClick={() => void handleTerapkan()}
-                className="text-xs"
-              >
-                <CheckIcon className="mr-1 size-3.5" /> Terapkan ke Biaya
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+      {isDiterapkan || isDiabaikan ? null : (
+        <FormTerapkan
+          pelaksanaList={pelaksanaList}
+          pelaksana={selectedPelaksana}
+          onPilihPelaksana={(idx) => {
+            setSelectedPelaksana(idx)
+            setSelectedEtape(0)
+          }}
+          sedangProses={updateUsulan.isPending}
+          onAbaikan={() => void handleAbaikan()}
+          onTerapkan={() => void handleTerapkan()}
+        >
+          {etapeList.length > 0 ? (
+            <PilihanTerapkan label="Tujuan perjalanan">
+              <Select className="w-full text-xs" value={selectedEtape} onChange={(e) => setSelectedEtape(Number(e.target.value))}>
+                {etapeList.map((e, idx) => (
+                  <option key={idx} value={idx}>
+                    Tujuan {idx + 1}: {e.kota || e.provinsi || '-'}
+                  </option>
+                ))}
+              </Select>
+            </PilihanTerapkan>
+          ) : null}
+        </FormTerapkan>
+      )}
     </div>
   )
 }
