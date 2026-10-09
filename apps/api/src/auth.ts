@@ -28,7 +28,7 @@ const TIRUAN = hashPassword("tidak-pernah-dipakai");
 
 export async function login(db: Db, username: string, password: string): Promise<{ token: string; user: SessionUser } | null> {
   const { rows } = await db.query<{ id: number; username: string; nama: string; peran: Peran; password_salt: string; password_hash: string }>(
-    "select id, username, nama, peran, password_salt, password_hash from users where username = $1 and aktif",
+    "select id, username, nama, peran, password_salt, password_hash from users u where username = $1 and aktif and (pegawai_id is null or exists (select 1 from pegawai p where p.id = u.pegawai_id and p.aktif))",
     [username],
   );
   const row = rows[0];
@@ -49,7 +49,8 @@ export async function userFromToken(db: Db, token: string | undefined): Promise<
   const { rows } = await db.query<SessionUser>(
     `select u.id, u.username, u.nama, u.peran
        from sessions s join users u on u.id = s.user_id
-      where s.token_hash = $1 and s.expires_at > now() and u.aktif`,
+      where s.token_hash = $1 and s.expires_at > now() and u.aktif
+        and (u.pegawai_id is null or exists (select 1 from pegawai p where p.id = u.pegawai_id and p.aktif))`,
     [hashSessionToken(token)],
   );
   return rows[0] ?? null;

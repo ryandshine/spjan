@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { KeyRoundIcon, PlusIcon } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
-import { BuatPenggunaSchema, PERAN, type PenggunaDto, type Peran } from '@spjan/shared'
+import { BuatPenggunaDariPegawaiSchema, BuatPenggunaManualSchema, PERAN, type PenggunaDto, type Peran } from '@spjan/shared'
 
 import { DataTable, type Kolom } from '@/components/data-table'
 import { PageHeader } from '@/components/page-header'
@@ -13,22 +14,29 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { pesanGalat, tanggalPendek } from '@/lib/format'
-import { useMe, usePengguna, usePenggunaMutations } from '@/lib/queries'
+import { useMe, usePegawai, usePengguna, usePenggunaMutations } from '@/lib/queries'
 
 const LABEL_PERAN: Record<Peran, string> = { admin: 'Admin', operator: 'Operator' }
 
-function DialogBuat({ buka, onBukaChange }: { buka: boolean; onBukaChange: (b: boolean) => void }) {
+function DialogBuat({ buka, onBukaChange, pegawaiAwal }: { buka: boolean; onBukaChange: (b: boolean) => void; pegawaiAwal: number | null }) {
   const { buat } = usePenggunaMutations()
+  const pegawai = usePegawai(true)
+  const tanpaAkun = (pegawai.data ?? []).filter((p) => !p.punyaAkun)
+  const [manual, setManual] = useState(false)
+  const [pegawaiId, setPegawaiId] = useState<number | null>(pegawaiAwal)
   const [form, setForm] = useState({ username: '', nama: '', peran: 'operator' as Peran, password: '' })
   const [galat, setGalat] = useState<string | null>(null)
 
   async function kirim() {
-    const cek = BuatPenggunaSchema.safeParse(form)
-    if (!cek.success) return setGalat(cek.error.issues[0]?.message ?? 'Isian belum benar.')
+    const cek = manual
+      ? BuatPenggunaManualSchema.safeParse(form)
+      : BuatPenggunaDariPegawaiSchema.safeParse({ pegawaiId, peran: form.peran, password: form.password })
+    if (!cek.success) return setGalat(!manual && pegawaiId === null ? 'Pilih pegawai dulu.' : (cek.error.issues[0]?.message ?? 'Isian belum benar.'))
     try {
-      await buat.mutateAsync(cek.data)
-      toast.success(`Akun ${cek.data.username} dibuat.`)
+      const dto = await buat.mutateAsync(cek.data)
+      toast.success(`Akun ${dto.nama} dibuat. Login dengan ${dto.username}.`)
       setForm({ username: '', nama: '', peran: 'operator', password: '' })
+      setPegawaiId(null)
       setGalat(null)
       onBukaChange(false)
     } catch (error) {
@@ -48,14 +56,36 @@ function DialogBuat({ buka, onBukaChange }: { buka: boolean; onBukaChange: (b: b
         >
           <DialogHeader>
             <DialogTitle>Tambah pengguna</DialogTitle>
-            <DialogDescription>Satu orang satu akun. Berikan password awal; pengguna bisa menggantinya sendiri.</DialogDescription>
+            <DialogDescription>
+              Akun dibuat dari data pegawai: nama dan NIP ikut data pegawai, dan login memakai NIP. Berikan password awal; pengguna bisa menggantinya sendiri.
+            </DialogDescription>
           </DialogHeader>
-          <Field label="Username" htmlFor="pg-username" mode="wajib" hint="Huruf kecil, angka, titik, garis bawah, atau strip.">
-            <Input id="pg-username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} autoComplete="off" />
-          </Field>
-          <Field label="Nama lengkap" htmlFor="pg-nama" mode="wajib">
-            <Input id="pg-nama" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} />
-          </Field>
+          {manual ? (
+            <>
+              <Field label="Username" htmlFor="pg-username" mode="wajib" hint="Huruf kecil, angka, titik, garis bawah, atau strip.">
+                <Input id="pg-username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} autoComplete="off" />
+              </Field>
+              <Field label="Nama lengkap" htmlFor="pg-nama" mode="wajib">
+                <Input id="pg-nama" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} />
+              </Field>
+            </>
+          ) : (
+            <Field
+              label="Pegawai"
+              htmlFor="pg-pegawai"
+              mode="wajib"
+              hint={tanpaAkun.length === 0 && !pegawai.isPending ? 'Semua pegawai aktif sudah punya akun. Tambah pegawai di menu Pegawai.' : undefined}
+            >
+              <Select id="pg-pegawai" value={pegawaiId ?? ''} onChange={(e) => setPegawaiId(e.target.value === '' ? null : Number(e.target.value))}>
+                <option value="">- pilih pegawai -</option>
+                {tanpaAkun.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nama} ({p.nip})
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
           <Field label="Peran" htmlFor="pg-peran" mode="wajib" hint="Operator menyusun SPJ dan hanya mengubah surat tugas buatannya. Admin bisa semuanya.">
             <Select id="pg-peran" value={form.peran} onChange={(e) => setForm({ ...form, peran: e.target.value as Peran })}>
               {PERAN.map((p) => (
@@ -68,6 +98,9 @@ function DialogBuat({ buka, onBukaChange }: { buka: boolean; onBukaChange: (b: b
           <Field label="Password awal" htmlFor="pg-password" mode="wajib" hint="Minimal 10 karakter.">
             <Input id="pg-password" type="password" autoComplete="new-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
           </Field>
+          <button type="button" className="justify-self-start text-xs text-primary underline-offset-2 hover:underline" onClick={() => setManual((m) => !m)}>
+            {manual ? 'Kembali: pilih dari data pegawai' : 'Akun sistem tanpa pegawai (khusus)'}
+          </button>
           {galat ? <Alert variant="destructive">{galat}</Alert> : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onBukaChange(false)}>
@@ -138,7 +171,9 @@ export default function PenggunaPage() {
   const daftar = usePengguna()
   const me = useMe()
   const { ubah } = usePenggunaMutations()
-  const [buat, setBuat] = useState(false)
+  const lokasi = useLocation()
+  const awalId = (lokasi.state as { pegawaiId?: number } | null)?.pegawaiId ?? null
+  const [buat, setBuat] = useState(awalId !== null)
   const [reset, setReset] = useState<PenggunaDto | null>(null)
 
   async function simpan(p: PenggunaDto, data: { peran?: Peran; aktif?: boolean }) {
@@ -152,7 +187,8 @@ export default function PenggunaPage() {
 
   const kolom: Kolom<PenggunaDto>[] = [
     { judul: 'Nama', teks: (p) => p.nama, sel: (p) => <span className="font-medium">{p.nama}</span> },
-    { judul: 'Username', teks: (p) => p.username, sel: (p) => p.username },
+    { judul: 'Username (NIP)', teks: (p) => p.username, sel: (p) => <span className="tabular-nums">{p.username}</span> },
+    { judul: 'Pegawai', sel: (p) => (p.pegawaiId !== null ? <Badge variant="muted">Terhubung</Badge> : <span className="text-muted-foreground">Akun sistem</span>) },
     {
       judul: 'Peran',
       sel: (p) => (
@@ -200,7 +236,7 @@ export default function PenggunaPage() {
         }
       />
       {daftar.isError ? <Alert variant="destructive">{pesanGalat(daftar.error)}</Alert> : <DataTable kolom={kolom} baris={daftar.data ?? []} kosong={daftar.isPending ? 'Memuat...' : 'Belum ada pengguna.'} />}
-      <DialogBuat buka={buat} onBukaChange={setBuat} />
+      <DialogBuat key={awalId ?? 'baru'} buka={buat} onBukaChange={setBuat} pegawaiAwal={awalId} />
       <DialogReset target={reset} onTutup={() => setReset(null)} />
     </div>
   )

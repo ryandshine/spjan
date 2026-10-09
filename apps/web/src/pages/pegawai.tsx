@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { PencilIcon, PlusIcon, RotateCcwIcon, UserXIcon } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { STATUS_LABEL, type PegawaiDto } from '@spjan/shared'
 
@@ -17,6 +18,7 @@ export default function PegawaiPage() {
   const [tampilNonaktif, setTampilNonaktif] = useState(false)
   const daftar = usePegawai(!tampilNonaktif)
   const me = useMe()
+  const navigate = useNavigate()
   const { ubah, nonaktifkan } = usePegawaiMutations()
   const [dialog, setDialog] = useState<{ pegawai: PegawaiDto | null } | null>(null)
 
@@ -43,6 +45,19 @@ export default function PegawaiPage() {
     { judul: 'Jabatan', teks: (p) => p.jabatan, sel: (p) => p.jabatan || '-' },
     { judul: 'Pangkat / golongan', teks: (p) => p.pangkatGolongan, sel: (p) => p.pangkatGolongan || '-' },
     { judul: 'Instansi', teks: (p) => p.instansi, sel: (p) => p.instansi || '-' },
+    {
+      judul: 'Akun login',
+      sel: (p) =>
+        p.punyaAkun ? (
+          <Badge variant="success">Punya akun</Badge>
+        ) : me.data?.peran === 'admin' && p.aktif ? (
+          <Button variant="outline" size="sm" onClick={() => navigate('/pengguna', { state: { pegawaiId: p.id } })}>
+            Buat akun
+          </Button>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
+    },
     {
       judul: 'Status',
       teks: (p) => (p.status ? STATUS_LABEL[p.status] : ''),

@@ -21,7 +21,7 @@ export async function penggunaRoutes(app: FastifyInstance, opts: { db: Db }): Pr
   app.post("/pengguna", async (req, reply) => {
     const v = BuatPenggunaSchema.parse(req.body);
     const dto = await buatPengguna(opts.db, v);
-    await catatAudit(opts.db, penggunaAktif(req), { aksi: "pengguna.buat", entitas: "pengguna", entitasId: dto.id, detail: { username: dto.username, peran: dto.peran } });
+    await catatAudit(opts.db, penggunaAktif(req), { aksi: "pengguna.buat", entitas: "pengguna", entitasId: dto.id, detail: { username: dto.username, peran: dto.peran, pegawaiId: dto.pegawaiId } });
     return reply.code(201).send(dto);
   });
 

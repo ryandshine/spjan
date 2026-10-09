@@ -16,10 +16,12 @@ interface Row {
 const map = (r: Row): PegawaiDto => ({ id: r.id, nama: r.nama, nip: r.nip, jabatan: r.jabatan, instansi: r.instansi, pangkatGolongan: r.pangkat_golongan, status: r.status_kode, aktif: r.aktif });
 
 export async function listPegawai(db: Db, soloAktif: boolean): Promise<PegawaiDto[]> {
-  const { rows } = await db.query<Row>(
-    `select id, nama, nip, jabatan, instansi, pangkat_golongan, status_kode, aktif from pegawai ${soloAktif ? "where aktif" : ""} order by nama`,
+  const { rows } = await db.query<Row & { punya_akun: boolean }>(
+    `select p.id, p.nama, p.nip, p.jabatan, p.instansi, p.pangkat_golongan, p.status_kode, p.aktif,
+            exists (select 1 from users u where u.pegawai_id = p.id) as punya_akun
+       from pegawai p ${soloAktif ? "where p.aktif" : ""} order by p.nama`,
   );
-  return rows.map(map);
+  return rows.map((r) => ({ ...map(r), punyaAkun: r.punya_akun }));
 }
 
 export async function getPegawai(db: Db, id: number): Promise<PegawaiDto | null> {
@@ -45,6 +47,7 @@ export async function updatePegawai(db: Db, id: number, p: Partial<PegawaiPayloa
       where id = $1 returning id, nama, nip, jabatan, instansi, pangkat_golongan, status_kode, aktif`,
     [id, baru.nama, baru.nip, baru.jabatan, baru.status, baru.instansi?.trim() || INSTANSI_BAWAAN, baru.pangkatGolongan?.trim() ?? ""],
   );
+  if (rows[0]) await db.query("update users set nama = $2 where pegawai_id = $1", [id, rows[0].nama]);
   return rows[0] ? map(rows[0]) : null;
 }
 

@@ -141,13 +141,23 @@ export interface PenggunaSesiDto {
 }
 
 export interface PenggunaDto extends PenggunaSesiDto {
+  /** Pegawai pemilik akun (identitas: nama dan NIP diambil dari sana); null untuk akun sistem. */
+  pegawaiId: number | null;
+  nip: string | null;
   aktif: boolean;
   createdAt: string;
 }
 
 const PasswordBaru = z.string().min(10, "Minimal 10 karakter.").max(200);
 
-export const BuatPenggunaSchema = z.object({
+/** Akun dari data pegawai: username = NIP, nama mengikuti pegawai. */
+export const BuatPenggunaDariPegawaiSchema = z.object({
+  pegawaiId: z.number().int().positive(),
+  peran: z.enum(PERAN),
+  password: PasswordBaru,
+});
+/** Akun sistem tanpa pegawai (mis. admin cadangan). */
+export const BuatPenggunaManualSchema = z.object({
   username: z
     .string()
     .trim()
@@ -157,6 +167,7 @@ export const BuatPenggunaSchema = z.object({
   peran: z.enum(PERAN),
   password: PasswordBaru,
 });
+export const BuatPenggunaSchema = z.union([BuatPenggunaDariPegawaiSchema, BuatPenggunaManualSchema]);
 export type BuatPenggunaPayload = z.infer<typeof BuatPenggunaSchema>;
 
 export const UbahPenggunaSchema = z
@@ -211,6 +222,8 @@ export interface SuratTugasDto extends SuratTugasPayload {
 export interface PegawaiDto extends PegawaiPayload {
   id: number;
   aktif: boolean;
+  /** Hanya terisi pada daftar pegawai: sudah punya akun login. */
+  punyaAkun?: boolean;
   instansi: string;
   pangkatGolongan: string;
 }

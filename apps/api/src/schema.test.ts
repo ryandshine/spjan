@@ -1,7 +1,11 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { closePool, pool } from "./db.js";
 import { seedSbm } from "./seed.js";
+import { bersihkanData } from "./test-support/helpers.js";
+
+// Berkas tes lain dapat meninggalkan baris model_ai yang diubah; mulai dari keadaan bawaan.
+beforeAll(bersihkanData);
 
 afterAll(async () => {
   await closePool();
