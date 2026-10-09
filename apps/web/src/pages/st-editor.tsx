@@ -207,7 +207,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
   }
 
   return (
-    <div className={modeLaporan ? undefined : 'pb-24'}>
+    <div className={modeLaporan ? undefined : 'pb-32'}>
       <PageHeader
         lengket={!modeLaporan}
         title={id === null ? 'Surat tugas baru' : st.nomor || 'Surat tugas'}

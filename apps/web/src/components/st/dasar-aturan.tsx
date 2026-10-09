@@ -8,7 +8,7 @@ export function DasarAturan({ judul, children }: { judul: string; children: Reac
   const [buka, setBuka] = useState(false)
   return (
     <>
-      <Button type="button" variant="link" className="h-auto justify-start p-0 text-xs" onClick={() => setBuka(true)}>
+      <Button type="button" variant="link" className="h-auto justify-start p-0 text-xs text-primary underline-offset-2 hover:underline" onClick={() => setBuka(true)}>
         Lihat dasar aturan
       </Button>
       <Dialog open={buka} onOpenChange={setBuka}>

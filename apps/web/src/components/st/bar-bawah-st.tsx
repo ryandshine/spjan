@@ -24,7 +24,7 @@ function ChipValidasi({ jumlah, onKlik }: { jumlah: number; onKlik: () => void }
       type="button"
       onClick={onKlik}
       title="Klik untuk menuju isian yang perlu dilengkapi"
-      className="inline-flex items-center gap-1.5 rounded-full bg-warning/20 px-3 py-1 text-xs font-medium text-warning-foreground transition-colors hover:bg-warning/30 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+      className="inline-flex items-center gap-1.5 cursor-pointer rounded-full bg-amber-100/60 px-3 py-1 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-100/80 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
       <TriangleAlertIcon className="size-3.5" aria-hidden /> {jumlah} isian belum lengkap
     </button>
@@ -55,28 +55,28 @@ export function BarBawahSt({
   const rincian = rincianTotal(hasil.pelaksana).filter((r) => r.nilai > 0 || RINCIAN_TETAP.has(r.label))
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-5 py-3 shadow-lg backdrop-blur md:left-60 md:px-8">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-6 py-3.5 shadow-lg backdrop-blur-md md:left-60 dark:border-slate-800 dark:bg-slate-900/95">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <ChipValidasi jumlah={periksa.length} onKlik={() => pertama && onPerbaiki(pertama.sasaranId, pertama.nomorPelaksana)} />
-        <div className="flex min-w-0 flex-1 flex-wrap items-baseline justify-end gap-x-4 gap-y-1">
-          <p className="hidden flex-wrap gap-x-2 text-xs text-muted-foreground tabular-nums lg:flex">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-x-5 gap-y-1">
+          <p className="hidden flex-wrap items-center gap-x-2 text-xs text-slate-500 tabular-nums lg:flex dark:text-slate-400">
             {rincian.map((r, i) => (
               <span key={r.label}>
-                {i > 0 ? <span aria-hidden>• </span> : null}
+                {i > 0 ? <span aria-hidden className="mr-2">•</span> : null}
                 {r.label}: {rupiah(r.nilai)}
               </span>
             ))}
           </p>
-          <p className="text-lg font-bold text-primary tabular-nums" title={hasil.terbilang} aria-live="polite">
-            <span className="mr-2 text-sm font-semibold text-foreground">Total SPTB</span>
-            {rupiah(hasil.total)}
+          <p className="flex items-baseline gap-1.5" title={hasil.terbilang} aria-live="polite">
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Total SPTB: </span>
+            <span className="font-mono text-lg font-bold tracking-tight text-emerald-600 dark:text-emerald-400">{rupiah(hasil.total)}</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
           {id !== null ? (
             <Link
               to={`/st/${id}/dokumen`}
-              className={buttonVariants({ variant: 'outline' })}
+              className={buttonVariants({ variant: 'outline' }) + ' gap-2 border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800'}
               aria-disabled={kotor}
               onClick={(e) => {
                 if (!kotor) return
@@ -87,7 +87,7 @@ export function BarBawahSt({
               <FileTextIcon className="size-4" /> Dokumen
             </Link>
           ) : null}
-          <Button onClick={onSimpan} disabled={menyimpan || (!kotor && id !== null)}>
+          <Button className="gap-2 rounded-lg bg-emerald-600 px-5 py-2 font-medium text-white shadow-sm hover:bg-emerald-700" onClick={onSimpan} disabled={menyimpan || (!kotor && id !== null)}>
             <SaveIcon /> {menyimpan ? 'Menyimpan...' : 'Simpan'}
           </Button>
         </div>

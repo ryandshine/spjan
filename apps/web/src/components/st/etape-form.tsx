@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BedDoubleIcon, CalendarIcon, CheckIcon, Trash2Icon, TriangleAlertIcon } from 'lucide-react'
+import { BedDoubleIcon, CheckIcon, InfoIcon, LockIcon, RotateCcwIcon, Trash2Icon, TriangleAlertIcon } from 'lucide-react'
 import {
   daftarHariIso,
   isKotaJabodetabek,
@@ -247,28 +247,40 @@ export function EtapeForm({
               }
             >
               <RupiahInput
+                awalan
                 id={id('tarif')}
                 value={etape.hotelTarif ?? (etape.hotel30Persen && tarif30 !== null ? tarif30 : null)}
                 onChange={(v) => onUbah({ hotelTarif: v })}
               />
             </Field>
-            <Field
-              label="Malam menginap"
-              htmlFor={id('malam')}
-              mode="otomatis"
-              otomatisAktif={etape.malamOverride == null}
-              onKembaliOtomatis={() => onUbah({ malamOverride: null })}
-              hint={bukaFullboard && jmlFullboard > 0 && jmlFullboard === listHari.length ? 'Otomatis 0 malam (seluruh hari paket rapat).' : undefined}
-            >
-              <Input
+            <div className="flex flex-col justify-start gap-1.5">
+              <div className="flex min-h-5 items-center">
+                <span className="text-sm font-medium text-foreground">Malam menginap</span>
+              </div>
+              <div
                 id={id('malam')}
-                type="number"
-                min={0}
-                placeholder={malam !== null ? `Otomatis: ${malam} malam` : 'Otomatis'}
-                value={etape.malamOverride ?? ''}
-                onChange={(e) => onUbah({ malamOverride: e.target.value === '' ? null : Number(e.target.value) })}
-              />
-            </Field>
+                role="status"
+                className="flex min-h-9 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 dark:border-slate-700/60 dark:bg-slate-800/60"
+              >
+                <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{malam !== null ? `${malam} Malam` : '-'}</span>
+                {etape.malamOverride == null ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-200/80 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                    <LockIcon className="size-3" aria-hidden /> Otomatis dari Tanggal
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onUbah({ malamOverride: null })}
+                    className="inline-flex items-center gap-1 rounded-full bg-slate-200/80 px-2 py-0.5 text-xs text-slate-600 transition-colors hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                  >
+                    <RotateCcwIcon className="size-3" aria-hidden /> Atur manual · kembali otomatis
+                  </button>
+                )}
+              </div>
+              {bukaFullboard && jmlFullboard > 0 && jmlFullboard === listHari.length ? (
+                <p className="text-xs leading-snug text-muted-foreground">Otomatis 0 malam (seluruh hari paket rapat).</p>
+              ) : null}
+            </div>
           </div>
         )}
       </div>
@@ -311,32 +323,45 @@ export function EtapeForm({
         ) : null}
 
         {listHari.length > 0 ? (
-          <div className="grid gap-2">
-            <label className="flex cursor-pointer items-start gap-2.5 text-sm select-none">
-              <input
-                type="checkbox"
-                checked={bukaFullboard}
-                onChange={(e) => handleToggleSection(e.target.checked)}
-                className="mt-0.5 size-4 rounded border-border text-primary focus:ring-primary"
-              />
-              <span>
-                <span className="font-medium text-foreground">
+          <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/30">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="flex cursor-pointer items-center gap-2.5 text-sm select-none">
+                <input
+                  type="checkbox"
+                  checked={bukaFullboard}
+                  onChange={(e) => handleToggleSection(e.target.checked)}
+                  className="size-4 rounded border-border text-primary focus:ring-primary"
+                />
+                <span className="font-semibold text-foreground">
                   Ada paket rapat di hotel (<Istilah kata="Fullboard" />)
-                  {bukaFullboard && jmlFullboard > 0 ? <Badge variant="default" className="ml-2">{jmlFullboard} dari {listHari.length} hari</Badge> : null}
                 </span>
-              </span>
-            </label>
+              </label>
+              {bukaFullboard ? (
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    jmlFullboard > 0
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                      : 'bg-slate-200/80 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                  }`}
+                  aria-live="polite"
+                >
+                  {jmlFullboard} dari {listHari.length} hari terpilih
+                </span>
+              ) : null}
+            </div>
 
             {bukaFullboard ? (
-              <div className="grid gap-2 pl-6">
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="grid gap-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs font-medium text-foreground">Pilih tanggal yang tercakup paket rapat:</p>
-                  <Button type="button" variant="outline" size="sm" onClick={pilihSemuaFullboard}>
-                    Pilih semua
-                  </Button>
-                  <Button type="button" variant="ghost" size="sm" onClick={kosongkanFullboard}>
-                    Kosongkan
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    <button type="button" className="text-xs text-primary hover:underline" onClick={pilihSemuaFullboard}>
+                      Pilih semua
+                    </button>
+                    <button type="button" className="text-xs text-primary hover:underline" onClick={kosongkanFullboard}>
+                      Kosongkan
+                    </button>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {listHari.map((tgl) => {
@@ -347,24 +372,27 @@ export function EtapeForm({
                         type="button"
                         aria-pressed={isChecked}
                         onClick={() => toggleFullboard(tgl, !isChecked)}
-                        className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+                        className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
                           isChecked
-                            ? 'border-primary bg-primary text-primary-foreground ring-1 ring-primary/30'
-                            : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted'
+                            ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700'
+                            : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
                         }`}
                       >
-                        {isChecked ? <CheckIcon className="size-3.5 stroke-[2.5]" /> : <CalendarIcon className="size-3.5 opacity-60" />}
+                        {isChecked ? <CheckIcon className="size-3.5 stroke-[3]" aria-hidden /> : null}
                         {labelTanggal(tgl)}
                       </button>
                     )
                   })}
                 </div>
                 {jmlFullboard > 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    <strong>{jmlFullboard} hari</strong> paket rapat (uang saku) dan <strong>{jmlBiasa} hari</strong> lain (uang harian penuh).
+                  <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <InfoIcon className="size-3.5 shrink-0" aria-hidden />
+                    <span>
+                      <strong>{jmlFullboard} hari</strong> paket rapat (uang saku) dan <strong>{jmlBiasa} hari</strong> lain (uang harian penuh).
+                    </span>
                   </p>
                 ) : (
-                  <p className="flex items-start gap-1.5 text-xs font-medium text-warning-foreground">
+                  <p className="mt-0.5 flex items-start gap-1.5 text-xs font-medium text-warning-foreground">
                     <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> Belum ada tanggal yang dipilih. Klik tombol tanggal di atas untuk menandai hari kegiatan rapat.
                   </p>
                 )}
@@ -374,7 +402,7 @@ export function EtapeForm({
         ) : null}
 
         {!(hari === 1 && malam === 0) ? (
-          <div className="grid gap-1">
+          <div className="grid gap-1 rounded-lg border p-3.5 transition-colors hover:border-slate-300 dark:hover:border-slate-600">
             <label className="flex cursor-pointer items-start gap-2.5 text-sm select-none">
               <input
                 type="checkbox"
