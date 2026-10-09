@@ -42,6 +42,8 @@ export function BarBawahSt({
   menyimpan,
   onSimpan,
   terkunci = false,
+  bisaBukaKunci = false,
+  bisaKunci = true,
   onPerbaiki,
   onKunci,
   onBukaKunci,
@@ -52,6 +54,8 @@ export function BarBawahSt({
   menyimpan: boolean
   onSimpan: () => void
   terkunci?: boolean
+  bisaBukaKunci?: boolean
+  bisaKunci?: boolean
   onPerbaiki: PerbaikiIsian
   onKunci: () => void
   onBukaKunci: () => void
@@ -65,7 +69,7 @@ export function BarBawahSt({
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
         {terkunci ? (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-200/80 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">
-            <LockIcon className="size-3.5" aria-hidden /> Terkunci (selesai)
+            <LockIcon className="size-3.5" aria-hidden /> {bisaBukaKunci ? 'Terkunci (selesai)' : bisaKunci ? 'Terkunci (selesai)' : 'Hanya lihat'}
           </span>
         ) : (
           <ChipValidasi jumlah={periksa.length} onKlik={() => pertama && onPerbaiki(pertama.sasaranId, pertama.nomorPelaksana)} />
@@ -100,9 +104,11 @@ export function BarBawahSt({
             </Link>
           ) : null}
           {terkunci ? (
-            <Button variant="outline" className="gap-2" onClick={onBukaKunci}>
-              <LockOpenIcon /> Buka kunci
-            </Button>
+            bisaBukaKunci ? (
+              <Button variant="outline" className="gap-2" onClick={onBukaKunci}>
+                <LockOpenIcon /> Buka kunci
+              </Button>
+            ) : null
           ) : (
             <>
               {id !== null && !kotor ? (

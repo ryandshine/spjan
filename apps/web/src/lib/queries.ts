@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { JenisBerkas, LaporanIsi, ModelAiPayload, PegawaiPayload, PengaturanPayload, StatusKode, StatusKonfigurasi, SuratTugasPayload, UpdateUsulanBerkasPayload } from '@spjan/shared'
+import type { BuatPenggunaPayload, GantiPasswordPayload, JenisBerkas, UbahPenggunaPayload, LaporanIsi, ModelAiPayload, PegawaiPayload, PengaturanPayload, StatusKode, StatusKonfigurasi, SuratTugasPayload, UpdateUsulanBerkasPayload } from '@spjan/shared'
 
 import { api, ApiError } from '@/lib/api'
 
@@ -98,7 +98,7 @@ export function useDaftarSuratTugas() {
 export function useHapusSuratTugas() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.suratTugas.remove(id),
+    mutationFn: (v: { id: number; password: string }) => api.suratTugas.remove(v.id, v.password),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['st'] }),
   })
 }
@@ -106,7 +106,8 @@ export function useHapusSuratTugas() {
 export function useKunciSuratTugas() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (v: { id: number; kunci: boolean }) => (v.kunci ? api.suratTugas.kunci(v.id) : api.suratTugas.bukaKunci(v.id)),
+    mutationFn: (v: { id: number } & ({ kunci: true } | { kunci: false; password: string; alasan: string })) =>
+      v.kunci ? api.suratTugas.kunci(v.id) : api.suratTugas.bukaKunci(v.id, { password: v.password, alasan: v.alasan }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['st'] }),
   })
 }
@@ -249,7 +250,7 @@ export function useUpdateBerkas() {
 export function useHapusBerkas() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.berkas.hapus(id),
+    mutationFn: (v: { id: number; password: string }) => api.berkas.hapus(v.id, v.password),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['berkas'] })
       qc.invalidateQueries({ queryKey: ['st'] })
@@ -298,4 +299,45 @@ export function useSimpanLaporan(id: number) {
     mutationFn: (isi: LaporanIsi) => api.suratTugas.laporan.simpan(id, isi),
     onSuccess: (data) => qc.setQueryData(keys.laporan(id), data),
   })
+}
+
+export function useGantiPassword() {
+  return useMutation({ mutationFn: (p: GantiPasswordPayload) => api.gantiPassword(p) })
+}
+
+export function usePengguna() {
+  return useQuery({ queryKey: ['pengguna'], queryFn: api.pengguna.list })
+}
+
+export function usePenggunaMutations() {
+  const qc = useQueryClient()
+  const refresh = () => qc.invalidateQueries({ queryKey: ['pengguna'] })
+  return {
+    buat: useMutation({ mutationFn: (p: BuatPenggunaPayload) => api.pengguna.create(p), onSuccess: refresh }),
+    ubah: useMutation({ mutationFn: (v: { id: number; data: UbahPenggunaPayload }) => api.pengguna.update(v.id, v.data), onSuccess: refresh }),
+    resetPassword: useMutation({ mutationFn: (v: { id: number; password: string }) => api.pengguna.resetPassword(v.id, v.password) }),
+  }
+}
+
+export function useAudit() {
+  return useQuery({ queryKey: ['audit'], queryFn: () => api.audit() })
+}
+
+export function useSampah() {
+  return useQuery({ queryKey: ['sampah'], queryFn: api.sampah.list })
+}
+
+export function useSampahMutations() {
+  const qc = useQueryClient()
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['sampah'] })
+    qc.invalidateQueries({ queryKey: ['st'] })
+    qc.invalidateQueries({ queryKey: ['berkas'] })
+  }
+  return {
+    pulihkanSt: useMutation({ mutationFn: (id: number) => api.sampah.pulihkanSt(id), onSuccess: refresh }),
+    hapusPermanenSt: useMutation({ mutationFn: (v: { id: number; password: string }) => api.sampah.hapusPermanenSt(v.id, v.password), onSuccess: refresh }),
+    pulihkanBerkas: useMutation({ mutationFn: (id: number) => api.sampah.pulihkanBerkas(id), onSuccess: refresh }),
+    hapusPermanenBerkas: useMutation({ mutationFn: (v: { id: number; password: string }) => api.sampah.hapusPermanenBerkas(v.id, v.password), onSuccess: refresh }),
+  }
 }

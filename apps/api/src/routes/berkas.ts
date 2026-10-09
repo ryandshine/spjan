@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 import {
   BATAS_BERKAS,
   HasilEkstraksiStSchema,
+  KonfirmasiPasswordSchema,
   JENIS_BERKAS,
   UpdateBerkasPayloadSchema,
   UpdateUsulanBerkasPayloadSchema,
@@ -15,7 +16,7 @@ import type { Db } from "../db.js";
 import { HttpError, notFound } from "../errors.js";
 import {
   getBerkas,
-  hapusBerkas,
+  hapusLunakBerkas,
   listBerkas,
   metaBerkas,
   stAda,
@@ -24,6 +25,8 @@ import {
   updateBerkas,
   updateUsulanStatus,
 } from "../repositories/berkas.js";
+import { wajibPasswordBenar, wajibPemilikAtauAdmin, wajibPemilikBerkasAtauAdmin, penggunaAktif } from "../izin.js";
+import { catatAudit } from "../repositories/audit.js";
 import { tolakBilaBerkasTerkunci, tolakBilaTerkunci } from "../repositories/surat-tugas.js";
 import { listPegawai } from "../repositories/pegawai.js";
 import { getPengaturan } from "../repositories/pengaturan.js";
@@ -44,6 +47,7 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
     const { stId, jenis, keterangan } = StQuerySchema.parse(req.query);
     if (stId !== undefined) {
       if (!(await stAda(opts.db, stId))) throw notFound("Surat tugas");
+      await wajibPemilikAtauAdmin(opts.db, req, stId);
       await tolakBilaTerkunci(opts.db, stId);
     }
     const file = await req.file();
@@ -81,6 +85,7 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
 
   app.patch("/:id", async (req) => {
     const { id } = IdSchema.parse(req.params);
+    await wajibPemilikBerkasAtauAdmin(opts.db, req, id);
     await tolakBilaBerkasTerkunci(opts.db, id);
     const payload = UpdateBerkasPayloadSchema.parse(req.body);
     const ok = await updateBerkas(opts.db, id, payload);
@@ -108,15 +113,23 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
       .send(data);
   });
 
-  app.delete("/:id", async (req, reply) => {
+  // Hapus = pindah ke tempat sampah (admin bisa memulihkan); butuh password sendiri.
+  app.delete("/:id", { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } }, async (req, reply) => {
     const { id } = IdSchema.parse(req.params);
+    const { password } = KonfirmasiPasswordSchema.parse(req.body);
+    const berkas = await getBerkas(opts.db, id);
+    if (!berkas) throw notFound("Berkas");
+    await wajibPemilikBerkasAtauAdmin(opts.db, req, id);
     await tolakBilaBerkasTerkunci(opts.db, id);
-    if (!(await hapusBerkas(opts.db, opts.store, id))) throw notFound("Berkas");
+    await wajibPasswordBenar(opts.db, req, password);
+    if (!(await hapusLunakBerkas(opts.db, id, penggunaAktif(req).id))) throw notFound("Berkas");
+    await catatAudit(opts.db, penggunaAktif(req), { aksi: "berkas.hapus", entitas: "berkas", entitasId: id, stId: berkas.stId, detail: { nama: berkas.namaAsli } });
     return reply.code(204).send();
   });
 
   app.post("/:id/ulang", async (req) => {
     const { id } = IdSchema.parse(req.params);
+    await wajibPemilikBerkasAtauAdmin(opts.db, req, id);
     await tolakBilaBerkasTerkunci(opts.db, id);
     if (!(await ulangiEkstraksi(opts.db, id))) throw notFound("Berkas");
     return getBerkas(opts.db, id);
@@ -124,6 +137,7 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
 
   app.patch("/:id/usulan-status", async (req) => {
     const { id } = IdSchema.parse(req.params);
+    await wajibPemilikBerkasAtauAdmin(opts.db, req, id);
     await tolakBilaBerkasTerkunci(opts.db, id);
     const { usulanStatus, pelaksanaId } = UpdateUsulanBerkasPayloadSchema.parse(req.body);
     const ok = await updateUsulanStatus(opts.db, id, usulanStatus, pelaksanaId);

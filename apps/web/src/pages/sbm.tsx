@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select } from '@/components/ui/select'
 import { pesanGalat, rupiah } from '@/lib/format'
-import { useSbm, useSimpanStatusSbm, useVersiSbm } from '@/lib/queries'
+import { useMe, useSbm, useSimpanStatusSbm, useVersiSbm } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
 const KOLOM_HOTEL_LABEL = ['Pejabat Negara/Wamen/Eselon I', 'Pejabat Negara Lainnya/Eselon II', 'Eselon III/Gol. IV', 'Eselon IV/Gol. III/II/I']
@@ -41,6 +41,7 @@ function Rp({ n }: { n: number }) {
 
 function KonfigurasiStatus({ versiId, awal }: { versiId: number; awal: Record<StatusKode, StatusKonfigurasi> }) {
   const simpan = useSimpanStatusSbm(versiId)
+  const admin = useMe().data?.peran === 'admin'
   const [form, setForm] = useState(awal)
   const ubah = (k: StatusKode, patch: Partial<StatusKonfigurasi>) => setForm((f) => ({ ...f, [k]: { ...f[k], ...patch } }))
 
@@ -111,7 +112,7 @@ function KonfigurasiStatus({ versiId, awal }: { versiId: number; awal: Record<St
           </table>
         </div>
         <div>
-          <Button onClick={kirim} disabled={simpan.isPending}>
+          <Button onClick={kirim} disabled={simpan.isPending || !admin} title={admin ? undefined : 'Hanya admin'}>
             {simpan.isPending ? 'Menyimpan...' : 'Simpan konfigurasi'}
           </Button>
         </div>

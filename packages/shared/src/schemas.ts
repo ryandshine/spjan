@@ -129,6 +129,70 @@ export const LoginSchema = z.object({
 
 export type StatusSt = "draft" | "final";
 
+export const PERAN = ["admin", "operator"] as const;
+export type Peran = (typeof PERAN)[number];
+
+/** Pengguna yang sedang login (GET /api/auth/me dan respons login). */
+export interface PenggunaSesiDto {
+  id: number;
+  username: string;
+  nama: string;
+  peran: Peran;
+}
+
+export interface PenggunaDto extends PenggunaSesiDto {
+  aktif: boolean;
+  createdAt: string;
+}
+
+const PasswordBaru = z.string().min(10, "Minimal 10 karakter.").max(200);
+
+export const BuatPenggunaSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9._-]{3,50}$/, "3-50 karakter: huruf kecil, angka, titik, garis bawah, atau strip."),
+  nama: z.string().trim().min(1, "Nama wajib diisi.").max(100),
+  peran: z.enum(PERAN),
+  password: PasswordBaru,
+});
+export type BuatPenggunaPayload = z.infer<typeof BuatPenggunaSchema>;
+
+export const UbahPenggunaSchema = z
+  .object({ nama: z.string().trim().min(1).max(100), peran: z.enum(PERAN), aktif: z.boolean() })
+  .partial();
+export type UbahPenggunaPayload = z.infer<typeof UbahPenggunaSchema>;
+
+export const ResetPasswordSchema = z.object({ password: PasswordBaru });
+export const GantiPasswordSchema = z.object({ passwordLama: z.string().min(1).max(200), passwordBaru: PasswordBaru });
+export type GantiPasswordPayload = z.infer<typeof GantiPasswordSchema>;
+
+/** Konfirmasi aksi berbahaya dengan password pengguna sendiri. */
+export const KonfirmasiPasswordSchema = z.object({ password: z.string().min(1).max(200) });
+export const BukaKunciSchema = z.object({
+  password: z.string().min(1).max(200),
+  alasan: z.string().trim().min(5, "Alasan minimal 5 karakter.").max(500),
+});
+export type BukaKunciPayload = z.infer<typeof BukaKunciSchema>;
+
+export interface LogAuditDto {
+  id: number;
+  waktu: string;
+  username: string;
+  aksi: string;
+  entitas: string;
+  entitasId: number | null;
+  stId: number | null;
+  alasan: string | null;
+  detail: unknown;
+}
+
+export interface SampahDto {
+  suratTugas: { id: number; nomor: string; tanggal: string; dihapusPada: string; dihapusOleh: string | null; dibuatOleh: string | null }[];
+  berkas: { id: number; stId: number | null; namaAsli: string; jenis: string; dihapusPada: string; dihapusOleh: string | null }[];
+}
+
 export interface SuratTugasDto extends SuratTugasPayload {
   id: number;
   versiSbmId: number;
@@ -138,6 +202,8 @@ export interface SuratTugasDto extends SuratTugasPayload {
   dibukaPada: string | null;
   /** Berapa kali kunci dibuka kembali (jejak revisi). */
   jumlahDibuka: number;
+  dibuatOleh: number | null;
+  dibuatOlehNama: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -167,6 +233,8 @@ export interface SuratTugasRingkasDto {
   tanggal: string;
   jumlahPelaksana: number;
   status: StatusSt;
+  dibuatOleh: number | null;
+  dibuatOlehNama: string | null;
   /** Total SPTB seluruh pelaksana (rupiah), dihitung dengan SBM yang di-pin surat tugas. */
   total: number;
   /** Jumlah peringatan data di semua pelaksana; 0 berarti siap cetak. */

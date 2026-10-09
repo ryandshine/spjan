@@ -16,6 +16,8 @@ afterAll(async () => {
 });
 beforeEach(bersihkanData);
 
+const PW = { password: "sandi-uji-12345" };
+const BUKA = { ...PW, alasan: "revisi nominal" };
 const call = (method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", url: string, payload?: unknown) =>
   app.inject({ method, url, headers: { cookie }, ...(payload !== undefined ? { payload: payload as object } : {}) });
 
@@ -40,7 +42,7 @@ describe("kunci surat tugas", () => {
     const put = await call("PUT", `/api/surat-tugas/${id}`, { ...stResa, nomor: "UBAH" });
     expect(put.statusCode).toBe(409);
     expect(put.json().error).toBe("ST_TERKUNCI");
-    const del = await call("DELETE", `/api/surat-tugas/${id}`);
+    const del = await call("DELETE", `/api/surat-tugas/${id}`, PW);
     expect(del.statusCode).toBe(409);
     expect((await call("GET", `/api/surat-tugas/${id}`)).json().nomor).toBe(stResa.nomor);
   });
@@ -53,7 +55,7 @@ describe("kunci surat tugas", () => {
     );
     const [terkait, lepas] = [rows[0]!.id, rows[1]!.id];
     expect((await call("PATCH", `/api/berkas/${terkait}`, { keterangan: "x" })).statusCode).toBe(409);
-    expect((await call("DELETE", `/api/berkas/${terkait}`)).statusCode).toBe(409);
+    expect((await call("DELETE", `/api/berkas/${terkait}`, PW)).statusCode).toBe(409);
     expect((await call("POST", `/api/berkas/${terkait}/ulang`)).statusCode).toBe(409);
     expect((await call("PATCH", `/api/berkas/${terkait}/usulan-status`, { usulanStatus: "diabaikan" })).statusCode).toBe(409);
     expect((await call("PATCH", `/api/berkas/${lepas}`, { keterangan: "x" })).statusCode).toBe(200);
@@ -63,7 +65,7 @@ describe("kunci surat tugas", () => {
 
   it("buka kunci mengembalikan ke draft, menambah hitungan, dan mengizinkan ubah lagi", async () => {
     const id = await stFinal();
-    const buka = await call("POST", `/api/surat-tugas/${id}/buka-kunci`);
+    const buka = await call("POST", `/api/surat-tugas/${id}/buka-kunci`, BUKA);
     expect(buka.json()).toMatchObject({ status: "draft", jumlahDibuka: 1 });
     expect(typeof buka.json().dibukaPada).toBe("string");
     expect((await call("PUT", `/api/surat-tugas/${id}`, { ...stResa, nomor: "UBAH" })).statusCode).toBe(200);
@@ -73,8 +75,8 @@ describe("kunci surat tugas", () => {
     const id = await stFinal();
     await call("POST", `/api/surat-tugas/${id}/kunci`);
     expect((await call("GET", `/api/surat-tugas/${id}`)).json().jumlahDibuka).toBe(0);
-    await call("POST", `/api/surat-tugas/${id}/buka-kunci`);
-    await call("POST", `/api/surat-tugas/${id}/buka-kunci`);
+    await call("POST", `/api/surat-tugas/${id}/buka-kunci`, BUKA);
+    await call("POST", `/api/surat-tugas/${id}/buka-kunci`, BUKA);
     expect((await call("GET", `/api/surat-tugas/${id}`)).json().jumlahDibuka).toBe(1);
     expect((await call("POST", "/api/surat-tugas/99999/kunci")).statusCode).toBe(404);
     await call("POST", `/api/surat-tugas/${id}/kunci`);
@@ -83,7 +85,7 @@ describe("kunci surat tugas", () => {
 
   it("ST yang sudah dibuka kuncinya bisa dihapus", async () => {
     const id = await stFinal();
-    await call("POST", `/api/surat-tugas/${id}/buka-kunci`);
-    expect((await call("DELETE", `/api/surat-tugas/${id}`)).statusCode).toBe(204);
+    await call("POST", `/api/surat-tugas/${id}/buka-kunci`, BUKA);
+    expect((await call("DELETE", `/api/surat-tugas/${id}`, PW)).statusCode).toBe(204);
   });
 });

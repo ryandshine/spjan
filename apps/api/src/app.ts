@@ -12,6 +12,8 @@ import { config } from "./config.js";
 import type { Db } from "./db.js";
 import { HttpError } from "./errors.js";
 import { authRoutes } from "./routes/auth.js";
+import { penggunaRoutes } from "./routes/pengguna.js";
+import { sampahRoutes } from "./routes/sampah.js";
 import { berkasRoutes } from "./routes/berkas.js";
 import { modelAiRoutes } from "./routes/model-ai.js";
 import { pegawaiRoutes } from "./routes/pegawai.js";
@@ -79,6 +81,8 @@ export async function buildApp(db: Db, opts: { logger?: boolean; store?: BerkasS
     return { status: "ok" };
   });
   await app.register(authRoutes, { prefix: "/api/auth", db });
+  await app.register(penggunaRoutes, { prefix: "/api/admin", db });
+  await app.register(sampahRoutes, { prefix: "/api/sampah", db, store });
   await app.register(pengaturanRoutes, { prefix: "/api/pengaturan", db });
   await app.register(pegawaiRoutes, { prefix: "/api/pegawai", db });
   await app.register(sbmRoutes, { prefix: "/api/sbm", db });

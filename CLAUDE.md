@@ -1,7 +1,7 @@
 # SPJAN
 
 Aplikasi web untuk menyusun SPJ perjalanan dinas (SPTB, Rincian Biaya Perjalanan Dinas, Kuitansi)
-Direktorat Pengendalian Perhutanan Sosial. Satu pengguna. Domain produksi: spjan.ditpps.com.
+Direktorat Pengendalian Perhutanan Sosial. Banyak pengguna (satu orang satu akun; peran `admin`/`operator`). Domain produksi: spjan.ditpps.com.
 Arsitektur dan aturan hitung: `docs/superpowers/specs/2026-10-04-spjan-design.md`.
 
 ## Struktur monorepo (npm workspaces)
@@ -33,6 +33,7 @@ Untuk memeriksa tata letak tanpa peramban: `npm run pdf:contoh -w web -- /tmp/sp
   Tes memakai `TEST_DATABASE_URL` (default `postgres://postgres:postgres@localhost:55432/spjan_test`) dan membuat ulang skema `public` setiap kali dijalankan.
 - Produksi: database `spjan` di server PostgreSQL yang sama dengan SIPEKAPS (dibuat pengguna).
 - Kunci surat tugas: `surat_tugas.status` (`draft`/`final`). ST final menolak PUT/DELETE, perubahan berkas, dan PUT laporan dengan 409 `ST_TERKUNCI` (penjaga di `repositories/surat-tugas.ts`); buka kunci dicatat (`jumlah_dibuka`). Rute tulis baru yang menyentuh data ST wajib memanggil `tolakBilaTerkunci`/`tolakBilaBerkasTerkunci`.
+- Peran: admin bisa semuanya; operator melihat semua ST tetapi hanya mengubah/mengunci/menghapus yang dibuatnya (`izin.ts`: `wajibAdmin`, `wajibPemilikAtauAdmin`, `wajibPasswordBenar`). Hapus ST/berkas = tempat sampah (`dihapus_pada`; pulihkan/hapus permanen khusus admin, rute `/api/sampah`). Hapus dan buka kunci meminta password sendiri (buka kunci juga alasan); aksi penting dicatat di `log_audit` lewat `catatAudit`. Pengaturan/SBM/model AI hanya admin.
 - Migrasi: `apps/api/migrations/*.sql` (node-pg-migrate), otomatis dijalankan saat server boot. Data SBM disimpan sebagai `jsonb` di `sbm_versi.data` dan diisi `seedSbm()` dari `SBM_2026`.
 
 Setelah mengubah `packages/shared/src`, jalankan `npm run build` di `packages/shared` sebelum

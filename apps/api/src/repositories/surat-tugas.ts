@@ -6,12 +6,22 @@ import { withTransaction } from "../db.js";
 import { HttpError } from "../errors.js";
 
 export async function listSuratTugas(db: Db): Promise<Omit<SuratTugasRingkasDto, "total" | "jumlahPeringatan">[]> {
-  const { rows } = await db.query<{ id: number; nomor: string; tanggal: string; status: StatusSt; n: number; updated_at: Date }>(
-    `select st.id, st.nomor, st.tanggal, st.status, st.updated_at,
+  const { rows } = await db.query<{
+    id: number;
+    nomor: string;
+    tanggal: string;
+    status: StatusSt;
+    dibuat_oleh: number | null;
+    dibuat_oleh_nama: string | null;
+    n: number;
+    updated_at: Date;
+  }>(
+    `select st.id, st.nomor, st.tanggal, st.status, st.updated_at, st.dibuat_oleh, u.nama as dibuat_oleh_nama,
             (select count(*)::int from pelaksana p where p.st_id = st.id) as n
-       from surat_tugas st order by st.tanggal desc, st.id desc`,
+       from surat_tugas st left join users u on u.id = st.dibuat_oleh
+      where st.dihapus_pada is null order by st.tanggal desc, st.id desc`,
   );
-  return rows.map((r) => ({ id: r.id, nomor: r.nomor, tanggal: r.tanggal, status: r.status, jumlahPelaksana: r.n, updatedAt: r.updated_at.toISOString() }));
+  return rows.map((r) => ({ id: r.id, nomor: r.nomor, tanggal: r.tanggal, status: r.status, dibuatOleh: r.dibuat_oleh, dibuatOlehNama: r.dibuat_oleh_nama, jumlahPelaksana: r.n, updatedAt: r.updated_at.toISOString() }));
 }
 
 interface StRow {
@@ -25,6 +35,7 @@ interface StRow {
   dikunci_pada: Date | null;
   dibuka_pada: Date | null;
   jumlah_dibuka: number;
+  dibuat_oleh: number | null;
   catatan: string;
   tahun_anggaran: number | null;
   sumber_dana: "RM" | "PNBP" | null;
@@ -75,8 +86,9 @@ interface BiayaRow {
 }
 
 export async function getSuratTugas(db: Db, id: number): Promise<SuratTugasDto | null> {
-  const st = (await db.query<StRow>("select * from surat_tugas where id = $1", [id])).rows[0];
+  const st = (await db.query<StRow>("select * from surat_tugas where id = $1 and dihapus_pada is null", [id])).rows[0];
   if (!st) return null;
+  const pembuat = st.dibuat_oleh === null ? null : ((await db.query<{ nama: string }>("select nama from users where id = $1", [st.dibuat_oleh])).rows[0]?.nama ?? null);
   const pel = (await db.query<PelRow>("select * from pelaksana where st_id = $1 order by urutan", [id])).rows;
   const etape = (
     await db.query<EtapeRow>(
@@ -97,6 +109,8 @@ export async function getSuratTugas(db: Db, id: number): Promise<SuratTugasDto |
     dikunciPada: st.dikunci_pada?.toISOString() ?? null,
     dibukaPada: st.dibuka_pada?.toISOString() ?? null,
     jumlahDibuka: st.jumlah_dibuka,
+    dibuatOleh: st.dibuat_oleh,
+    dibuatOlehNama: pembuat,
     createdAt: st.created_at.toISOString(),
     updatedAt: st.updated_at.toISOString(),
     nomor: st.nomor,
@@ -196,11 +210,11 @@ async function sisipkanPelaksana(client: PoolClient, stId: number, pelaksana: Su
   }
 }
 
-export async function createSuratTugas(payload: SuratTugasPayload, versiSbmId: number): Promise<number> {
+export async function createSuratTugas(payload: SuratTugasPayload, versiSbmId: number, dibuatOleh: number | null): Promise<number> {
   return withTransaction(async (client) => {
     const { rows } = await client.query<{ id: number }>(
-      `insert into surat_tugas (nomor, tanggal, tanggal_spj, kode_akun, versi_sbm_id, catatan, tahun_anggaran, sumber_dana, pj_nama, pj_nip, pj_jabatan)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id`,
+      `insert into surat_tugas (nomor, tanggal, tanggal_spj, kode_akun, versi_sbm_id, catatan, tahun_anggaran, sumber_dana, pj_nama, pj_nip, pj_jabatan, dibuat_oleh)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) returning id`,
       [
         payload.nomor,
         payload.tanggal,
@@ -213,6 +227,7 @@ export async function createSuratTugas(payload: SuratTugasPayload, versiSbmId: n
         payload.pjNama ?? null,
         payload.pjNip ?? null,
         payload.pjJabatan ?? null,
+        dibuatOleh,
       ],
     );
     const id = (rows[0] as { id: number }).id;
@@ -227,7 +242,7 @@ export async function replaceSuratTugas(id: number, payload: SuratTugasPayload):
     const { rowCount } = await client.query(
       `update surat_tugas set nomor = $2, tanggal = $3, tanggal_spj = $4, kode_akun = $5, catatan = $6,
          tahun_anggaran = $7, sumber_dana = $8, pj_nama = $9, pj_nip = $10, pj_jabatan = $11, updated_at = now()
-        where id = $1 and status = 'draft'`,
+        where id = $1 and status = 'draft' and dihapus_pada is null`,
       [
         id,
         payload.nomor,
@@ -252,11 +267,26 @@ export async function replaceSuratTugas(id: number, payload: SuratTugasPayload):
   });
 }
 
-export async function deleteSuratTugas(db: Db, id: number): Promise<boolean> {
-  const { rowCount } = await db.query("delete from surat_tugas where id = $1 and status = 'draft'", [id]);
+/** Hapus lunak (ke tempat sampah). Hanya ST draf; true bila berhasil, false bila ST tidak ada. */
+export async function hapusLunakSt(db: Db, id: number, userId: number): Promise<boolean> {
+  const { rowCount } = await db.query(
+    "update surat_tugas set dihapus_pada = now(), dihapus_oleh = $2 where id = $1 and status = 'draft' and dihapus_pada is null",
+    [id, userId],
+  );
   if (rowCount) return true;
   await tolakBilaTerkunci(db, id);
   return false;
+}
+
+export async function pulihkanSt(db: Db, id: number): Promise<boolean> {
+  const { rowCount } = await db.query("update surat_tugas set dihapus_pada = null, dihapus_oleh = null where id = $1 and dihapus_pada is not null", [id]);
+  return (rowCount ?? 0) > 0;
+}
+
+/** Hapus permanen ST yang sudah ada di tempat sampah (cascade ke pelaksana, berkas, dan laporan). */
+export async function hapusPermanenSt(db: Db, id: number): Promise<boolean> {
+  const { rowCount } = await db.query("delete from surat_tugas where id = $1 and dihapus_pada is not null", [id]);
+  return (rowCount ?? 0) > 0;
 }
 
 export const galatTerkunci = () =>
@@ -277,13 +307,13 @@ export async function tolakBilaBerkasTerkunci(db: Db, berkasId: number): Promise
   if (rows[0]?.status === "final") throw galatTerkunci();
 }
 
-/** Ubah status kunci. false bila ST tidak ada. Idempoten: mengunci ST yang sudah final tidak mengubah apa pun. */
-export async function aturKunciSt(db: Db, id: number, kunci: boolean): Promise<boolean> {
+/** Ubah status kunci. null bila ST tidak ada; "tetap" bila sudah berstatus yang diminta (idempoten). */
+export async function aturKunciSt(db: Db, id: number, kunci: boolean): Promise<"berubah" | "tetap" | null> {
   const sql = kunci
-    ? `update surat_tugas set status = 'final', dikunci_pada = now() where id = $1 and status = 'draft'`
-    : `update surat_tugas set status = 'draft', dibuka_pada = now(), jumlah_dibuka = jumlah_dibuka + 1 where id = $1 and status = 'final'`;
+    ? `update surat_tugas set status = 'final', dikunci_pada = now() where id = $1 and status = 'draft' and dihapus_pada is null`
+    : `update surat_tugas set status = 'draft', dibuka_pada = now(), jumlah_dibuka = jumlah_dibuka + 1 where id = $1 and status = 'final' and dihapus_pada is null`;
   const { rowCount } = await db.query(sql, [id]);
-  if (rowCount) return true;
-  const { rows } = await db.query("select 1 from surat_tugas where id = $1", [id]);
-  return rows.length > 0;
+  if (rowCount) return "berubah";
+  const { rows } = await db.query("select 1 from surat_tugas where id = $1 and dihapus_pada is null", [id]);
+  return rows.length > 0 ? "tetap" : null;
 }

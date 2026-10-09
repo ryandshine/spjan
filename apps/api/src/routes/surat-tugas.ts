@@ -1,6 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import {
+  BukaKunciSchema,
   hitungSpj,
+  KonfirmasiPasswordSchema,
   petakanHotelKeUsulan,
   petakanTransportKeUsulan,
   SuratTugasPayloadSchema,
@@ -12,14 +14,16 @@ import { z } from "zod";
 import type { BerkasStore } from "../berkas/store.js";
 import type { Db } from "../db.js";
 import { HttpError, notFound } from "../errors.js";
-import { hapusFileYatim, listBerkas, shaBerkasSt, tautkanBerkasKeSt } from "../repositories/berkas.js";
+import { penggunaAktif, wajibPasswordBenar, wajibPemilikAtauAdmin } from "../izin.js";
+import { catatAudit } from "../repositories/audit.js";
+import { listBerkas, tautkanBerkasKeSt } from "../repositories/berkas.js";
 import { getPengaturan } from "../repositories/pengaturan.js";
 import { getVersiSbm, versiAktifTerbaru } from "../repositories/sbm.js";
 import {
   aturKunciSt,
   createSuratTugas,
-  deleteSuratTugas,
   getSuratTugas,
+  hapusLunakSt,
   listSuratTugas,
   replaceSuratTugas,
 } from "../repositories/surat-tugas.js";
@@ -53,7 +57,9 @@ export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; sto
     const payload = SuratTugasPayloadSchema.parse(req.body);
     const versiId = await versiAktifTerbaru(opts.db);
     if (versiId === null) throw new HttpError(500, "SBM_KOSONG", "Belum ada versi SBM aktif.");
-    const id = await createSuratTugas(payload, versiId);
+    const user = penggunaAktif(req);
+    const id = await createSuratTugas(payload, versiId, user.id);
+    await catatAudit(opts.db, user, { aksi: "st.buat", entitas: "surat_tugas", entitasId: id, stId: id, detail: { nomor: payload.nomor } });
     if (berkasId) {
       await tautkanBerkasKeSt(opts.db, opts.store, berkasId, id);
     }
@@ -70,27 +76,40 @@ export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; sto
   app.put("/:id", async (req) => {
     const { id } = IdSchema.parse(req.params);
     const payload = SuratTugasPayloadSchema.parse(req.body);
+    await wajibPemilikAtauAdmin(opts.db, req, id);
     if (!(await replaceSuratTugas(id, payload))) throw notFound("Surat tugas");
     return getSuratTugas(opts.db, id);
   });
 
   app.post("/:id/kunci", async (req) => {
     const { id } = IdSchema.parse(req.params);
-    if (!(await aturKunciSt(opts.db, id, true))) throw notFound("Surat tugas");
+    await wajibPemilikAtauAdmin(opts.db, req, id);
+    const hasil = await aturKunciSt(opts.db, id, true);
+    if (!hasil) throw notFound("Surat tugas");
+    if (hasil === "berubah") await catatAudit(opts.db, penggunaAktif(req), { aksi: "st.kunci", entitas: "surat_tugas", entitasId: id, stId: id });
     return getSuratTugas(opts.db, id);
   });
 
-  app.post("/:id/buka-kunci", async (req) => {
+  // Buka kunci: alasan wajib dan konfirmasi password sendiri; dicatat di log audit.
+  app.post("/:id/buka-kunci", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req) => {
     const { id } = IdSchema.parse(req.params);
-    if (!(await aturKunciSt(opts.db, id, false))) throw notFound("Surat tugas");
+    const { password, alasan } = BukaKunciSchema.parse(req.body);
+    await wajibPemilikAtauAdmin(opts.db, req, id);
+    await wajibPasswordBenar(opts.db, req, password);
+    const hasil = await aturKunciSt(opts.db, id, false);
+    if (!hasil) throw notFound("Surat tugas");
+    if (hasil === "berubah") await catatAudit(opts.db, penggunaAktif(req), { aksi: "st.buka_kunci", entitas: "surat_tugas", entitasId: id, stId: id, alasan });
     return getSuratTugas(opts.db, id);
   });
 
-  app.delete("/:id", async (req, reply) => {
+  // Hapus = pindah ke tempat sampah (admin bisa memulihkan); butuh password sendiri.
+  app.delete("/:id", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req, reply) => {
     const { id } = IdSchema.parse(req.params);
-    const shas = await shaBerkasSt(opts.db, id);
-    if (!(await deleteSuratTugas(opts.db, id))) throw notFound("Surat tugas");
-    await hapusFileYatim(opts.db, opts.store, shas);
+    const { password } = KonfirmasiPasswordSchema.parse(req.body);
+    await wajibPemilikAtauAdmin(opts.db, req, id);
+    await wajibPasswordBenar(opts.db, req, password);
+    if (!(await hapusLunakSt(opts.db, id, penggunaAktif(req).id))) throw notFound("Surat tugas");
+    await catatAudit(opts.db, penggunaAktif(req), { aksi: "st.hapus", entitas: "surat_tugas", entitasId: id, stId: id });
     return reply.code(204).send();
   });
 

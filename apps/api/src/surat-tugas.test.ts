@@ -26,7 +26,7 @@ describe("surat tugas", () => {
     const dto = res.json();
     expect(dto.id).toBeGreaterThan(0);
     expect(dto.versiSbmId).toBeGreaterThan(0);
-    const { id, versiSbmId, createdAt, updatedAt, status, dikunciPada, dibukaPada, jumlahDibuka, ...isi } = dto;
+    const { id, versiSbmId, createdAt, updatedAt, status, dikunciPada, dibukaPada, jumlahDibuka, dibuatOleh, dibuatOlehNama, ...isi } = dto;
     expect({ status, dikunciPada, dibukaPada, jumlahDibuka }).toEqual({ status: "draft", dikunciPada: null, dibukaPada: null, jumlahDibuka: 0 });
     expect(isi).toEqual({
       ...stResa,
@@ -100,7 +100,9 @@ describe("surat tugas", () => {
     const { id } = (await call("POST", "/api/surat-tugas", stResa)).json();
     const daftar = (await call("GET", "/api/surat-tugas")).json();
     expect(daftar).toEqual([expect.objectContaining({ id, nomor: stResa.nomor, jumlahPelaksana: 1 })]);
-    expect((await call("DELETE", `/api/surat-tugas/${id}`)).statusCode).toBe(204);
+    expect((await call("DELETE", `/api/surat-tugas/${id}`, { password: "sandi-uji-12345" })).statusCode).toBe(204);
+    expect((await call("GET", "/api/surat-tugas")).json()).toEqual([]);
+    expect((await call("DELETE", `/api/sampah/surat-tugas/${id}`, { password: "sandi-uji-12345" })).statusCode).toBe(204);
     for (const tabel of ["pelaksana", "etape", "biaya"]) {
       const { rows } = await pool.query(`select count(*)::int as n from ${tabel}`);
       expect(rows[0].n, tabel).toBe(0);

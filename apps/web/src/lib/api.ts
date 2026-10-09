@@ -1,5 +1,13 @@
 import type {
   BerkasDto,
+  BukaKunciPayload,
+  BuatPenggunaPayload,
+  GantiPasswordPayload,
+  LogAuditDto,
+  PenggunaDto,
+  PenggunaSesiDto,
+  SampahDto,
+  UbahPenggunaPayload,
   HasilSuratTugasDto,
   JenisBerkas,
   LaporanIsi,
@@ -57,15 +65,29 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   return data as T
 }
 
-export interface SessionUser {
-  id: number
-  username: string
-}
+export type SessionUser = PenggunaSesiDto
 
 export const api = {
   me: () => request<SessionUser>('GET', '/api/auth/me'),
   login: (username: string, password: string) => request<SessionUser>('POST', '/api/auth/login', { username, password }),
   logout: () => request<void>('POST', '/api/auth/logout'),
+  gantiPassword: (p: GantiPasswordPayload) => request<void>('POST', '/api/auth/ganti-password', p),
+
+  pengguna: {
+    list: () => request<PenggunaDto[]>('GET', '/api/admin/pengguna'),
+    create: (p: BuatPenggunaPayload) => request<PenggunaDto>('POST', '/api/admin/pengguna', p),
+    update: (id: number, p: UbahPenggunaPayload) => request<PenggunaDto>('PATCH', `/api/admin/pengguna/${id}`, p),
+    resetPassword: (id: number, password: string) => request<void>('POST', `/api/admin/pengguna/${id}/reset-password`, { password }),
+  },
+  audit: (stId?: number) => request<LogAuditDto[]>('GET', stId !== undefined ? `/api/admin/audit?stId=${stId}` : '/api/admin/audit'),
+
+  sampah: {
+    list: () => request<SampahDto>('GET', '/api/sampah'),
+    pulihkanSt: (id: number) => request<void>('POST', `/api/sampah/surat-tugas/${id}/pulihkan`),
+    hapusPermanenSt: (id: number, password: string) => request<void>('DELETE', `/api/sampah/surat-tugas/${id}`, { password }),
+    pulihkanBerkas: (id: number) => request<void>('POST', `/api/sampah/berkas/${id}/pulihkan`),
+    hapusPermanenBerkas: (id: number, password: string) => request<void>('DELETE', `/api/sampah/berkas/${id}`, { password }),
+  },
 
   pegawai: {
     list: (aktif = true) => request<PegawaiDto[]>('GET', `/api/pegawai?aktif=${aktif}`),
@@ -121,7 +143,7 @@ export const api = {
     get: (id: number) => request<BerkasDto>('GET', `/api/berkas/${id}`),
     list: (stId?: number) => request<BerkasDto[]>('GET', stId !== undefined ? `/api/berkas?stId=${stId}` : '/api/berkas'),
     update: (id: number, payload: UpdateBerkasPayload) => request<BerkasDto>('PATCH', `/api/berkas/${id}`, payload),
-    hapus: (id: number) => request<void>('DELETE', `/api/berkas/${id}`),
+    hapus: (id: number, password: string) => request<void>('DELETE', `/api/berkas/${id}`, { password }),
     ulang: (id: number) => request<BerkasDto>('POST', `/api/berkas/${id}/ulang`),
     updateUsulan: (id: number, payload: UpdateUsulanBerkasPayload) =>
       request<BerkasDto>('PATCH', `/api/berkas/${id}/usulan-status`, payload),
@@ -134,9 +156,9 @@ export const api = {
     create: (p: SuratTugasPayload, berkasId?: number) =>
       request<SuratTugasDto>('POST', berkasId ? `/api/surat-tugas?berkasId=${berkasId}` : '/api/surat-tugas', p),
     replace: (id: number, p: SuratTugasPayload) => request<SuratTugasDto>('PUT', `/api/surat-tugas/${id}`, p),
-    remove: (id: number) => request<void>('DELETE', `/api/surat-tugas/${id}`),
+    remove: (id: number, password: string) => request<void>('DELETE', `/api/surat-tugas/${id}`, { password }),
     kunci: (id: number) => request<SuratTugasDto>('POST', `/api/surat-tugas/${id}/kunci`),
-    bukaKunci: (id: number) => request<SuratTugasDto>('POST', `/api/surat-tugas/${id}/buka-kunci`),
+    bukaKunci: (id: number, p: BukaKunciPayload) => request<SuratTugasDto>('POST', `/api/surat-tugas/${id}/buka-kunci`, p),
     hasil: (id: number) => request<HasilSuratTugasDto>('GET', `/api/surat-tugas/${id}/hasil`),
     usulanHotel: (id: number) => request<UsulanHotelItem[]>('GET', `/api/surat-tugas/${id}/usulan-hotel`),
     usulanTransport: (id: number) => request<UsulanTransportItem[]>('GET', `/api/surat-tugas/${id}/usulan-transport`),

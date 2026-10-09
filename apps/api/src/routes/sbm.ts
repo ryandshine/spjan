@@ -3,6 +3,7 @@ import { StatusKonfigurasiMapSchema } from "@spjan/shared";
 import { z } from "zod";
 
 import type { Db } from "../db.js";
+import { wajibAdmin } from "../izin.js";
 import { notFound } from "../errors.js";
 import { getVersiSbm, listVersiSbm, simpanStatusKonfigurasi } from "../repositories/sbm.js";
 
@@ -19,6 +20,7 @@ export async function sbmRoutes(app: FastifyInstance, opts: { db: Db }): Promise
   });
 
   app.patch("/versi/:id/status-konfigurasi", async (req) => {
+    wajibAdmin(req);
     const { id } = IdSchema.parse(req.params);
     const konfigurasi = StatusKonfigurasiMapSchema.parse(req.body);
     if (!(await simpanStatusKonfigurasi(opts.db, id, konfigurasi))) throw notFound("Versi SBM");

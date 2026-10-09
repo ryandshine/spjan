@@ -3,6 +3,7 @@ import { PegawaiPayloadSchema } from "@spjan/shared";
 import { z } from "zod";
 
 import type { Db } from "../db.js";
+import { wajibAdmin } from "../izin.js";
 import { notFound } from "../errors.js";
 import { createPegawai, getPegawai, listPegawai, nonaktifkanPegawai, updatePegawai } from "../repositories/pegawai.js";
 
@@ -35,6 +36,7 @@ export async function pegawaiRoutes(app: FastifyInstance, opts: { db: Db }): Pro
   });
 
   app.delete("/:id", async (req, reply) => {
+    wajibAdmin(req);
     const { id } = IdSchema.parse(req.params);
     if (!(await nonaktifkanPegawai(opts.db, id))) throw notFound("Pegawai");
     return reply.code(204).send();

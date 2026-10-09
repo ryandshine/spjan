@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import type { Db } from "../db.js";
 import { notFound } from "../errors.js";
+import { wajibPemilikAtauAdmin } from "../izin.js";
 import { tolakBilaTerkunci } from "../repositories/surat-tugas.js";
 import { getLaporan, simpanLaporan, stAda } from "../repositories/laporan.js";
 
@@ -19,6 +20,7 @@ export async function laporanRoutes(app: FastifyInstance, opts: { db: Db }): Pro
   app.put("/:id/laporan", async (req) => {
     const { id } = IdSchema.parse(req.params);
     if (!(await stAda(opts.db, id))) throw notFound("Surat tugas");
+    await wajibPemilikAtauAdmin(opts.db, req, id);
     await tolakBilaTerkunci(opts.db, id);
     const isi = LaporanIsiSchema.parse(req.body);
     return simpanLaporan(opts.db, id, isi);

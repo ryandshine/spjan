@@ -16,6 +16,7 @@ export async function siapkanApp(opts: { store?: BerkasStore; klien?: KlienAi } 
 export async function bersihkanData(): Promise<void> {
   await pool.query("truncate surat_tugas, pegawai restart identity cascade");
   await pool.query("truncate berkas, ekstraksi restart identity cascade");
+  await pool.query("truncate log_audit restart identity");
   await pool.query("update model_ai set llm_url = null, model_teks = 'gpt-oss:120b-cloud', model_gambar = null where id = 1");
   await pool.query(
     `update pengaturan set kode_satker = '', nama_satker = '', ppk_nama = '', kota_kedudukan = 'Jakarta',

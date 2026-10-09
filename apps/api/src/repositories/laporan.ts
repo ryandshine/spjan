@@ -8,7 +8,7 @@ export interface LaporanDto {
 }
 
 export async function stAda(db: Db, stId: number): Promise<boolean> {
-  const { rows } = await db.query("select 1 from surat_tugas where id = $1", [stId]);
+  const { rows } = await db.query("select 1 from surat_tugas where id = $1 and dihapus_pada is null", [stId]);
   return rows.length > 0;
 }
 

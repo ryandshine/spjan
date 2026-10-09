@@ -67,17 +67,17 @@ function map(r: Row): BerkasDto {
 }
 
 export async function stAda(db: Db, stId: number): Promise<boolean> {
-  const { rows } = await db.query("select 1 from surat_tugas where id = $1", [stId]);
+  const { rows } = await db.query("select 1 from surat_tugas where id = $1 and dihapus_pada is null", [stId]);
   return rows.length > 0;
 }
 
 export async function getBerkas(db: Db, id: number): Promise<BerkasDto | null> {
-  const { rows } = await db.query<Row>(`${SELECT_BERKAS} where b.id = $1`, [id]);
+  const { rows } = await db.query<Row>(`${SELECT_BERKAS} where b.id = $1 and b.dihapus_pada is null`, [id]);
   return rows[0] ? map(rows[0]) : null;
 }
 
 export async function listBerkas(db: Db, stId: number | null): Promise<BerkasDto[]> {
-  const { rows } = await db.query<Row>(`${SELECT_BERKAS} where b.st_id is not distinct from $1 order by b.id`, [stId]);
+  const { rows } = await db.query<Row>(`${SELECT_BERKAS} where b.st_id is not distinct from $1 and b.dihapus_pada is null order by b.id`, [stId]);
   return rows.map(map);
 }
 
@@ -86,7 +86,7 @@ export async function metaBerkas(
   id: number,
 ): Promise<{ id: number; namaAsli: string; mime: MimeBerkas; sha256: string } | null> {
   const { rows } = await db.query<{ id: number; nama_asli: string; mime: MimeBerkas; sha256: string }>(
-    "select id, nama_asli, mime, sha256 from berkas where id = $1",
+    "select id, nama_asli, mime, sha256 from berkas where id = $1 and dihapus_pada is null",
     [id],
   );
   const r = rows[0];
@@ -108,12 +108,12 @@ export async function tambahBerkas(
     throw new HttpError(415, "JENIS_TIDAK_DIDUKUNG", "Hanya PDF, JPG, PNG, atau WEBP yang dapat diunggah.");
   }
   const { rows: hitung } = await db.query<{ n: number }>(
-    "select count(*)::int as n from berkas where st_id is not distinct from $1",
+    "select count(*)::int as n from berkas where st_id is not distinct from $1 and dihapus_pada is null",
     [input.stId],
   );
   const sha256 = createHash("sha256").update(input.data).digest("hex");
   const { rows: ada } = await db.query<{ id: number }>(
-    "select id from berkas where st_id is not distinct from $1 and sha256 = $2",
+    "select id from berkas where st_id is not distinct from $1 and sha256 = $2 and dihapus_pada is null",
     [input.stId, sha256],
   );
   if (ada[0]) {
@@ -155,6 +155,33 @@ export async function hapusFileYatim(db: Db, store: BerkasStore, shas: string[])
   }
 }
 
+/** Hapus lunak berkas (ke tempat sampah); fisiknya tetap tersimpan sampai dihapus permanen. */
+export async function hapusLunakBerkas(db: Db, id: number, userId: number): Promise<boolean> {
+  const { rowCount } = await db.query("update berkas set dihapus_pada = now(), dihapus_oleh = $2 where id = $1 and dihapus_pada is null", [id, userId]);
+  return (rowCount ?? 0) > 0;
+}
+
+export async function pulihkanBerkas(db: Db, id: number): Promise<boolean> {
+  try {
+    const { rowCount } = await db.query("update berkas set dihapus_pada = null, dihapus_oleh = null where id = $1 and dihapus_pada is not null", [id]);
+    return (rowCount ?? 0) > 0;
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") {
+      throw new HttpError(409, "BERKAS_DUPLIKAT", "Berkas yang sama sudah diunggah ulang pada surat tugas ini; hapus yang baru dulu untuk memulihkan yang lama.");
+    }
+    throw error;
+  }
+}
+
+/** Hapus permanen berkas yang ada di tempat sampah, termasuk file fisik bila tidak dipakai berkas lain. */
+export async function hapusPermanenBerkas(db: Db, store: BerkasStore, id: number): Promise<boolean> {
+  const { rows } = await db.query<{ sha256: string }>("delete from berkas where id = $1 and dihapus_pada is not null returning sha256", [id]);
+  if (!rows[0]) return false;
+  await hapusFileYatim(db, store, [rows[0].sha256]);
+  return true;
+}
+
+/** Dipakai internal (mis. menggabungkan duplikat saat menautkan berkas): hapus langsung tanpa tempat sampah. */
 export async function hapusBerkas(db: Db, store: BerkasStore, id: number): Promise<boolean> {
   const { rows } = await db.query<{ sha256: string }>("delete from berkas where id = $1 returning sha256", [id]);
   if (!rows[0]) return false;
@@ -177,7 +204,7 @@ export async function tautkanBerkasKeSt(db: Db, store: BerkasStore, berkasId: nu
   const meta = await metaBerkas(db, berkasId);
   if (!meta) return;
   const { rows: ada } = await db.query<{ id: number }>(
-    "select id from berkas where st_id = $1 and sha256 = $2 and id <> $3",
+    "select id from berkas where st_id = $1 and sha256 = $2 and id <> $3 and dihapus_pada is null",
     [stId, meta.sha256, berkasId],
   );
   if (ada.length > 0) {

@@ -11,7 +11,7 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { pesanGalat } from '@/lib/format'
-import { usePengaturan, useSbm, useSimpanPengaturan, useVersiSbm } from '@/lib/queries'
+import { useMe, usePengaturan, useSbm, useSimpanPengaturan, useVersiSbm } from '@/lib/queries'
 
 type Galat = Partial<Record<keyof PengaturanPayload, string>>
 
@@ -123,15 +123,20 @@ function FormPengaturan({ awal }: { awal: PengaturanPayload }) {
 
 export default function PengaturanPage() {
   const data = usePengaturan()
+  const me = useMe()
+  const admin = me.data?.peran === 'admin'
   return (
     <div>
       <PageHeader title="Pengaturan" />
+      {admin ? null : <Alert className="mb-5">Hanya admin yang dapat mengubah pengaturan. Anda bisa melihatnya saja.</Alert>}
       {data.isError ? <Alert variant="destructive">{pesanGalat(data.error)}</Alert> : null}
       {data.isPending ? <p className="text-sm text-muted-foreground">Memuat...</p> : null}
-      {data.data ? <FormPengaturan awal={data.data} /> : null}
-      <div className="mt-5">
-        <ModelAiCard />
-      </div>
+      <fieldset disabled={!admin} className="m-0 min-w-0 border-0 p-0">
+        {data.data ? <FormPengaturan awal={data.data} /> : null}
+        <div className="mt-5">
+          <ModelAiCard />
+        </div>
+      </fieldset>
     </div>
   )
 }

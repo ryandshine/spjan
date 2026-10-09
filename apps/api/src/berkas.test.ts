@@ -30,6 +30,7 @@ const unggah = (nama: string, isi: Buffer, query = "") => {
   const { payload, headers } = bodyMultipart(nama, isi);
   return app.inject({ method: "POST", url: `/api/berkas${query}`, headers: { cookie, ...headers }, payload });
 };
+const PW = { password: "sandi-uji-12345" };
 const call = (method: "GET" | "POST" | "DELETE", url: string, payload?: unknown) =>
   app.inject({ method, url, headers: { cookie }, ...(payload !== undefined ? { payload: payload as object } : {}) });
 const buatSt = async () => (await call("POST", "/api/surat-tugas", stResa)).json().id as number;
@@ -141,23 +142,45 @@ describe("isi, hapus, dan ulang", () => {
     expect((await call("GET", "/api/berkas/999999/isi")).statusCode).toBe(404);
   });
 
-  it("DELETE menghapus baris dan file, tetapi file dipertahankan selama masih dipakai berkas lain", async () => {
+  it("DELETE memindahkan berkas ke tempat sampah; file baru hilang saat dihapus permanen dan tidak dipakai berkas lain", async () => {
     const a = await buatSt();
     const b = await buatSt();
     const satu = (await unggah("x.png", pngUnik(9), `?stId=${a}`)).json().berkas;
     const dua = (await unggah("x.png", pngUnik(9), `?stId=${b}`)).json().berkas;
     expect(satu.sha256).toBe(dua.sha256);
-    expect((await call("DELETE", `/api/berkas/${satu.id}`)).statusCode).toBe(204);
+    expect((await call("DELETE", `/api/berkas/${satu.id}`, { password: "salah" })).statusCode).toBe(403);
+    expect((await call("DELETE", `/api/berkas/${satu.id}`, PW)).statusCode).toBe(204);
+    expect((await call("GET", `/api/berkas/${satu.id}`)).statusCode).toBe(404);
     expect(await store.has(satu.sha256)).toBe(true);
-    expect((await call("DELETE", `/api/berkas/${dua.id}`)).statusCode).toBe(204);
+    expect((await call("DELETE", `/api/sampah/berkas/${satu.id}`, PW)).statusCode).toBe(204);
+    expect(await store.has(satu.sha256)).toBe(true);
+    expect((await call("DELETE", `/api/berkas/${dua.id}`, PW)).statusCode).toBe(204);
+    expect((await call("DELETE", `/api/sampah/berkas/${dua.id}`, PW)).statusCode).toBe(204);
     expect(await store.has(satu.sha256)).toBe(false);
-    expect((await call("DELETE", `/api/berkas/${dua.id}`)).statusCode).toBe(404);
+    expect((await call("DELETE", `/api/berkas/${dua.id}`, PW)).statusCode).toBe(404);
   });
 
-  it("menghapus ST ikut menghapus berkas dan filenya", async () => {
+  it("berkas yang dihapus bisa dipulihkan admin dan boleh diunggah ulang", async () => {
+    const stId = await buatSt();
+    const isi = pngUnik(12);
+    const { berkas } = (await unggah("x.png", isi, `?stId=${stId}`)).json();
+    await call("DELETE", `/api/berkas/${berkas.id}`, PW);
+    expect((await call("GET", `/api/berkas?stId=${stId}`)).json()).toHaveLength(0);
+    const ulang = await unggah("x.png", isi, `?stId=${stId}`);
+    expect(ulang.statusCode).toBe(201);
+    // Berkas identik sudah ada lagi: pemulihan ditolak sampai yang baru dihapus.
+    expect((await call("POST", `/api/sampah/berkas/${berkas.id}/pulihkan`)).statusCode).toBe(409);
+    await call("DELETE", `/api/berkas/${ulang.json().berkas.id}`, PW);
+    expect((await call("POST", `/api/sampah/berkas/${berkas.id}/pulihkan`)).statusCode).toBe(204);
+    expect((await call("GET", `/api/berkas?stId=${stId}`)).json()).toHaveLength(1);
+  });
+
+  it("menghapus permanen ST dari tempat sampah ikut menghapus berkas dan filenya", async () => {
     const stId = await buatSt();
     const { berkas } = (await unggah("x.png", pngUnik(10), `?stId=${stId}`)).json();
-    expect((await call("DELETE", `/api/surat-tugas/${stId}`)).statusCode).toBe(204);
+    expect((await call("DELETE", `/api/surat-tugas/${stId}`, PW)).statusCode).toBe(204);
+    expect(await store.has(berkas.sha256)).toBe(true);
+    expect((await call("DELETE", `/api/sampah/surat-tugas/${stId}`, PW)).statusCode).toBe(204);
     const { rows } = await pool.query("select count(*)::int as n from berkas");
     expect(rows[0].n).toBe(0);
     expect(await store.has(berkas.sha256)).toBe(false);

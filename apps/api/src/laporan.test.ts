@@ -80,10 +80,11 @@ describe("laporan perjalanan dinas", () => {
     expect((await call("PUT", "/api/surat-tugas/99999/laporan", buatLaporanAwal())).statusCode).toBe(404);
   });
 
-  it("menghapus ST ikut menghapus laporan", async () => {
+  it("menghapus permanen ST ikut menghapus laporan", async () => {
     const id = await buatSt();
     await call("PUT", `/api/surat-tugas/${id}/laporan`, buatLaporanAwal());
-    await call("DELETE", `/api/surat-tugas/${id}`);
+    await call("DELETE", `/api/surat-tugas/${id}`, { password: "sandi-uji-12345" });
+    await call("DELETE", `/api/sampah/surat-tugas/${id}`, { password: "sandi-uji-12345" });
     const { rows } = await pool.query("select count(*)::int as n from laporan");
     expect(rows[0].n).toBe(0);
   });

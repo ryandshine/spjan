@@ -11,6 +11,8 @@ const mockDto: HasilSuratTugasDto = {
     dikunciPada: null,
     dibukaPada: null,
     jumlahDibuka: 0,
+    dibuatOleh: 1,
+    dibuatOlehNama: 'Admin',
     nomor: 'ST-001/2026',
     tanggal: '2026-09-01',
     tanggalSpj: null,

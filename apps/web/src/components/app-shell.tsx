@@ -1,6 +1,8 @@
-import { BookOpenIcon, FileTextIcon, LogOutIcon, SettingsIcon, UserIcon, UsersIcon } from 'lucide-react'
+import { useState } from 'react'
+import { BookOpenIcon, FileTextIcon, HistoryIcon, KeyRoundIcon, LogOutIcon, SettingsIcon, ShieldIcon, Trash2Icon, UserIcon, UsersIcon } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 
+import { DialogGantiPassword } from '@/components/dialog-ganti-password'
 import { Button } from '@/components/ui/button'
 import { ZoomHalaman } from '@/components/zoom-halaman'
 import { useLogout, useMe } from '@/lib/queries'
@@ -11,6 +13,12 @@ const NAV = [
   { to: '/pegawai', label: 'Pegawai', icon: UsersIcon, end: false },
   { to: '/pengaturan', label: 'Pengaturan', icon: SettingsIcon, end: false },
   { to: '/sbm', label: 'Tabel SBM', icon: BookOpenIcon, end: false },
+]
+
+const NAV_ADMIN = [
+  { to: '/pengguna', label: 'Pengguna', icon: ShieldIcon, end: false },
+  { to: '/sampah', label: 'Tempat Sampah', icon: Trash2Icon, end: false },
+  { to: '/audit', label: 'Log Audit', icon: HistoryIcon, end: false },
 ]
 
 function Merek() {
@@ -25,7 +33,21 @@ function Merek() {
   )
 }
 
-function KartuPengguna({ username, keluar, sedangKeluar }: { username: string | undefined; keluar: () => void; sedangKeluar: boolean }) {
+function KartuPengguna({
+  username,
+  nama,
+  peran,
+  keluar,
+  sedangKeluar,
+  onGantiPassword,
+}: {
+  username: string | undefined
+  nama: string | undefined
+  peran: string | undefined
+  keluar: () => void
+  sedangKeluar: boolean
+  onGantiPassword: () => void
+}) {
   return (
     <div className="flex items-center justify-between gap-2 rounded-lg border bg-card p-2.5">
       <div className="flex min-w-0 items-center gap-2.5">
@@ -33,15 +55,20 @@ function KartuPengguna({ username, keluar, sedangKeluar }: { username: string | 
           {username ? username.slice(0, 2).toUpperCase() : <UserIcon className="size-4" />}
         </span>
         <div className="min-w-0 leading-tight">
-          <p className="truncate text-sm font-medium">{username ?? 'Pengguna'}</p>
+          <p className="truncate text-sm font-medium">{nama || username || 'Pengguna'}</p>
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-success" aria-hidden /> Online
+            <span className="size-1.5 rounded-full bg-success" aria-hidden /> {peran === 'admin' ? 'Admin' : 'Operator'}
           </p>
         </div>
       </div>
-      <Button variant="ghost" size="icon" className="shrink-0" onClick={keluar} disabled={sedangKeluar} title="Keluar" aria-label="Keluar">
-        <LogOutIcon />
-      </Button>
+      <div className="flex shrink-0">
+        <Button variant="ghost" size="icon" onClick={onGantiPassword} title="Ganti password" aria-label="Ganti password">
+          <KeyRoundIcon />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={keluar} disabled={sedangKeluar} title="Keluar" aria-label="Keluar">
+          <LogOutIcon />
+        </Button>
+      </div>
     </div>
   )
 }
@@ -50,6 +77,8 @@ export function AppShell() {
   const navigate = useNavigate()
   const me = useMe()
   const logout = useLogout()
+  const [gantiPw, setGantiPw] = useState(false)
+  const menu = me.data?.peran === 'admin' ? [...NAV, ...NAV_ADMIN] : NAV
 
   async function keluar() {
     await logout.mutateAsync()
@@ -63,12 +92,15 @@ export function AppShell() {
           <div className="flex items-center gap-2 px-5 py-4">
             <Merek />
             <ZoomHalaman className="ml-auto md:hidden" />
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setGantiPw(true)} title="Ganti password" aria-label="Ganti password">
+              <KeyRoundIcon />
+            </Button>
             <Button variant="ghost" size="icon" className="md:hidden" onClick={keluar} disabled={logout.isPending} title="Keluar" aria-label="Keluar">
               <LogOutIcon />
             </Button>
           </div>
           <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:pb-0" aria-label="Menu utama">
-            {NAV.map(({ to, label, icon: Icon, end }) => (
+            {menu.map(({ to, label, icon: Icon, end }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -90,12 +122,13 @@ export function AppShell() {
         </div>
         <div className="hidden flex-col gap-3 border-t p-3 md:flex">
           <ZoomHalaman className="w-full" />
-          <KartuPengguna username={me.data?.username} keluar={keluar} sedangKeluar={logout.isPending} />
+          <KartuPengguna username={me.data?.username} nama={me.data?.nama} peran={me.data?.peran} keluar={keluar} sedangKeluar={logout.isPending} onGantiPassword={() => setGantiPw(true)} />
         </div>
       </aside>
       <main className="min-w-0 flex-1 px-5 py-6 md:px-8">
         <Outlet />
       </main>
+      <DialogGantiPassword buka={gantiPw} onBukaChange={setGantiPw} />
     </div>
   )
 }

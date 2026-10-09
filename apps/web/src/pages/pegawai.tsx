@@ -11,11 +11,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { pesanGalat } from '@/lib/format'
-import { usePegawai, usePegawaiMutations } from '@/lib/queries'
+import { useMe, usePegawai, usePegawaiMutations } from '@/lib/queries'
 
 export default function PegawaiPage() {
   const [tampilNonaktif, setTampilNonaktif] = useState(false)
   const daftar = usePegawai(!tampilNonaktif)
+  const me = useMe()
   const { ubah, nonaktifkan } = usePegawaiMutations()
   const [dialog, setDialog] = useState<{ pegawai: PegawaiDto | null } | null>(null)
 
@@ -55,7 +56,7 @@ export default function PegawaiPage() {
             <PencilIcon />
           </Button>
           {p.aktif ? (
-            <Button variant="ghost" size="icon" aria-label={`Nonaktifkan ${p.nama}`} onClick={() => nonaktif(p)}>
+            <Button variant="ghost" size="icon" aria-label={`Nonaktifkan ${p.nama}`} title={me.data?.peran === 'admin' ? undefined : 'Hanya admin'} disabled={me.data?.peran !== 'admin'} onClick={() => nonaktif(p)}>
               <UserXIcon className="text-destructive" />
             </Button>
           ) : (

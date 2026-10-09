@@ -4,30 +4,21 @@ import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { DataTable, type Kolom } from '@/components/data-table'
+import { DialogKonfirmasiPassword } from '@/components/dialog-konfirmasi-password'
 import { PageHeader } from '@/components/page-header'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { pesanGalat, rupiah, tanggalPendek, waktuPendek } from '@/lib/format'
-import { useDaftarSuratTugas, useHapusSuratTugas } from '@/lib/queries'
+import { useDaftarSuratTugas, useHapusSuratTugas, useMe } from '@/lib/queries'
 import type { SuratTugasRingkasDto } from '@spjan/shared'
 
 export default function SuratTugasListPage() {
   const daftar = useDaftarSuratTugas()
   const hapus = useHapusSuratTugas()
+  const me = useMe()
+  const boleh = (b: SuratTugasRingkasDto) => me.data?.peran === 'admin' || (b.dibuatOleh !== null && b.dibuatOleh === me.data?.id)
   const [target, setTarget] = useState<SuratTugasRingkasDto | null>(null)
-
-  async function konfirmasiHapus() {
-    if (!target) return
-    try {
-      await hapus.mutateAsync(target.id)
-      toast.success('Surat tugas dihapus.')
-      setTarget(null)
-    } catch (error) {
-      toast.error(pesanGalat(error))
-    }
-  }
 
   const kolom: Kolom<SuratTugasRingkasDto>[] = [
     {
@@ -41,6 +32,7 @@ export default function SuratTugasListPage() {
     },
     { judul: 'Tanggal', teks: (b) => tanggalPendek(b.tanggal), sel: (b) => tanggalPendek(b.tanggal) },
     { judul: 'Pelaksana', rataKanan: true, sel: (b) => b.jumlahPelaksana },
+    { judul: 'Pembuat', teks: (b) => b.dibuatOlehNama ?? '', sel: (b) => <span className="text-muted-foreground">{b.dibuatOlehNama ?? '-'}</span> },
     { judul: 'Total', rataKanan: true, sel: (b) => (b.jumlahPelaksana > 0 ? rupiah(b.total) : <span className="text-muted-foreground">-</span>) },
     {
       judul: 'Status',
@@ -69,8 +61,8 @@ export default function SuratTugasListPage() {
             variant="ghost"
             size="icon"
             aria-label={`Hapus ${b.nomor}`}
-            title={b.status === 'final' ? 'Terkunci: buka kunci dulu untuk menghapus' : undefined}
-            disabled={b.status === 'final'}
+            title={b.status === 'final' ? 'Terkunci: buka kunci dulu untuk menghapus' : !boleh(b) ? 'Hanya pembuat atau admin yang boleh menghapus' : undefined}
+            disabled={b.status === 'final' || !boleh(b)}
             onClick={() => setTarget(b)}
           >
             <Trash2Icon className="text-destructive" />
@@ -105,24 +97,19 @@ export default function SuratTugasListPage() {
         />
       )}
 
-      <Dialog open={target !== null} onOpenChange={(o) => !o && setTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Hapus surat tugas?</DialogTitle>
-            <DialogDescription>
-              {target?.nomor} beserta seluruh pelaksana, tujuan perjalanan, dan biayanya akan dihapus permanen.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTarget(null)}>
-              Batal
-            </Button>
-            <Button variant="destructive" onClick={konfirmasiHapus} disabled={hapus.isPending}>
-              {hapus.isPending ? 'Menghapus...' : 'Hapus'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DialogKonfirmasiPassword
+        buka={target !== null}
+        onBukaChange={(b) => !b && setTarget(null)}
+        judul="Hapus surat tugas?"
+        deskripsi={`${target?.nomor ?? ''} beserta pelaksana, tujuan, biaya, dan berkasnya dipindah ke tempat sampah. Admin masih bisa memulihkannya.`}
+        labelAksi="Hapus"
+        bahaya
+        onKonfirmasi={async ({ password }) => {
+          if (!target) return
+          await hapus.mutateAsync({ id: target.id, password })
+          toast.success('Surat tugas dipindah ke tempat sampah.')
+        }}
+      />
     </div>
   )
 }

@@ -23,7 +23,8 @@ import { AksiHeaderSt, PeringatanBelumSimpan } from '@/components/st/aksi-header
 import { BannerPeriksa } from '@/components/st/banner-periksa'
 import { BarBawahSt } from '@/components/st/bar-bawah-st'
 import { BuktiPanel } from '@/components/st/bukti-panel'
-import { DialogHapusSt, DialogKunciSt, DialogNoSpd, DialogTinggalkanHalaman } from '@/components/st/dialog-editor-st'
+import { DialogKonfirmasiPassword } from '@/components/dialog-konfirmasi-password'
+import { DialogKunciSt, DialogNoSpd, DialogTinggalkanHalaman } from '@/components/st/dialog-editor-st'
 import { FotoDokumentasiPanel } from '@/components/st/foto-dokumentasi-panel'
 import { KartuDataSt } from '@/components/st/kartu-data-st'
 import { KartuPejabatSt } from '@/components/st/kartu-pejabat-st'
@@ -39,6 +40,7 @@ import { pesanGalat } from '@/lib/format'
 import {
   useHapusSuratTugas,
   useKunciSuratTugas,
+  useMe,
   usePegawai,
   usePengaturan,
   useSbm,
@@ -77,15 +79,21 @@ function Editor({
   awal,
   sbm,
   pengaturan,
-  terkunci,
+  dikunci,
+  bolehUbah,
+  pembuat,
 }: {
   id: number | null
   awal: SuratTugasPayload
   sbm: Sbm
   pengaturan: PengaturanPayload
   /** Status final dari server: seluruh isian dikunci sampai kunci dibuka. */
-  terkunci: boolean
+  dikunci: boolean
+  /** Admin atau pembuat surat tugas; selain itu hanya boleh melihat. */
+  bolehUbah: boolean
+  pembuat: string | null
 }) {
+  const terkunci = dikunci || !bolehUbah
   const navigate = useNavigate()
   const pegawai = usePegawai(true)
   const simpan = useSimpanSuratTugas()
@@ -172,30 +180,23 @@ function Editor({
     }
   }
 
-  async function konfirmasiHapus() {
+  async function konfirmasiHapus(password: string) {
     if (id === null) return
-    try {
-      await hapus.mutateAsync(id)
-      toast.success('Surat tugas dihapus.')
-      izinkanNavigasi()
-      navigate('/', { replace: true })
-    } catch (error) {
-      toast.error(pesanGalat(error))
-      setDialogHapus(false)
-    }
+    await hapus.mutateAsync({ id, password })
+    toast.success('Surat tugas dipindah ke tempat sampah.')
+    izinkanNavigasi()
+    navigate('/', { replace: true })
   }
 
-  async function konfirmasiKunci() {
-    if (id === null || dialogKunci === null) return
-    const kunci = dialogKunci === 'kunci'
+  async function kunciSekarang() {
+    if (id === null) return
     try {
-      await kunciSt.mutateAsync({ id, kunci })
-      toast.success(kunci ? 'Surat tugas ditandai selesai dan dikunci.' : 'Kunci dibuka. Surat tugas bisa diubah lagi.')
-      setDialogKunci(null)
+      await kunciSt.mutateAsync({ id, kunci: true })
+      toast.success('Surat tugas ditandai selesai dan dikunci.')
     } catch (error) {
       toast.error(pesanGalat(error))
-      setDialogKunci(null)
     }
+    setDialogKunci(null)
   }
 
   const sufiksSpd = sufiksNoSpd(st.tahunAnggaran || pengaturan.tahunAnggaran || new Date().getFullYear())
@@ -233,10 +234,10 @@ function Editor({
 
   let aksiHeader: ReactNode = null
   if (!modeLaporan) {
-    if (id !== null) {
+    if (id !== null && bolehUbah) {
       aksiHeader = (
         <AksiHeaderSt
-          terkunci={terkunci}
+          terkunci={dikunci}
           bisaKunci={!kotor}
           onHapus={() => setDialogHapus(true)}
           onKunci={() => setDialogKunci('kunci')}
@@ -253,11 +254,15 @@ function Editor({
       <PageHeader
         lengket={!modeLaporan}
         title={id === null ? 'Surat tugas baru' : st.nomor || 'Surat tugas'}
-        description={terkunci ? 'Selesai dan terkunci. Buka kunci untuk mengubah.' : deskripsiHeader({ modeLaporan, kotor, baru: id === null })}
+        description={!bolehUbah ? `Hanya lihat: dibuat oleh ${pembuat ?? 'pengguna lain'}.` : dikunci ? 'Selesai dan terkunci. Buka kunci untuk mengubah.' : deskripsiHeader({ modeLaporan, kotor, baru: id === null })}
         actions={aksiHeader}
       />
 
-      {terkunci ? (
+      {!bolehUbah ? (
+        <Alert className="mb-5">
+          Surat tugas ini dibuat oleh {pembuat ?? 'pengguna lain'}. Anda hanya bisa melihat dan mencetak dokumennya; perubahan hanya oleh pembuat atau admin.
+        </Alert>
+      ) : dikunci ? (
         <Alert className="mb-5 flex flex-wrap items-center justify-between gap-2">
           <span>Surat tugas ini sudah ditandai selesai dan terkunci, jadi data, bukti, dan laporan tidak bisa diubah. Dokumen tetap bisa dicetak.</span>
           <Button size="sm" variant="outline" onClick={() => setDialogKunci('buka')}>
@@ -329,6 +334,8 @@ function Editor({
         <BarBawahSt
           id={id} hasil={hasil} kotor={kotor} menyimpan={simpan.isPending} onSimpan={kirim}
           terkunci={terkunci}
+          bisaBukaKunci={dikunci && bolehUbah}
+          bisaKunci={bolehUbah}
           onPerbaiki={perbaikiIsian}
           onKunci={() => setDialogKunci('kunci')}
           onBukaKunci={() => setDialogKunci('buka')}
@@ -342,14 +349,35 @@ function Editor({
         sufiks={sufiksSpd}
         onKonfirmasi={(angkaAwal) => terapkanNoSpd(angkaAwal, sufiksSpd)}
       />
-      <DialogHapusSt buka={dialogHapus} onBukaChange={setDialogHapus} nomor={st.nomor} menghapus={hapus.isPending} onKonfirmasi={konfirmasiHapus} />
       <DialogKunciSt
-        buka={dialogKunci !== null}
+        buka={dialogKunci === 'kunci'}
         onBukaChange={(b) => !b && setDialogKunci(null)}
-        kunci={dialogKunci === 'kunci'}
+        kunci
         nomor={st.nomor}
         memproses={kunciSt.isPending}
-        onKonfirmasi={konfirmasiKunci}
+        onKonfirmasi={() => void kunciSekarang()}
+      />
+      <DialogKonfirmasiPassword
+        buka={dialogKunci === 'buka'}
+        onBukaChange={(b) => !b && setDialogKunci(null)}
+        judul="Buka kunci surat tugas?"
+        deskripsi={`${st.nomor} akan bisa diubah lagi. Pembukaan kunci dicatat di log audit beserta alasannya.`}
+        labelAksi="Buka kunci"
+        perluAlasan
+        onKonfirmasi={async ({ password, alasan }) => {
+          if (id === null) return
+          await kunciSt.mutateAsync({ id, kunci: false, password, alasan })
+          toast.success('Kunci dibuka. Surat tugas bisa diubah lagi.')
+        }}
+      />
+      <DialogKonfirmasiPassword
+        buka={dialogHapus}
+        onBukaChange={setDialogHapus}
+        judul="Hapus surat tugas?"
+        deskripsi={`${st.nomor} beserta pelaksana, tujuan, biaya, dan berkasnya dipindah ke tempat sampah. Admin masih bisa memulihkannya.`}
+        labelAksi="Hapus"
+        bahaya
+        onKonfirmasi={({ password }) => konfirmasiHapus(password)}
       />
       <DialogTinggalkanHalaman blocker={blocker} />
     </div>
@@ -366,15 +394,19 @@ export default function StEditorPage() {
   const st = useSuratTugas(id ?? undefined)
   const versiId = id === null ? versi.data?.[0]?.id : st.data?.versiSbmId
   const sbm = useSbm(versiId)
+  const me = useMe()
 
   if (!idValid) return <Alert variant="destructive">Alamat surat tugas tidak valid.</Alert>
   const galat = pengaturan.error ?? versi.error ?? st.error ?? sbm.error
   if (galat) return <Alert variant="destructive">{pesanGalat(galat)}</Alert>
-  if (!pengaturan.data || !sbm.data || (id !== null && !st.data)) {
+  if (!pengaturan.data || !sbm.data || !me.data || (id !== null && !st.data)) {
     return <p className="text-sm text-muted-foreground">Memuat...</p>
   }
   const awal: SuratTugasPayload = st.data
     ? payloadDariDto(st.data)
     : stKosong(pengaturan.data.kodeAkunDefault, pengaturan.data.tahunAnggaran)
-  return <Editor key={id ?? 'baru'} id={id} awal={awal} sbm={sbm.data.data} pengaturan={pengaturan.data} terkunci={st.data?.status === 'final'} />
+  return <Editor key={id ?? 'baru'} id={id} awal={awal} sbm={sbm.data.data} pengaturan={pengaturan.data} dikunci={st.data?.status === 'final'}
+      bolehUbah={id === null || me.data?.peran === 'admin' || st.data?.dibuatOleh === me.data?.id}
+      pembuat={st.data?.dibuatOlehNama ?? null}
+    />
 }

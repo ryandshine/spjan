@@ -90,40 +90,6 @@ export function DialogNoSpd({
   )
 }
 
-export function DialogHapusSt({
-  buka,
-  onBukaChange,
-  nomor,
-  menghapus,
-  onKonfirmasi,
-}: {
-  buka: boolean
-  onBukaChange: (buka: boolean) => void
-  nomor: string
-  menghapus: boolean
-  onKonfirmasi: () => void
-}) {
-  return (
-    <Dialog open={buka} onOpenChange={onBukaChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Hapus surat tugas?</DialogTitle>
-          <DialogDescription>{nomor} beserta seluruh pelaksana, tujuan perjalanan, dan biayanya akan dihapus permanen.</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onBukaChange(false)}>
-            Batal
-          </Button>
-          <Button variant="destructive" onClick={onKonfirmasi} disabled={menghapus}>
-            {menghapus ? 'Menghapus...' : 'Hapus'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-/** Konfirmasi saat pengguna berpindah halaman dengan perubahan yang belum disimpan. */
 export function DialogTinggalkanHalaman({ blocker }: { blocker: Blocker }) {
   const tertahan = blocker.state === 'blocked'
   return (
