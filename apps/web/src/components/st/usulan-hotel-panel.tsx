@@ -14,7 +14,7 @@ import type { PelaksanaPayload, UsulanHotelItem } from '@spjan/shared'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select } from '@/components/ui/select'
 import { pesanGalat, rupiah } from '@/lib/format'
 import { useDaftarBerkas, useUpdateUsulanBerkas, useUsulanHotelSt } from '@/lib/queries'
@@ -317,9 +317,6 @@ export function UsulanHotelPanel({ stId, pelaksanaList, onTerapkan }: Props) {
             </Badge>
           )}
         </div>
-        <CardDescription>
-          Hasil pembacaan invoice hotel otomatis. Klik &quot;Terapkan ke Biaya&quot; untuk mengisi otomatis nama hotel, tarif per malam, dan durasi pada tujuan perjalanan pelaksana.
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {usulanList && usulanList.length > 0 ? (

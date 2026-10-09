@@ -76,7 +76,7 @@ export function DataTable<T>({
       </div>
       {tersaring.length > maksBaris ? (
         <p className="text-xs text-muted-foreground">
-          Menampilkan {maksBaris} dari {tersaring.length} baris. Persempit dengan kotak pencarian.
+          Menampilkan {maksBaris} dari {tersaring.length} baris.
         </p>
       ) : (
         <p className="text-xs text-muted-foreground">{tersaring.length} baris</p>

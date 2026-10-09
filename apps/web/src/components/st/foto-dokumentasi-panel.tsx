@@ -153,10 +153,7 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
               </Badge>
             ) : null}
           </CardTitle>
-          <CardDescription>
-            Lampiran laporan saja: foto kegiatan dimuat di lembar <strong>Bukti Dokumentasi Kegiatan</strong>. Tidak dibaca
-            otomatis dan <strong>tidak memengaruhi hitungan biaya</strong>.
-          </CardDescription>
+          <CardDescription>Lampiran laporan; tidak memengaruhi hitungan biaya.</CardDescription>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input

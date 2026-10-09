@@ -47,7 +47,7 @@ export function KartuDataSt({
           mode="otomatis"
           otomatisAktif={!st.tanggalSpj}
           onKembaliOtomatis={() => onUbah({ tanggalSpj: null })}
-          hint={tanggalPanjang(st.tanggalSpj) || 'Otomatis: tanggal saat dokumen dibuat. Isi hanya bila ada tanggal SPJ khusus.'}
+          hint={tanggalPanjang(st.tanggalSpj) || 'Otomatis: tanggal saat dokumen dibuat.'}
         >
           <InputTanggal id="st-spj" label="Tanggal SPJ" nilai={st.tanggalSpj} onUbah={(iso) => onUbah({ tanggalSpj: iso })} />
         </Field>

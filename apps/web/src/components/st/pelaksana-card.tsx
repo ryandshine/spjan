@@ -260,7 +260,7 @@ export function PelaksanaCard({
         <CardContent id={id('isi')} className="grid gap-5">
           <section className="grid gap-3">
             <div className="flex flex-wrap items-end gap-2">
-              <Field label="Pilih dari daftar pegawai" htmlFor={id('pil')} className="min-w-48 flex-1" mode="opsional" hint="Memilih pegawai mengisi nama, NIP, jabatan, instansi, pangkat/golongan, dan status secara otomatis.">
+              <Field label="Pilih dari daftar pegawai" htmlFor={id('pil')} className="min-w-48 flex-1" mode="opsional">
                 <Select
                   id={id('pil')}
                   value={p.pegawaiId ?? ''}
@@ -302,7 +302,7 @@ export function PelaksanaCard({
               >
                 <TextareaOtomatis id={id('instansi')} value={p.instansi ?? ''} onChange={(e) => onUbah((x) => ({ ...x, instansi: e.target.value }))} />
               </Field>
-              <Field label="Pangkat / golongan" htmlFor={id('pangkat')} error={galat?.pangkatGolongan} mode="opsional" hint="Dicetak pada SPD. Mis. Penata Muda - III/a atau Ahli Pertama - IX.">
+              <Field label="Pangkat / golongan" htmlFor={id('pangkat')} error={galat?.pangkatGolongan} mode="opsional" hint="Mis. Penata Muda - III/a atau Ahli Pertama - IX.">
                 <TextareaOtomatis id={id('pangkat')} value={p.pangkatGolongan ?? ''} onChange={(e) => onUbah((x) => ({ ...x, pangkatGolongan: e.target.value }))} />
               </Field>
               <Field label="Status (kelompok SBM)" htmlFor={id('status')} error={galat?.status} warning={peringatanKode('STATUS_PEGAWAI_KOSONG')} mode="wajib">
@@ -319,7 +319,7 @@ export function PelaksanaCard({
                   ))}
                 </Select>
               </Field>
-              <Field label="No. SPD" htmlFor={id('spd')} warning={peringatanKode('NO_SPD_KOSONG')} mode="wajib" hint="Tombol Auto-isi No. SPD di bawah daftar pelaksana mengisi semua nomor berurutan.">
+              <Field label="No. SPD" htmlFor={id('spd')} warning={peringatanKode('NO_SPD_KOSONG')} mode="wajib">
                 <Input
                   id={id('spd')}
                   placeholder="contoh: 401/SPD/PPS/2026"
@@ -374,7 +374,7 @@ export function PelaksanaCard({
 
           <section className="grid gap-3">
             <h3 className="text-sm font-semibold">Biaya transport dan biaya tambahan</h3>
-            {p.biaya.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada biaya. Tambahkan tiket, taksi, atau biaya lain.</p> : null}
+            {p.biaya.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada biaya.</p> : null}
             {p.biaya.map((b, i) => (
               <BiayaForm
                 key={i}
@@ -417,7 +417,6 @@ export function PelaksanaCard({
                 Hasil hitungan
                 <PenandaIsian mode="otomatis" />
               </h3>
-              <p className="-mt-1 text-xs text-muted-foreground">Dihitung sendiri dari isian di atas dan tabel SBM. Tidak perlu diisi.</p>
               <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
                 {(
                   [

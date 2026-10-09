@@ -63,14 +63,14 @@ function FormModelAi({ awal }: { awal: ModelAiDto }) {
   return (
     <form onSubmit={kirim} className="grid gap-4">
       {galat ? <Alert variant="destructive">{galat}</Alert> : null}
-      <Field label="Alamat Ollama" htmlFor="llmUrl" hint={`Kosong = bawaan server (${awal.bawaanUrl}).`}>
+      <Field label="Alamat Ollama" htmlFor="llmUrl">
         <Input id="llmUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder={awal.bawaanUrl} />
       </Field>
       <div className="grid items-start gap-4 sm:grid-cols-2">
-        <Field label="Model teks" htmlFor="modelTeks" hint="Untuk dokumen PDF berteks (mis. surat tugas).">
+        <Field label="Model teks" htmlFor="modelTeks">
           <Input id="modelTeks" value={teks} onChange={(e) => setTeks(e.target.value)} placeholder="gpt-oss:120b-cloud" />
         </Field>
-        <Field label="Model gambar" htmlFor="modelGambar" hint="Harus mendukung gambar (vision), untuk foto invoice, tiket, dan struk.">
+        <Field label="Model gambar" htmlFor="modelGambar" hint="Harus mendukung gambar (vision).">
           <Input id="modelGambar" value={gambar} onChange={(e) => setGambar(e.target.value)} placeholder="mis. gemma4:cloud" />
         </Field>
       </div>
@@ -98,10 +98,7 @@ export function ModelAiCard() {
     <Card className="max-w-4xl">
       <CardHeader>
         <CardTitle>Model pembaca dokumen</CardTitle>
-        <CardDescription>
-          Dokumen yang dibaca (surat tugas, invoice, tiket, struk) dikirim ke ollama.com bila memakai model cloud. Hasil bacaan selalu
-          berupa usulan yang Anda setujui.
-        </CardDescription>
+        <CardDescription>Dokumen yang dibaca dikirim ke ollama.com bila memakai model cloud.</CardDescription>
       </CardHeader>
       <CardContent>
         {data.isError ? <Alert variant="destructive">{pesanGalat(data.error)}</Alert> : null}

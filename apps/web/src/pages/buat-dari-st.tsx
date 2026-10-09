@@ -119,7 +119,7 @@ export default function BuatDariStPage() {
     <div className="space-y-6">
       <PageHeader
         title="Buat dari Surat Tugas"
-        description="Unggah PDF Surat Tugas (ST). Sistem akan membaca personil, tanggal, dan tujuan perjalanan dinas ke dalam draf SPJ."
+        description="Unggah PDF Surat Tugas (ST)."
         actions={
           <Link to="/" className={buttonVariants({ variant: 'outline' })}>
             Kembali ke Daftar
@@ -162,7 +162,7 @@ export default function BuatDariStPage() {
                 {mengunggah ? 'Mengunggah dokumen...' : 'Pilih atau seret dokumen Surat Tugas (PDF)'}
               </h3>
               <p className="mt-1 text-xs text-muted-foreground max-w-sm">
-                Format PDF standar Kementerian/Instansi pemerintah. Ukuran maksimal 10 MB.
+                PDF, ukuran maksimal 10 MB.
               </p>
               <Button type="button" variant="outline" size="sm" className="mt-4" disabled={mengunggah}>
                 {mengunggah ? 'Memproses...' : 'Pilih Berkas'}
@@ -379,10 +379,7 @@ export default function BuatDariStPage() {
               </Card>
 
               {/* Aksi Buat Draf */}
-              <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl border bg-card shadow-xs">
-                <div className="text-xs text-muted-foreground">
-                  Draf Surat Tugas akan dibuat dan berkas PDF akan ditautkan secara otomatis sebagai arsip.
-                </div>
+              <div className="flex flex-wrap items-center justify-end gap-4 p-4 rounded-xl border bg-card shadow-xs">
                 <div className="flex items-center gap-2">
                   <Button variant="outline" onClick={resetUnggahan} disabled={buatSt.isPending}>
                     Batal

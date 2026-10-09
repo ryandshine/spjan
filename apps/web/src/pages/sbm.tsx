@@ -59,10 +59,7 @@ function KonfigurasiStatus({ versiId, awal }: { versiId: number; awal: Record<St
     <Card>
       <CardHeader>
         <CardTitle>Konfigurasi status pegawai</CardTitle>
-        <CardDescription>
-          Menentukan kolom batas hotel, hak uang representasi, dan kelas tiket per status. Kelas tiket bawaan belum diverifikasi terhadap PMK
-          Perjalanan Dinas; sesuaikan bila perlu.
-        </CardDescription>
+        <CardDescription>Kelas tiket bawaan belum diverifikasi terhadap PMK Perjalanan Dinas; sesuaikan bila perlu.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="overflow-x-auto rounded-lg border">
@@ -217,7 +214,6 @@ export default function SbmPage() {
     <div>
       <PageHeader
         title="Tabel SBM"
-        description="Standar Biaya Masukan yang dipakai mesin hitung. Data dari PMK 32 Tahun 2025; hanya konfigurasi status yang dapat diubah."
         actions={
           versi.data && versi.data.length > 1 ? (
             <Select value={id} onChange={(e) => setDipilih(Number(e.target.value))} className="w-56">

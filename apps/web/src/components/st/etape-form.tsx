@@ -142,7 +142,7 @@ export function EtapeForm({
             ))}
           </Select>
         </Field>
-        <Field label="Kota tujuan" htmlFor={id('kota')} hint="Dipakai pada uraian tiket." error={galat?.kota} mode="wajib">
+        <Field label="Kota tujuan" htmlFor={id('kota')} error={galat?.kota} mode="wajib">
           <Input
             id={id('kota')}
             list={id('list-kota')}
@@ -258,11 +258,7 @@ export function EtapeForm({
               mode="otomatis"
               otomatisAktif={etape.malamOverride == null}
               onKembaliOtomatis={() => onUbah({ malamOverride: null })}
-              hint={
-                bukaFullboard && jmlFullboard > 0 && jmlFullboard === listHari.length
-                  ? 'Otomatis 0 malam (seluruh hari paket rapat).'
-                  : 'Dihitung dari tanggal berangkat dan pulang; ketik angka hanya bila berbeda.'
-              }
+              hint={bukaFullboard && jmlFullboard > 0 && jmlFullboard === listHari.length ? 'Otomatis 0 malam (seluruh hari paket rapat).' : undefined}
             >
               <Input
                 id={id('malam')}
@@ -303,7 +299,7 @@ export function EtapeForm({
             </label>
             {catatanOtomatis ? (
               <p className="pl-6 text-xs text-muted-foreground">
-                Dicentang otomatis karena {etape.kota} termasuk Jabodetabek dan perjalanan hanya 1 hari. Hapus centang bila ini perjalanan luar kota biasa.
+                Dicentang otomatis: {etape.kota} termasuk Jabodetabek dan perjalanan hanya 1 hari.
               </p>
             ) : null}
             <div className="pl-6">
@@ -327,9 +323,6 @@ export function EtapeForm({
                 <span className="font-medium text-foreground">
                   Ada paket rapat di hotel (<Istilah kata="Fullboard" />)
                   {bukaFullboard && jmlFullboard > 0 ? <Badge variant="default" className="ml-2">{jmlFullboard} dari {listHari.length} hari</Badge> : null}
-                </span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  Centang bila rapat atau pertemuan di hotel sudah termasuk makan dan akomodasi paket (fullboard), lalu pilih tanggal yang tercakup.
                 </span>
               </span>
             </label>
@@ -369,7 +362,6 @@ export function EtapeForm({
                 {jmlFullboard > 0 ? (
                   <p className="text-xs text-muted-foreground">
                     <strong>{jmlFullboard} hari</strong> paket rapat (uang saku) dan <strong>{jmlBiasa} hari</strong> lain (uang harian penuh).
-                    {jmlFullboard === listHari.length ? ' Seluruh hari tercakup paket rapat, penginapan ditanggung panitia (malam menginap otomatis 0).' : ''}
                   </p>
                 ) : (
                   <p className="flex items-start gap-1.5 text-xs font-medium text-warning-foreground">

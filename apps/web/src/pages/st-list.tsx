@@ -73,7 +73,6 @@ export default function SuratTugasListPage() {
     <div>
       <PageHeader
         title="Surat Tugas"
-        description="Satu surat tugas berisi semua pelaksana; SPTB, Rincian, dan Kuitansi dibuat darinya."
         actions={
           <div className="flex items-center gap-2">
             <Link to="/st/buat-dari-st" className={buttonVariants({ variant: 'outline' })}>
@@ -91,7 +90,7 @@ export default function SuratTugasListPage() {
         <DataTable
           kolom={kolom}
           baris={daftar.data ?? []}
-          kosong={daftar.isPending ? 'Memuat...' : 'Belum ada surat tugas. Mulai dengan "Surat tugas baru".'}
+          kosong={daftar.isPending ? 'Memuat...' : 'Belum ada surat tugas.'}
         />
       )}
 

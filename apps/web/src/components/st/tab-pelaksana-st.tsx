@@ -3,7 +3,6 @@ import type { PegawaiDto, PelaksanaHasil, PelaksanaPayload, Sbm } from '@spjan/s
 
 import { PelaksanaCard } from '@/components/st/pelaksana-card'
 import { Button } from '@/components/ui/button'
-import { LegendaIsian } from '@/components/ui/penanda-isian'
 import { cakupanGalat, type PetaGalat } from '@/lib/validasi'
 
 /** Daftar kartu pelaksana beserta tombol tambah dan auto-isi No. SPD. `kunci` harus sejajar dengan `pelaksana`. */
@@ -36,10 +35,9 @@ export function TabPelaksanaSt({
 }) {
   return (
     <div className="grid gap-6">
-      <LegendaIsian />
       {pelaksana.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Belum ada pelaksana. Klik &quot;Tambah pelaksana&quot; untuk memulai.
+          Belum ada pelaksana.
         </p>
       ) : null}
       {pelaksana.map((p, i) => (

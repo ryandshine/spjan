@@ -30,7 +30,6 @@ import { TabPelaksanaSt } from '@/components/st/tab-pelaksana-st'
 import { UsulanHotelPanel } from '@/components/st/usulan-hotel-panel'
 import { UsulanTransportPanel } from '@/components/st/usulan-transport-panel'
 import { Alert } from '@/components/ui/alert'
-import { LegendaIsian } from '@/components/ui/penanda-isian'
 import { TabPanel, Tabs, type TabItem } from '@/components/ui/tabs'
 import { pesanGalat } from '@/lib/format'
 import {
@@ -236,7 +235,6 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
         <div className="min-w-0">
           <TabPanel idAwal="st" kunci="data" aktif={tab === 'data'}>
             <div className="grid gap-6">
-              <LegendaIsian />
               <KartuDataSt st={st} peta={peta} pengaturan={pengaturan} onUbah={ubahSt} onUbahSumberDana={ubahSumberDana} />
               <KartuPejabatSt st={st} pengaturan={pengaturan} pegawai={daftarPegawai} onUbah={ubahSt} />
             </div>

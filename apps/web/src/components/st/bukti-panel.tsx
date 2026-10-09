@@ -168,10 +168,7 @@ export function BuktiPanel({ stId }: { stId: number }) {
               </Badge>
             )}
           </CardTitle>
-          <CardDescription>
-            Unggah kuitansi/invoice hotel, tiket pesawat, dan boarding pass. Berkas ini dibaca otomatis dan{' '}
-            <strong>dipakai untuk menghitung biaya perjalanan dinas</strong>.
-          </CardDescription>
+          <CardDescription>Kuitansi/invoice hotel, tiket pesawat, dan boarding pass.</CardDescription>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input
@@ -225,9 +222,7 @@ export function BuktiPanel({ stId }: { stId: number }) {
     {isLoading ? (
       <p className="py-4 text-center text-sm text-muted-foreground">Memuat daftar berkas...</p>
     ) : daftarBerkas.length === 0 ? (
-      <p className="py-4 text-center text-xs text-muted-foreground">
-        Belum ada bukti biaya yang diunggah untuk surat tugas ini.
-      </p>
+      <p className="py-4 text-center text-xs text-muted-foreground">Belum ada berkas.</p>
     ) : (
       <div>
         <Table>

@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { ApiError } from '@/lib/api'
@@ -52,7 +52,6 @@ export default function LoginPage() {
         <Card>
           <CardHeader>
             <CardTitle>Masuk</CardTitle>
-            <CardDescription>Gunakan akun yang sudah disediakan.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={kirim} className="grid gap-4">

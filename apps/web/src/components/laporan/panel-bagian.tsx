@@ -24,23 +24,6 @@ function placeholderNarasi(b: Extract<Bagian, { jenis: 'teks' }>): string {
   return 'Tulis isi bagian ini.'
 }
 
-function keterangan(b: Bagian): string {
-  switch (b.jenis) {
-    case 'sampul':
-      return 'Halaman depan laporan. Judul dan tanggal terisi otomatis.'
-    case 'petugas':
-      return 'Nama diambil dari surat tugas. Instansi terisi dari data pegawai; ubah bila perlu.'
-    case 'dokumentasi':
-      return 'Lampiran foto kegiatan.'
-    case 'tatawaktu':
-      return 'Kegiatan dan tanggal diambil dari etape surat tugas.'
-    case 'teks':
-      return ''
-    default:
-      return 'Ikut berubah bila data surat tugas diubah.'
-  }
-}
-
 function ModeOtomatis({
   otomatis,
   onTulisSendiri,
@@ -117,7 +100,6 @@ export function PanelBagian({
 }) {
   const [gantiJudul, setGantiJudul] = useState(false)
   const tetap = bagian.jenis === 'sampul'
-  const ket = keterangan(bagian)
   return (
     <Card id="panel-laporan" className="scroll-mt-4">
       <CardContent className="grid gap-4 pt-4">
@@ -140,11 +122,9 @@ export function PanelBagian({
                 {labelBagian(bagian)}
               </h2>
             )}
-            {ket ? <p className="mt-1 text-sm text-muted-foreground">{ket}</p> : null}
             {bagian.jenis === 'teks' ? (
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <div className="mt-2">
                 <PenandaIsian mode={bagian.judul.trim() ? 'wajib' : 'opsional'} />
-                {bagian.judul.trim() ? 'Bagian ini Anda yang menulis.' : 'Boleh dikosongkan.'}
               </div>
             ) : null}
           </div>

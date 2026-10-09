@@ -29,18 +29,12 @@ export function KartuPejabatSt({
       <CardHeader className="flex-row items-center justify-between gap-2">
         <div>
           <CardTitle>Pejabat yang Bertanggung Jawab</CardTitle>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {terbuka ? (
-              <>
-                Penandatangan kuitansi: <em>&quot;Barang / pekerjaan tersebut telah diterima / diselesaikan dengan lengkap dan baik&quot;</em>
-              </>
-            ) : (
-              <>
-                Penandatangan: <strong>{st.pjNama || pengaturan.pjNama || 'Belum diatur'}</strong>
-                {adaIsian ? '' : ' (bawaan dari Pengaturan)'}
-              </>
-            )}
-          </p>
+          {terbuka ? null : (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Penandatangan: <strong>{st.pjNama || pengaturan.pjNama || 'Belum diatur'}</strong>
+              {adaIsian ? '' : ' (bawaan dari Pengaturan)'}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-1">
           {terbuka && adaIsian ? (
@@ -60,12 +54,7 @@ export function KartuPejabatSt({
       </CardHeader>
       {terbuka ? (
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field
-            label="Pilih dari daftar pegawai"
-            htmlFor="pj-pegawai"
-            className="sm:col-span-2"
-            hint="Memilih pegawai akan otomatis mengisi nama, NIP, dan jabatan."
-          >
+          <Field label="Pilih dari daftar pegawai" htmlFor="pj-pegawai" className="sm:col-span-2">
             <Select
               id="pj-pegawai"
               value={cariPegawaiPejabat(pegawai, st)?.id ?? ''}

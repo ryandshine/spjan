@@ -27,20 +27,3 @@ export function PenandaIsian({ mode, otomatisAktif = true, onKembali }: { mode: 
     </span>
   )
 }
-
-/** Penjelasan sekali di atas formulir, satu baris tanpa kotak. */
-export function LegendaIsian() {
-  return (
-    <p className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
-      <span>
-        <PenandaIsian mode="wajib" /> harus Anda isi
-      </span>
-      <span className="inline-flex flex-wrap items-center gap-1.5">
-        <PenandaIsian mode="otomatis" /> terisi sendiri dari data lain; ubah hanya bila perlu
-      </span>
-      <span>
-        <PenandaIsian mode="opsional" /> boleh dikosongkan
-      </span>
-    </p>
-  )
-}

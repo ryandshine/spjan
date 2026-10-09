@@ -66,10 +66,10 @@ export function FormPegawai({ awal, onSelesai }: { awal: PegawaiDto | null; onSe
       <Field label="Instansi" htmlFor="instansi" error={galat.instansi}>
         <Input id="instansi" value={instansi} onChange={(e) => setInstansi(e.target.value)} />
       </Field>
-      <Field label="Pangkat / golongan" htmlFor="pangkatGolongan" error={galat.pangkatGolongan} hint="Dicetak pada SPD. Mis. Penata Muda - III/a atau Ahli Pertama - IX (PPPK).">
+      <Field label="Pangkat / golongan" htmlFor="pangkatGolongan" error={galat.pangkatGolongan} hint="Mis. Penata Muda - III/a atau Ahli Pertama - IX (PPPK).">
         <Input id="pangkatGolongan" value={pangkatGolongan} onChange={(e) => setPangkatGolongan(e.target.value)} />
       </Field>
-      <Field label="Status (kelompok SBM)" htmlFor="status" hint="Menentukan batas hotel, uang representasi, dan kelas tiket.">
+      <Field label="Status (kelompok SBM)" htmlFor="status">
         <Select id="status" value={status} onChange={(e) => setStatus(e.target.value as StatusKode | '')}>
           <option value="">- belum dipilih -</option>
           {STATUS_KODE.map((k) => (

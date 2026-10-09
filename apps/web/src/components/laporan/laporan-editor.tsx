@@ -209,7 +209,7 @@ export function LaporanEditor({ stId }: { stId: number }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Hapus bagian &quot;{akanDihapus ? labelBagian(akanDihapus) : ''}&quot;?</DialogTitle>
-            <DialogDescription>Isinya akan hilang dari laporan. Anda masih bisa mengurungkan lewat tombol Urungkan selama beberapa detik.</DialogDescription>
+            <DialogDescription>Isinya akan hilang dari laporan.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setAkanDihapus(null)}>

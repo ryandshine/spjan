@@ -25,7 +25,7 @@ import {
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select } from '@/components/ui/select'
 import { pesanGalat, rupiah } from '@/lib/format'
 import { useDaftarBerkas, useUpdateUsulanBerkas, useUsulanTransportSt } from '@/lib/queries'
@@ -362,9 +362,6 @@ export function UsulanTransportPanel({ stId, pelaksanaList, onTerapkan }: Props)
             </Badge>
           )}
         </div>
-        <CardDescription>
-          Hasil ekstraksi e-ticket penerbangan/kereta dan struk transportasi riil. Klik &quot;Terapkan ke Biaya&quot; untuk menyematkan baris pengeluaran ke pelaksana.
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {usulanList && usulanList.length > 0 ? (

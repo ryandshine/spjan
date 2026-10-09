@@ -6,7 +6,7 @@ import { ModelAiCard } from '@/components/model-ai-card'
 import { PageHeader } from '@/components/page-header'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -15,12 +15,11 @@ import { usePengaturan, useSbm, useSimpanPengaturan, useVersiSbm } from '@/lib/q
 
 type Galat = Partial<Record<keyof PengaturanPayload, string>>
 
-function Bagian({ judul, deskripsi, children }: { judul: string; deskripsi?: string; children: ReactNode }) {
+function Bagian({ judul, children }: { judul: string; children: ReactNode }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>{judul}</CardTitle>
-        {deskripsi ? <CardDescription>{deskripsi}</CardDescription> : null}
       </CardHeader>
       <CardContent className="grid items-start gap-4 sm:grid-cols-2">{children}</CardContent>
     </Card>
@@ -70,7 +69,7 @@ function FormPengaturan({ awal }: { awal: PengaturanPayload }) {
   return (
     <form onSubmit={simpan} className="grid max-w-4xl gap-5">
       {galatServer ? <Alert variant="destructive">{galatServer}</Alert> : null}
-      <Bagian judul="Satuan kerja" deskripsi="Dipakai pada kepala SPTB dan Kuitansi.">
+      <Bagian judul="Satuan kerja">
         {teks('kodeSatker', 'Kode satker')}
         <Field label="Tahun anggaran" htmlFor="tahunAnggaran" error={galat.tahunAnggaran}>
           <Input
@@ -83,7 +82,7 @@ function FormPengaturan({ awal }: { awal: PengaturanPayload }) {
         </Field>
         {teks('namaSatker', 'Nama satker', { kelas: 'sm:col-span-2' })}
         {teks('dasarDipa', 'Tanggal dan nomor DIPA', { kelas: 'sm:col-span-2' })}
-        {teks('kodeAkunDefault', 'Kode akun (mata anggaran) bawaan', { hint: 'Menjadi isian awal surat tugas baru.', kelas: 'sm:col-span-2' })}
+        {teks('kodeAkunDefault', 'Kode akun (mata anggaran) bawaan', { kelas: 'sm:col-span-2' })}
       </Bagian>
       <Bagian judul="Pejabat penandatangan">
         {teks('ppkNama', 'Pejabat Pembuat Komitmen - nama')}
@@ -96,7 +95,7 @@ function FormPengaturan({ awal }: { awal: PengaturanPayload }) {
         {teks('pembuatDaftarNama', 'Pembuat daftar - nama (opsional)', { opsional: true, hint: 'Kosong = pelaksana pertama pada surat tugas.' })}
         {teks('pembuatDaftarNip', 'Pembuat daftar - NIP (opsional)', { opsional: true })}
       </Bagian>
-      <Bagian judul="Tempat kedudukan" deskripsi="Asal perjalanan: dipakai untuk uraian tiket dan pagu taksi/tiket.">
+      <Bagian judul="Tempat kedudukan">
         {teks('kotaKedudukan', 'Kota tempat kedudukan')}
         <Field label="Provinsi tempat kedudukan" htmlFor="provinsiKedudukan" error={galat.provinsiKedudukan}>
           {provinsi.length > 0 ? (
@@ -126,7 +125,7 @@ export default function PengaturanPage() {
   const data = usePengaturan()
   return (
     <div>
-      <PageHeader title="Pengaturan" description="Data tetap yang dipakai di semua dokumen. Cukup diisi sekali." />
+      <PageHeader title="Pengaturan" />
       {data.isError ? <Alert variant="destructive">{pesanGalat(data.error)}</Alert> : null}
       {data.isPending ? <p className="text-sm text-muted-foreground">Memuat...</p> : null}
       {data.data ? <FormPengaturan awal={data.data} /> : null}

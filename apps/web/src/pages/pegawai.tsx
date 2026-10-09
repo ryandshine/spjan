@@ -72,7 +72,6 @@ export default function PegawaiPage() {
     <div>
       <PageHeader
         title="Pegawai"
-        description="Data pegawai disimpan permanen dan dipilih saat menyusun surat tugas."
         actions={
           <>
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
