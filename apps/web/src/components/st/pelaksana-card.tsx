@@ -24,9 +24,9 @@ import {
 } from '@spjan/shared'
 
 import { FormPegawai } from '@/components/pegawai-form'
-import { BarisHitung, BarisKelompok, BiayaBaris } from '@/components/st/biaya-form'
+import { BiayaBaris, KartuUangHarian } from '@/components/st/biaya-form'
 import { BlokForm } from '@/components/st/blok-form'
-import { PenginapanEtapeBaris } from '@/components/st/penginapan-baris'
+import { PenginapanEtapeKartu } from '@/components/st/penginapan-kartu'
 import { EtapeForm } from '@/components/st/etape-form'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -371,99 +371,101 @@ export function PelaksanaCard({
             </div>
           </BlokForm>
 
-          <BlokForm judul="Biaya Perjalanan">
-            <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[56rem] table-fixed border-collapse text-sm">
-                  <thead className="bg-slate-50 text-xs text-muted-foreground dark:bg-slate-900/40">
-                    <tr className="text-left [&>th]:px-2 [&>th]:py-2 [&>th]:font-medium">
-                      <th className="w-[30%]">Komponen Biaya &amp; Pagu</th>
-                      <th className="w-[8%] text-center">Qty</th>
-                      <th className="w-[18%]">Tarif Satuan (Rp)</th>
-                      <th className="w-[16%] text-right">Subtotal</th>
-                      <th className="w-[20%]">Keterangan / No. Tiket</th>
-                      <th className="w-[5%] text-center" title="Tanpa kuitansi resmi (DPR)">
-                        DPR
-                      </th>
-                      <th className="w-[3%]">
-                        <span className="sr-only">Aksi</span>
-                      </th>
+          <BlokForm judul="Transportasi">
+            <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+              <table className="w-full min-w-[56rem] table-fixed border-collapse text-sm">
+                <colgroup>
+                  <col className="min-w-[240px]" />
+                  <col className="w-16" />
+                  <col className="w-36" />
+                  <col className="w-36" />
+                  <col className="min-w-[200px]" />
+                  <col className="w-12" />
+                  <col className="w-12" />
+                </colgroup>
+                <thead className="bg-slate-50 text-xs text-slate-600 dark:bg-slate-900/40 dark:text-slate-400">
+                  <tr className="text-left [&>th]:px-2 [&>th]:py-2 [&>th]:font-medium">
+                    <th scope="col">Komponen Biaya &amp; Provinsi</th>
+                    <th scope="col" className="text-center">
+                      Qty
+                    </th>
+                    <th scope="col">Tarif Satuan (Rp)</th>
+                    <th scope="col" className="text-right">
+                      Subtotal
+                    </th>
+                    <th scope="col">Keterangan / No. Tiket</th>
+                    <th scope="col" className="text-center" title="Tanpa kuitansi resmi (DPR)">
+                      DPR
+                    </th>
+                    <th scope="col">
+                      <span className="sr-only">Aksi</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {p.biaya.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-3 py-4 text-center text-sm text-slate-600 dark:text-slate-400">
+                        Belum ada biaya.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    <BarisKelompok judul="Transportasi" subtotal={hasil?.totalTransport ?? 0} />
-                    {p.biaya.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-3 py-4 text-center text-sm text-muted-foreground">
-                          Belum ada biaya.
-                        </td>
-                      </tr>
-                    ) : null}
-                    {p.biaya.map((b, i) => (
-                      <BiayaBaris
-                        key={i}
-                        biaya={b}
-                        etapeJumlah={p.etape.length}
-                        etapeLabel={(k) => `Tujuan ${k + 1}${p.etape[k]?.kota ? ` - ${p.etape[k]?.kota}` : ''}`}
-                        provinsi={provinsi}
-                        provinsiKedudukan={provinsiKedudukan}
-                        baris={indeks[i] != null ? hasil?.transport[indeks[i] as number] : null}
-                        sbm={sbm}
-                        onUbah={(patch) => ubahBiaya(i, patch)}
-                        onHapus={() => onUbah((x) => ({ ...x, biaya: x.biaya.filter((_, j) => j !== i) }))}
-                      />
-                    ))}
-                    {hasil && hasil.uangHarian.length > 0 ? (
-                      <>
-                        <BarisKelompok judul="Uang harian" subtotal={hasil.totalUangHarian} catatan="dihitung otomatis dari tanggal" />
-                        {hasil.uangHarian.map((r, k) => (
-                          <BarisHitung key={k} baris={r} />
-                        ))}
-                      </>
-                    ) : null}
-                    {hasil && hasil.representasi.length > 0 ? (
-                      <>
-                        <BarisKelompok judul="Representasi" subtotal={hasil.totalRepresentasi} />
-                        {hasil.representasi.map((r, k) => (
-                          <BarisHitung key={k} baris={r} />
-                        ))}
-                      </>
-                    ) : null}
-                    <BarisKelompok judul="Penginapan" subtotal={hasil?.totalPenginapan ?? 0} catatan="malam otomatis dari tanggal" />
-                    {p.etape.map((e, i) => (
-                      <PenginapanEtapeBaris
-                        key={i}
-                        idAwal={`${nomor}-${i + 1}`}
-                        nomor={i + 1}
-                        etape={e}
-                        bolehRepresentasi={(cfg?.barisRepresentasi ?? 0) > 0}
-                        batasHotel={batasHotel(e)}
-                        sbm={sbm}
-                        peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
-                        onUbah={(patch) => ubahEtape(i, patch)}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50/60 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/30">
-                <MenuAksi
-                  label="Tambah biaya"
-                  teks="Tambah Biaya"
-                  item={[
-                    { label: 'Tiket Pergi', onPilih: () => tambahDariMenu('TIKET_PERGI') },
-                    { label: 'Tiket Kembali', onPilih: () => tambahDariMenu('TIKET_KEMBALI') },
-                    { label: 'Taksi Asal (tempat kedudukan - bandara)', onPilih: () => tambahDariMenu('TAKSI_KEDUDUKAN') },
-                    { label: 'Taksi Tujuan (bandara - kota tujuan)', onPilih: () => tambahDariMenu('TAKSI_TERMINAL') },
-                    { label: 'Transport Jakarta - sekitarnya (PP)', onPilih: () => tambahDariMenu('TRANSPORT_JAKARTA_SEKITAR') },
-                    { label: 'Biaya Riil Lainnya', onPilih: () => tambahDariMenu('LAINNYA') },
-                  ]}
-                />
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                  Subtotal Transportasi: <span className="font-mono tabular-nums">{rupiah(hasil?.totalTransport ?? 0)}</span>
-                </p>
-              </div>
+                  ) : null}
+                  {p.biaya.map((b, i) => (
+                    <BiayaBaris
+                      key={i}
+                      biaya={b}
+                      etapeJumlah={p.etape.length}
+                      etapeLabel={(k) => `Tujuan ${k + 1}${p.etape[k]?.kota ? ` - ${p.etape[k]?.kota}` : ''}`}
+                      provinsi={provinsi}
+                      provinsiKedudukan={provinsiKedudukan}
+                      baris={indeks[i] != null ? hasil?.transport[indeks[i] as number] : null}
+                      sbm={sbm}
+                      onUbah={(patch) => ubahBiaya(i, patch)}
+                      onHapus={() => onUbah((x) => ({ ...x, biaya: x.biaya.filter((_, j) => j !== i) }))}
+                    />
+                  ))}
+                </tbody>
+              </table>
             </div>
+            <div className="mt-3 flex items-center justify-between">
+              <MenuAksi
+                label="Tambah biaya"
+                teks="Tambah Biaya"
+                item={[
+                  { label: 'Tiket Pergi', onPilih: () => tambahDariMenu('TIKET_PERGI') },
+                  { label: 'Tiket Kembali', onPilih: () => tambahDariMenu('TIKET_KEMBALI') },
+                  { label: 'Taksi Asal (tempat kedudukan - bandara)', onPilih: () => tambahDariMenu('TAKSI_KEDUDUKAN') },
+                  { label: 'Taksi Tujuan (bandara - kota tujuan)', onPilih: () => tambahDariMenu('TAKSI_TERMINAL') },
+                  { label: 'Transport Jakarta - sekitarnya (PP)', onPilih: () => tambahDariMenu('TRANSPORT_JAKARTA_SEKITAR') },
+                  { label: 'Biaya Riil Lainnya', onPilih: () => tambahDariMenu('LAINNYA') },
+                ]}
+              />
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                Subtotal Transportasi: <span className="font-mono tabular-nums">{rupiah(hasil?.totalTransport ?? 0)}</span>
+              </p>
+            </div>
+          </BlokForm>
+
+          {hasil && (hasil.uangHarian.length > 0 || hasil.representasi.length > 0) ? (
+            <BlokForm judul="Uang Harian">
+              <KartuUangHarian uangHarian={hasil.uangHarian} representasi={hasil.representasi} total={hasil.totalUangHarian + hasil.totalRepresentasi} />
+            </BlokForm>
+          ) : null}
+
+          <BlokForm judul="Penginapan">
+            {p.etape.map((e, i) => (
+              <PenginapanEtapeKartu
+                key={i}
+                idAwal={`${nomor}-${i + 1}`}
+                nomor={i + 1}
+                etape={e}
+                bolehRepresentasi={(cfg?.barisRepresentasi ?? 0) > 0}
+                batasHotel={batasHotel(e)}
+                sbm={sbm}
+                peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
+                onUbah={(patch) => ubahEtape(i, patch)}
+              />
+            ))}
           </BlokForm>
 
           {hasil ? (
