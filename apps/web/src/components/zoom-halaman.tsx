@@ -48,20 +48,20 @@ export function ZoomHalaman({ className }: { className?: string }) {
   const ubah = (selisih: number) => setPersen((p) => Math.min(MAKS, Math.max(MIN, p + selisih)))
 
   return (
-    <div className={cn('flex items-center gap-1', className)} role="group" aria-label="Zoom halaman">
-      <Button type="button" variant="ghost" size="icon" className="size-7" onClick={() => ubah(-LANGKAH)} disabled={persen <= MIN} aria-label="Perkecil tampilan">
+    <div className={cn('flex items-stretch divide-x overflow-hidden rounded-md border bg-card', className)} role="group" aria-label="Zoom halaman">
+      <Button type="button" variant="ghost" size="icon" className="h-7 w-8 rounded-none" onClick={() => ubah(-LANGKAH)} disabled={persen <= MIN} aria-label="Perkecil tampilan">
         <MinusIcon className="size-3.5" />
       </Button>
       <button
         type="button"
         onClick={() => setPersen(100)}
-        className="min-w-12 rounded px-1 text-center text-xs tabular-nums text-muted-foreground hover:bg-accent hover:text-foreground"
+        className="min-w-12 flex-1 px-1 text-center text-xs font-medium tabular-nums text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         title="Kembalikan ke 100%"
         aria-label={`Zoom ${persen} persen, klik untuk mengembalikan ke 100 persen`}
       >
         {persen}%
       </button>
-      <Button type="button" variant="ghost" size="icon" className="size-7" onClick={() => ubah(LANGKAH)} disabled={persen >= MAKS} aria-label="Perbesar tampilan">
+      <Button type="button" variant="ghost" size="icon" className="h-7 w-8 rounded-none" onClick={() => ubah(LANGKAH)} disabled={persen >= MAKS} aria-label="Perbesar tampilan">
         <PlusIcon className="size-3.5" />
       </Button>
     </div>
