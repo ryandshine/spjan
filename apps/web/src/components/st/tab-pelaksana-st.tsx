@@ -44,6 +44,7 @@ export function TabPelaksanaSt({
         <PelaksanaCard
           key={kunci[i] ?? i}
           nomor={i + 1}
+          banyak={pelaksana.length > 1}
           p={p}
           hasil={hasil[i]}
           sbm={sbm}

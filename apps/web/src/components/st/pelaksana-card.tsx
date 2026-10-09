@@ -45,6 +45,7 @@ import { cakupanGalat, type PetaGalat } from '@/lib/validasi'
 
 export function PelaksanaCard({
   nomor,
+  banyak = false,
   p,
   hasil,
   sbm,
@@ -56,6 +57,8 @@ export function PelaksanaCard({
   onHapus,
 }: {
   nomor: number
+  /** Ada lebih dari satu pelaksana: tampilkan total per pelaksana (total keseluruhan ada di bar bawah). */
+  banyak?: boolean
   p: PelaksanaPayload
   hasil: PelaksanaHasil | undefined
   sbm: Sbm
@@ -468,19 +471,14 @@ export function PelaksanaCard({
             ))}
           </BlokForm>
 
-          {hasil ? (
-            <section aria-label="Hasil hitungan pelaksana" className="grid gap-2 rounded-lg bg-muted/40 px-4 py-3">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <p className="flex flex-wrap gap-x-3 text-xs text-muted-foreground tabular-nums">
-                  <span>Transport: {rupiah(hasil.totalTransport)}</span>
-                  <span>Uang harian: {rupiah(hasil.totalUangHarian)}</span>
-                  <span>Representasi: {rupiah(hasil.totalRepresentasi)}</span>
-                  <span>Penginapan: {rupiah(hasil.totalPenginapan)}</span>
+          {hasil && (banyak || hasil.catatan.length > 0) ? (
+            <section aria-label="Catatan hitungan pelaksana" className="grid gap-2 rounded-lg bg-muted/40 px-4 py-3">
+              {banyak ? (
+                <p className="flex items-baseline justify-between gap-2 text-sm font-semibold tabular-nums" title={hasil.terbilang}>
+                  <span>Total pelaksana {nomor}</span>
+                  <span>{rupiah(hasil.total)}</span>
                 </p>
-                <p className="text-sm font-semibold tabular-nums" title={hasil.terbilang}>
-                  Total {rupiah(hasil.total)}
-                </p>
-              </div>
+              ) : null}
               {hasil.catatan.length > 0 ? (
                 <ul className="grid gap-0.5 text-xs leading-snug text-muted-foreground">
                   {hasil.catatan.map((c, i) => (
