@@ -26,6 +26,7 @@ import {
 import { FormPegawai } from '@/components/pegawai-form'
 import { BarisHitung, BarisKelompok, BiayaBaris } from '@/components/st/biaya-form'
 import { BlokForm } from '@/components/st/blok-form'
+import { PenginapanEtapeBaris } from '@/components/st/penginapan-baris'
 import { EtapeForm } from '@/components/st/etape-form'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -349,8 +350,6 @@ export function PelaksanaCard({
                 nomor={i + 1}
                 etape={e}
                 provinsi={provinsi}
-                bolehRepresentasi={(cfg?.barisRepresentasi ?? 0) > 0}
-                batasHotel={batasHotel(e)}
                 sbm={sbm}
                 peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
                 galat={cakupanGalat(galat, `etape.${i}`)}
@@ -422,14 +421,28 @@ export function PelaksanaCard({
                         ))}
                       </>
                     ) : null}
-                    {hasil && hasil.penginapan.length > 0 ? (
+                    {hasil && hasil.representasi.length > 0 ? (
                       <>
-                        <BarisKelompok judul="Penginapan" subtotal={hasil.totalPenginapan} catatan="tarif & hotel diisi di Tujuan Perjalanan" />
-                        {hasil.penginapan.map((r, k) => (
+                        <BarisKelompok judul="Representasi" subtotal={hasil.totalRepresentasi} />
+                        {hasil.representasi.map((r, k) => (
                           <BarisHitung key={k} baris={r} />
                         ))}
                       </>
                     ) : null}
+                    <BarisKelompok judul="Penginapan" subtotal={hasil?.totalPenginapan ?? 0} catatan="malam otomatis dari tanggal" />
+                    {p.etape.map((e, i) => (
+                      <PenginapanEtapeBaris
+                        key={i}
+                        idAwal={`${nomor}-${i + 1}`}
+                        nomor={i + 1}
+                        etape={e}
+                        bolehRepresentasi={(cfg?.barisRepresentasi ?? 0) > 0}
+                        batasHotel={batasHotel(e)}
+                        sbm={sbm}
+                        peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
+                        onUbah={(patch) => ubahEtape(i, patch)}
+                      />
+                    ))}
                   </tbody>
                 </table>
               </div>
