@@ -8,6 +8,7 @@ import {
   cariPegawaiPejabat,
   isiNoSpdBerurutan,
   pejabatDariPegawai,
+  rincianTotal,
   sesuaikanKodeAkun,
   tabBergalat,
   tambahBiayaKePelaksana,
@@ -119,5 +120,27 @@ describe('tabBergalat', () => {
     expect(tabBergalat({})).toEqual({ data: false, pelaksana: false })
     expect(tabBergalat({ nomor: 'x' })).toEqual({ data: true, pelaksana: false })
     expect(tabBergalat({ 'pelaksana.0.nama': 'x' })).toEqual({ data: false, pelaksana: true })
+  })
+})
+
+describe('rincianTotal', () => {
+  const a = { totalTransport: 100, totalUangHarian: 200, totalRepresentasi: 0, totalPenginapan: 300, totalPengeluaranRiil: 0 }
+  const b = { totalTransport: 10, totalUangHarian: 20, totalRepresentasi: 5, totalPenginapan: 30, totalPengeluaranRiil: 0 }
+
+  it('menjumlahkan tiap komponen biaya lintas pelaksana', () => {
+    expect(rincianTotal([a, b])).toEqual([
+      { label: 'Transport', nilai: 110 },
+      { label: 'Uang harian', nilai: 220 },
+      { label: 'Representasi', nilai: 5 },
+      { label: 'Penginapan', nilai: 330 },
+    ])
+  })
+
+  it('menambah baris pengeluaran riil hanya bila ada nilainya', () => {
+    expect(rincianTotal([a, { ...b, totalPengeluaranRiil: 50 }]).at(-1)).toEqual({ label: 'Pengeluaran riil', nilai: 50 })
+  })
+
+  it('mengembalikan nol untuk daftar kosong', () => {
+    expect(rincianTotal([]).every((r) => r.nilai === 0)).toBe(true)
   })
 })

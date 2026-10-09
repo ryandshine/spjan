@@ -113,7 +113,7 @@ export function EtapeForm({
   }
 
   return (
-    <div className="grid gap-4 border-t pt-5">
+    <div className="grid gap-4 border-t pt-5 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <h4 className="text-base font-semibold">Tujuan {nomor}</h4>
@@ -211,7 +211,7 @@ export function EtapeForm({
         <Textarea id={id('keg')} rows={2} value={etape.kegiatan} onChange={(e) => onUbah({ kegiatan: e.target.value })} />
       </Field>
 
-      <div className="grid gap-3">
+      <div className="grid gap-3 rounded-md border border-border/60 bg-muted/20 p-3">
         <h5 className="text-sm font-semibold">Penginapan</h5>
         {hari === 1 && malam === 0 ? (
           <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">

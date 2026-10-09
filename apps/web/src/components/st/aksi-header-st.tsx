@@ -4,7 +4,6 @@ import { toast } from 'sonner'
 
 import { Button, buttonVariants } from '@/components/ui/button'
 import { MenuAksi } from '@/components/ui/menu-aksi'
-import { rupiah } from '@/lib/format'
 
 function TombolSimpan({ menyimpan, nonaktif, onSimpan }: { menyimpan: boolean; nonaktif?: boolean; onSimpan: () => void }) {
   return (
@@ -26,17 +25,15 @@ export function PeringatanBelumSimpan({ menyimpan, onSimpan }: { menyimpan: bool
   )
 }
 
-/** Total SPTB, tautan Dokumen, tombol Simpan, dan menu hapus. `id` null berarti surat tugas belum tersimpan. */
+/** Tautan Dokumen, tombol Simpan, dan menu hapus. `id` null berarti surat tugas belum tersimpan. */
 export function AksiHeaderSt({
   id,
-  total,
   kotor,
   menyimpan,
   onSimpan,
   onHapus,
 }: {
   id: number | null
-  total: number
   kotor: boolean
   menyimpan: boolean
   onSimpan: () => void
@@ -44,10 +41,6 @@ export function AksiHeaderSt({
 }) {
   return (
     <>
-      <div className="mr-1 text-right leading-tight" aria-live="polite">
-        <p className="text-xs text-muted-foreground">Total SPTB</p>
-        <p className="text-base font-semibold tabular-nums">{rupiah(total)}</p>
-      </div>
       {id !== null ? (
         <Link
           to={`/st/${id}/dokumen`}

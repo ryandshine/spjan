@@ -1,4 +1,4 @@
-import type { BiayaPayload, PegawaiDto, SumberDana, SuratTugasPayload, UsulanHotelItem } from '@spjan/shared'
+import type { BiayaPayload, PegawaiDto, PelaksanaHasil, SumberDana, SuratTugasPayload, UsulanHotelItem } from '@spjan/shared'
 
 import type { PetaGalat } from '@/lib/validasi'
 
@@ -110,4 +110,22 @@ export function tabBergalat(peta: PetaGalat): { data: boolean; pelaksana: boolea
     data: kunci.some((k) => !k.startsWith('pelaksana.')),
     pelaksana: kunci.some((k) => k.startsWith('pelaksana.')),
   }
+}
+
+type TotalPelaksana = Pick<
+  PelaksanaHasil,
+  'totalTransport' | 'totalUangHarian' | 'totalRepresentasi' | 'totalPenginapan' | 'totalPengeluaranRiil'
+>
+
+/** Rincian biaya seluruh pelaksana untuk panel ringkasan; pengeluaran riil hanya muncul bila ada. */
+export function rincianTotal(pelaksana: ReadonlyArray<TotalPelaksana>): Array<{ label: string; nilai: number }> {
+  const jumlah = (ambil: (p: TotalPelaksana) => number) => pelaksana.reduce((n, p) => n + ambil(p), 0)
+  const baris = [
+    { label: 'Transport', nilai: jumlah((p) => p.totalTransport) },
+    { label: 'Uang harian', nilai: jumlah((p) => p.totalUangHarian) },
+    { label: 'Representasi', nilai: jumlah((p) => p.totalRepresentasi) },
+    { label: 'Penginapan', nilai: jumlah((p) => p.totalPenginapan) },
+  ]
+  const riil = jumlah((p) => p.totalPengeluaranRiil)
+  return riil > 0 ? [...baris, { label: 'Pengeluaran riil', nilai: riil }] : baris
 }

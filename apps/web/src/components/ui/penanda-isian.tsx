@@ -1,29 +1,43 @@
-import { SparklesIcon } from 'lucide-react'
+import { RotateCcwIcon, SparklesIcon } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
-
-/** Wajib = harus diisi pengguna; otomatis = terisi sendiri dari data lain; opsional = boleh dikosongkan. */
+/** Wajib = harus diisi pengguna; otomatis = terisi sendiri dari data lain; opsional = boleh dikosongkan (tanpa penanda). */
 export type ModeIsian = 'wajib' | 'otomatis' | 'opsional'
 
-/** Penanda kecil di samping label isian. Mode otomatis yang sudah diubah tangan menampilkan tombol untuk kembali ke otomatis. */
-export function PenandaIsian({ mode, otomatisAktif = true, onKembali }: { mode: ModeIsian; otomatisAktif?: boolean; onKembali?: () => void }) {
-  if (mode === 'wajib') return <span className="text-xs font-semibold text-destructive">Wajib diisi</span>
-  if (mode === 'opsional') return <span className="text-xs text-muted-foreground">Opsional</span>
-  if (otomatisAktif) {
+/** Tanda bintang merah di belakang label isian wajib; pembaca layar tetap mendengar "wajib diisi". */
+export function TandaWajib() {
+  return (
+    <>
+      <span aria-hidden className="ml-0.5 text-destructive">
+        *
+      </span>
+      <span className="sr-only"> (wajib diisi)</span>
+    </>
+  )
+}
+
+/**
+ * Penanda isian otomatis: ikon redup selama nilainya otomatis; setelah diisi manual berubah menjadi tombol kecil
+ * untuk kembali ke otomatis (tanpa tombol bila pemanggil tidak menyediakannya).
+ */
+export function PenandaOtomatis({ aktif = true, onKembali }: { aktif?: boolean; onKembali?: () => void }) {
+  if (aktif) {
     return (
-      <Badge variant="default" className="gap-1">
-        <SparklesIcon className="size-3" aria-hidden /> Otomatis
-      </Badge>
+      <span title="Terisi otomatis" className="inline-flex text-muted-foreground/60">
+        <SparklesIcon className="size-3.5" aria-hidden />
+        <span className="sr-only">Terisi otomatis</span>
+      </span>
     )
   }
+  if (!onKembali) return null
   return (
-    <span className="flex flex-wrap items-center gap-1.5">
-      <Badge variant="muted">Diisi manual</Badge>
-      {onKembali ? (
-        <button type="button" className="text-xs font-medium text-primary underline underline-offset-2" onClick={onKembali}>
-          Kembali ke otomatis
-        </button>
-      ) : null}
-    </span>
+    <button
+      type="button"
+      onClick={onKembali}
+      title="Kembali ke otomatis"
+      aria-label="Kembali ke otomatis"
+      className="inline-flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+    >
+      <RotateCcwIcon className="size-3.5" aria-hidden />
+    </button>
   )
 }

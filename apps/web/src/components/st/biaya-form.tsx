@@ -13,7 +13,7 @@ import {
 } from '@spjan/shared'
 
 import { Istilah } from '@/components/ui/istilah'
-import { PenandaIsian, type ModeIsian } from '@/components/ui/penanda-isian'
+import { PenandaOtomatis, TandaWajib, type ModeIsian } from '@/components/ui/penanda-isian'
 import { RupiahInput } from '@/components/st/rupiah-input'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,9 +39,12 @@ function Sel({
 }) {
   return (
     <label className={cn('grid gap-1 text-xs text-muted-foreground', className)}>
-      <span className="flex min-h-6 flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
-        {label}
-        {mode ? <PenandaIsian mode={mode} otomatisAktif={otomatisAktif} onKembali={onKembali} /> : null}
+      <span className="flex min-h-5 items-center justify-between gap-2">
+        <span>
+          {label}
+          {mode === 'wajib' ? <TandaWajib /> : null}
+        </span>
+        {mode === 'otomatis' ? <PenandaOtomatis aktif={otomatisAktif} onKembali={onKembali} /> : null}
       </span>
       {children}
     </label>
@@ -94,7 +97,7 @@ export function BiayaForm({
   // Tanpa pasangan di sebelahnya, pilihan jenis memenuhi lebar penuh agar tidak ada sel kosong.
   const jenisMelebar = jumlahPilihan === 1 && !perluUraian
   return (
-    <div className="grid gap-3 border-t pt-4">
+    <div className="grid gap-3 border-t pt-4 first:border-t-0 first:pt-0">
       <div className="grid items-start gap-3 sm:grid-cols-2">
         <Sel label="Jenis biaya" mode="wajib" className={jenisMelebar ? 'sm:col-span-2' : undefined}>
           <Select

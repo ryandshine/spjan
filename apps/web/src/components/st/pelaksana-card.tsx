@@ -25,6 +25,7 @@ import {
 
 import { FormPegawai } from '@/components/pegawai-form'
 import { BiayaForm } from '@/components/st/biaya-form'
+import { BlokForm } from '@/components/st/blok-form'
 import { EtapeForm } from '@/components/st/etape-form'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -34,7 +35,6 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { InputTanggal } from '@/components/ui/input-tanggal'
 import { MenuAksi } from '@/components/ui/menu-aksi'
-import { PenandaIsian } from '@/components/ui/penanda-isian'
 import { TextareaOtomatis } from '@/components/ui/textarea-otomatis'
 import { Select } from '@/components/ui/select'
 import { rupiah } from '@/lib/format'
@@ -258,11 +258,12 @@ export function PelaksanaCard({
       </CardHeader>
       {buka ? (
         <CardContent id={id('isi')} className="grid gap-5">
-          <section className="grid gap-3">
-            <div className="flex flex-wrap items-end gap-2">
-              <Field label="Pilih dari daftar pegawai" htmlFor={id('pil')} className="min-w-48 flex-1" mode="opsional">
+          <BlokForm judul="Identitas Pelaksana">
+            <Field label="Pilih dari daftar pegawai" htmlFor={id('pil')}>
+              <div className="flex">
                 <Select
                   id={id('pil')}
+                  className="relative rounded-r-none focus-visible:z-10"
                   value={p.pegawaiId ?? ''}
                   onChange={(e) => {
                     const dto = pegawai.find((g) => g.id === Number(e.target.value))
@@ -277,11 +278,11 @@ export function PelaksanaCard({
                     </option>
                   ))}
                 </Select>
-              </Field>
-              <Button variant="outline" onClick={() => setDialogPegawai(true)}>
-                <UserPlusIcon /> Pegawai baru
-              </Button>
-            </div>
+                <Button variant="outline" className="-ml-px rounded-l-none" onClick={() => setDialogPegawai(true)}>
+                  <UserPlusIcon /> Pegawai baru
+                </Button>
+              </div>
+            </Field>
             <div className="grid items-start gap-x-4 gap-y-3 sm:grid-cols-2">
               <Field label="Nama (dengan gelar)" htmlFor={id('nama')} error={galat?.nama} mode="wajib">
                 <Input id={id('nama')} value={p.nama} onChange={(e) => onUbah((x) => ({ ...x, nama: e.target.value }))} />
@@ -338,10 +339,9 @@ export function PelaksanaCard({
                 <InputTanggal id={id('tgl-spd')} label="Tanggal SPD" nilai={p.tanggalSpd} onUbah={(iso) => onUbah((x) => ({ ...x, tanggalSpd: iso }))} />
               </Field>
             </div>
-          </section>
+          </BlokForm>
 
-          <section className="grid gap-3">
-            <h3 className="text-sm font-semibold">Tujuan Perjalanan (satu tujuan per kota)</h3>
+          <BlokForm judul="Tujuan Perjalanan">
             {p.etape.map((e, i) => (
               <EtapeForm
                 key={i}
@@ -370,10 +370,9 @@ export function PelaksanaCard({
                 <PlusIcon /> Tambah tujuan (kota lain)
               </Button>
             </div>
-          </section>
+          </BlokForm>
 
-          <section className="grid gap-3">
-            <h3 className="text-sm font-semibold">Biaya transport dan biaya tambahan</h3>
+          <BlokForm judul="Transportasi">
             {p.biaya.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada biaya.</p> : null}
             {p.biaya.map((b, i) => (
               <BiayaForm
@@ -409,42 +408,7 @@ export function PelaksanaCard({
                 <option value="LAINNYA">Biaya lain</option>
               </Select>
             </div>
-          </section>
-
-          {hasil ? (
-            <section className="grid gap-3 border-t pt-4">
-              <h3 className="flex flex-wrap items-center justify-between gap-2 text-sm font-semibold">
-                Hasil hitungan
-                <PenandaIsian mode="otomatis" />
-              </h3>
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
-                {(
-                  [
-                    ['Transport', hasil.totalTransport],
-                    ['Uang harian', hasil.totalUangHarian],
-                    ['Representasi', hasil.totalRepresentasi],
-                    ['Penginapan', hasil.totalPenginapan],
-                  ] as const
-                ).map(([label, nilai]) => (
-                  <div key={label}>
-                    <dt className="text-xs text-muted-foreground">{label}</dt>
-                    <dd className="tabular-nums">{rupiah(nilai)}</dd>
-                  </div>
-                ))}
-              </dl>
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="text-sm text-muted-foreground">{hasil.terbilang}</span>
-                <span className="text-lg font-semibold tabular-nums">{rupiah(hasil.total)}</span>
-              </div>
-              {hasil.catatan.length > 0 ? (
-                <ul className="grid gap-0.5 text-xs text-muted-foreground">
-                  {hasil.catatan.map((c, i) => (
-                    <li key={i}>{c}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </section>
-          ) : null}
+          </BlokForm>
         </CardContent>
       ) : null}
 

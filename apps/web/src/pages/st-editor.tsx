@@ -25,7 +25,7 @@ import { DialogHapusSt, DialogNoSpd, DialogTinggalkanHalaman } from '@/component
 import { FotoDokumentasiPanel } from '@/components/st/foto-dokumentasi-panel'
 import { KartuDataSt } from '@/components/st/kartu-data-st'
 import { KartuPejabatSt } from '@/components/st/kartu-pejabat-st'
-import { PanelPeriksa } from '@/components/st/panel-periksa'
+import { PanelRingkasan } from '@/components/st/panel-ringkasan'
 import { TabPelaksanaSt } from '@/components/st/tab-pelaksana-st'
 import { UsulanHotelPanel } from '@/components/st/usulan-hotel-panel'
 import { UsulanTransportPanel } from '@/components/st/usulan-transport-panel'
@@ -51,6 +51,7 @@ import {
   tambahBiayaKePelaksana,
   terapkanHotelKeEtape,
 } from '@/lib/st-editor'
+import { lompatKeIsian } from '@/lib/periksa'
 import { usePenjagaPerubahan } from '@/lib/use-penjaga-perubahan'
 import { pesanValidasi, petaGalat } from '@/lib/validasi'
 
@@ -191,12 +192,17 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
 
   const modeLaporan = tab === 'laporan' && id !== null
 
+  // Isian pelaksana ada di tab Pelaksana: buka tabnya dulu supaya elemen terlihat sebelum difokuskan.
+  const perbaikiIsian = (sasaranId: string, nomorPelaksana: number) => {
+    setTab('pelaksana')
+    window.setTimeout(() => lompatKeIsian(sasaranId, nomorPelaksana), 60)
+  }
+
   let aksiHeader: ReactNode = null
   if (!modeLaporan) {
     aksiHeader = (
       <AksiHeaderSt
         id={id}
-        total={hasil.total}
         kotor={kotor}
         menyimpan={simpan.isPending}
         onSimpan={kirim}
@@ -274,9 +280,9 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
           </TabPanel>
         </div>
         {modeLaporan ? null : (
-          <div className="min-w-0">
-            <PanelPeriksa hasil={hasil} />
-          </div>
+          <aside aria-label="Ringkasan" className="min-w-0 xl:sticky xl:top-24">
+            <PanelRingkasan hasil={hasil} onPerbaiki={perbaikiIsian} />
+          </aside>
         )}
       </div>
 

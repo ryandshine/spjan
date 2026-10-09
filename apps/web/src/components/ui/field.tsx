@@ -3,7 +3,7 @@ import { TriangleAlertIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
-import { PenandaIsian, type ModeIsian } from '@/components/ui/penanda-isian'
+import { PenandaOtomatis, TandaWajib, type ModeIsian } from '@/components/ui/penanda-isian'
 
 /** Label + kontrol + pesan galat dalam satu blok. */
 function Field({
@@ -24,7 +24,7 @@ function Field({
   hint?: string
   /** Peringatan (bukan galat): data belum lengkap tetapi masih boleh disimpan. */
   warning?: string
-  /** Penanda wajib / otomatis / opsional di samping label. */
+  /** Wajib memberi tanda bintang di label, otomatis memberi ikon di ujung kanan, opsional tanpa penanda. */
   mode?: ModeIsian
   /** Untuk mode otomatis: true bila nilai sekarang masih otomatis, false bila sudah diisi tangan. */
   otomatisAktif?: boolean
@@ -34,12 +34,15 @@ function Field({
 }) {
   return (
     <div className={cn('flex flex-col justify-start gap-1.5', className)}>
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-        <Label htmlFor={htmlFor}>{label}</Label>
-        {mode ? <PenandaIsian mode={mode} otomatisAktif={otomatisAktif} onKembali={onKembaliOtomatis} /> : null}
+      <div className="flex min-h-5 items-center justify-between gap-2">
+        <Label htmlFor={htmlFor}>
+          {label}
+          {mode === 'wajib' ? <TandaWajib /> : null}
+        </Label>
+        {mode === 'otomatis' ? <PenandaOtomatis aktif={otomatisAktif} onKembali={onKembaliOtomatis} /> : null}
       </div>
       {children}
-      {hint && !error ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+      {hint && !error ? <p className="text-xs leading-snug text-muted-foreground">{hint}</p> : null}
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
       {warning && !error ? (
         <p className="flex items-start gap-1 text-xs font-medium text-warning-foreground">

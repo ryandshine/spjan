@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { PenandaIsian } from '@/components/ui/penanda-isian'
+import { PenandaOtomatis } from '@/components/ui/penanda-isian'
 import { InputTanggal } from '@/components/ui/input-tanggal'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -122,11 +122,6 @@ export function PanelBagian({
                 {labelBagian(bagian)}
               </h2>
             )}
-            {bagian.jenis === 'teks' ? (
-              <div className="mt-2">
-                <PenandaIsian mode={bagian.judul.trim() ? 'wajib' : 'opsional'} />
-              </div>
-            ) : null}
           </div>
           {!tetap ? <MenuBagian bisaNaik={bisaNaik} bisaTurun={bisaTurun} onGantiJudul={() => setGantiJudul(true)} onNaik={onNaik} onTurun={onTurun} onHapus={onHapus} /> : null}
         </div>
@@ -136,14 +131,14 @@ export function PanelBagian({
             <label className="grid gap-1 text-xs text-muted-foreground">
               <span className="flex flex-wrap items-center justify-between gap-2">
                 Judul laporan
-                <PenandaIsian mode="otomatis" otomatisAktif={!bagian.judul} onKembali={() => onUbah({ ...bagian, judul: null })} />
+                <PenandaOtomatis aktif={!bagian.judul} onKembali={() => onUbah({ ...bagian, judul: null })} />
               </span>
               <Input className="h-10" placeholder={sampul.judul} value={bagian.judul ?? ''} onChange={(e) => onUbah({ ...bagian, judul: e.target.value || null })} />
             </label>
             <div className="grid gap-1 text-xs text-muted-foreground">
               <span className="flex flex-wrap items-center justify-between gap-2">
                 Tanggal laporan
-                <PenandaIsian mode="otomatis" otomatisAktif={!bagian.tanggal} onKembali={() => onUbah({ ...bagian, tanggal: null })} />
+                <PenandaOtomatis aktif={!bagian.tanggal} onKembali={() => onUbah({ ...bagian, tanggal: null })} />
               </span>
               <InputTanggal label="Tanggal laporan" nilai={bagian.tanggal} onUbah={(iso) => onUbah({ ...bagian, tanggal: iso })} />
             </div>
