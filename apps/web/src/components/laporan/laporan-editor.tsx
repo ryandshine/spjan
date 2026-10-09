@@ -41,7 +41,7 @@ function bagianBaru(jenis: JenisBaru): Bagian {
 
 const jamId = (d: Date) => d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(':', '.')
 
-export function LaporanEditor({ stId }: { stId: number }) {
+export function LaporanEditor({ stId, terkunci = false }: { stId: number; terkunci?: boolean }) {
   const navigate = useNavigate()
   const st = useSuratTugas(stId)
   const pengaturan = usePengaturan()
@@ -174,7 +174,7 @@ export function LaporanEditor({ stId }: { stId: number }) {
       />
       {isError ? <p className="mb-3 text-xs text-destructive">{pesanGalat(error)}</p> : null}
 
-      <div className="grid items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+      <div inert={terkunci} className={`grid items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)] ${terkunci ? 'opacity-70' : ''}`}>
         <KerangkaLaporan
           bagian={isi.bagian}
           ringkasan={ringkasan}

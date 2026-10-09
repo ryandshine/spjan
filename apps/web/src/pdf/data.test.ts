@@ -7,6 +7,10 @@ const mockDto: HasilSuratTugasDto = {
   suratTugas: {
     id: 1,
     versiSbmId: 1,
+    status: 'draft',
+    dikunciPada: null,
+    dibukaPada: null,
+    jumlahDibuka: 0,
     nomor: 'ST-001/2026',
     tanggal: '2026-09-01',
     tanggalSpj: null,

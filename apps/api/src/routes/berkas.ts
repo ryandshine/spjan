@@ -24,6 +24,7 @@ import {
   updateBerkas,
   updateUsulanStatus,
 } from "../repositories/berkas.js";
+import { tolakBilaBerkasTerkunci, tolakBilaTerkunci } from "../repositories/surat-tugas.js";
 import { listPegawai } from "../repositories/pegawai.js";
 import { getPengaturan } from "../repositories/pengaturan.js";
 import { getVersiSbm, versiAktifTerbaru } from "../repositories/sbm.js";
@@ -41,7 +42,10 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
 
   app.post("/", async (req, reply) => {
     const { stId, jenis, keterangan } = StQuerySchema.parse(req.query);
-    if (stId !== undefined && !(await stAda(opts.db, stId))) throw notFound("Surat tugas");
+    if (stId !== undefined) {
+      if (!(await stAda(opts.db, stId))) throw notFound("Surat tugas");
+      await tolakBilaTerkunci(opts.db, stId);
+    }
     const file = await req.file();
     if (!file) throw new HttpError(400, "BERKAS_KOSONG", "Tidak ada berkas pada permintaan.");
     let data: Buffer;
@@ -77,6 +81,7 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
 
   app.patch("/:id", async (req) => {
     const { id } = IdSchema.parse(req.params);
+    await tolakBilaBerkasTerkunci(opts.db, id);
     const payload = UpdateBerkasPayloadSchema.parse(req.body);
     const ok = await updateBerkas(opts.db, id, payload);
     if (!ok) throw notFound("Berkas");
@@ -105,18 +110,21 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
 
   app.delete("/:id", async (req, reply) => {
     const { id } = IdSchema.parse(req.params);
+    await tolakBilaBerkasTerkunci(opts.db, id);
     if (!(await hapusBerkas(opts.db, opts.store, id))) throw notFound("Berkas");
     return reply.code(204).send();
   });
 
   app.post("/:id/ulang", async (req) => {
     const { id } = IdSchema.parse(req.params);
+    await tolakBilaBerkasTerkunci(opts.db, id);
     if (!(await ulangiEkstraksi(opts.db, id))) throw notFound("Berkas");
     return getBerkas(opts.db, id);
   });
 
   app.patch("/:id/usulan-status", async (req) => {
     const { id } = IdSchema.parse(req.params);
+    await tolakBilaBerkasTerkunci(opts.db, id);
     const { usulanStatus, pelaksanaId } = UpdateUsulanBerkasPayloadSchema.parse(req.body);
     const ok = await updateUsulanStatus(opts.db, id, usulanStatus, pelaksanaId);
     if (!ok) throw notFound("Berkas");

@@ -1,4 +1,4 @@
-import { CheckCircle2Icon, FileTextIcon, SaveIcon, TriangleAlertIcon } from 'lucide-react'
+import { CheckCircle2Icon, FileTextIcon, LockIcon, LockOpenIcon, SaveIcon, TriangleAlertIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import type { SpjHasil } from '@spjan/shared'
@@ -41,14 +41,20 @@ export function BarBawahSt({
   kotor,
   menyimpan,
   onSimpan,
+  terkunci = false,
   onPerbaiki,
+  onKunci,
+  onBukaKunci,
 }: {
   id: number | null
   hasil: SpjHasil
   kotor: boolean
   menyimpan: boolean
   onSimpan: () => void
+  terkunci?: boolean
   onPerbaiki: PerbaikiIsian
+  onKunci: () => void
+  onBukaKunci: () => void
 }) {
   const periksa = kumpulkanPeriksa(hasil.pelaksana)
   const pertama = periksa[0]
@@ -57,7 +63,13 @@ export function BarBawahSt({
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-6 py-3.5 shadow-lg backdrop-blur-md md:left-60 dark:border-slate-800 dark:bg-slate-900/95">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-        <ChipValidasi jumlah={periksa.length} onKlik={() => pertama && onPerbaiki(pertama.sasaranId, pertama.nomorPelaksana)} />
+        {terkunci ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-200/80 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+            <LockIcon className="size-3.5" aria-hidden /> Terkunci (selesai)
+          </span>
+        ) : (
+          <ChipValidasi jumlah={periksa.length} onKlik={() => pertama && onPerbaiki(pertama.sasaranId, pertama.nomorPelaksana)} />
+        )}
         <div className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-x-5 gap-y-1">
           <p className="hidden flex-wrap items-center gap-x-2 text-xs text-slate-500 tabular-nums lg:flex dark:text-slate-400">
             {rincian.map((r, i) => (
@@ -87,9 +99,22 @@ export function BarBawahSt({
               <FileTextIcon className="size-4" /> Dokumen
             </Link>
           ) : null}
-          <Button className="gap-2 rounded-lg bg-emerald-600 px-5 py-2 font-medium text-white shadow-sm hover:bg-emerald-700" onClick={onSimpan} disabled={menyimpan || (!kotor && id !== null)}>
-            <SaveIcon /> {menyimpan ? 'Menyimpan...' : 'Simpan'}
-          </Button>
+          {terkunci ? (
+            <Button variant="outline" className="gap-2" onClick={onBukaKunci}>
+              <LockOpenIcon /> Buka kunci
+            </Button>
+          ) : (
+            <>
+              {id !== null && !kotor ? (
+                <Button variant="outline" className="gap-2" onClick={onKunci}>
+                  <LockIcon /> Tandai selesai
+                </Button>
+              ) : null}
+              <Button className="gap-2 rounded-lg bg-emerald-600 px-5 py-2 font-medium text-white shadow-sm hover:bg-emerald-700" onClick={onSimpan} disabled={menyimpan || (!kotor && id !== null)}>
+                <SaveIcon /> {menyimpan ? 'Menyimpan...' : 'Simpan'}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import type { Db } from "../db.js";
 import { notFound } from "../errors.js";
+import { tolakBilaTerkunci } from "../repositories/surat-tugas.js";
 import { getLaporan, simpanLaporan, stAda } from "../repositories/laporan.js";
 
 const IdSchema = z.object({ id: z.coerce.number().int().positive() });
@@ -17,8 +18,9 @@ export async function laporanRoutes(app: FastifyInstance, opts: { db: Db }): Pro
 
   app.put("/:id/laporan", async (req) => {
     const { id } = IdSchema.parse(req.params);
-    const isi = LaporanIsiSchema.parse(req.body);
     if (!(await stAda(opts.db, id))) throw notFound("Surat tugas");
+    await tolakBilaTerkunci(opts.db, id);
+    const isi = LaporanIsiSchema.parse(req.body);
     return simpanLaporan(opts.db, id, isi);
   });
 }

@@ -145,3 +145,43 @@ export function DialogTinggalkanHalaman({ blocker }: { blocker: Blocker }) {
     </Dialog>
   )
 }
+
+export function DialogKunciSt({
+  buka,
+  onBukaChange,
+  kunci,
+  nomor,
+  memproses,
+  onKonfirmasi,
+}: {
+  buka: boolean
+  onBukaChange: (buka: boolean) => void
+  /** true = tandai selesai (kunci); false = buka kunci. */
+  kunci: boolean
+  nomor: string
+  memproses: boolean
+  onKonfirmasi: () => void
+}) {
+  return (
+    <Dialog open={buka} onOpenChange={onBukaChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{kunci ? 'Tandai surat tugas selesai?' : 'Buka kunci surat tugas?'}</DialogTitle>
+          <DialogDescription>
+            {kunci
+              ? `${nomor} akan dikunci: data, bukti, dan laporan tidak bisa diubah atau dihapus sampai kunci dibuka. Dokumen tetap bisa dilihat dan dicetak.`
+              : `${nomor} akan bisa diubah lagi. Pembukaan kunci dicatat. Kunci ulang setelah revisi selesai.`}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onBukaChange(false)}>
+            Batal
+          </Button>
+          <Button onClick={onKonfirmasi} disabled={memproses}>
+            {memproses ? 'Memproses...' : kunci ? 'Tandai selesai' : 'Buka kunci'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

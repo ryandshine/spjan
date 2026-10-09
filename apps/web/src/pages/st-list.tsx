@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileTextIcon, FileUpIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import { FileTextIcon, FileUpIcon, LockIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -45,7 +45,11 @@ export default function SuratTugasListPage() {
     {
       judul: 'Status',
       sel: (b) =>
-        b.jumlahPelaksana === 0 ? (
+        b.status === 'final' ? (
+          <Badge variant="muted">
+            <LockIcon className="mr-1 size-3" aria-hidden /> Final
+          </Badge>
+        ) : b.jumlahPelaksana === 0 ? (
           <Badge variant="muted">Belum ada pelaksana</Badge>
         ) : b.jumlahPeringatan > 0 ? (
           <Badge variant="warning">{b.jumlahPeringatan} perlu diperiksa</Badge>
@@ -61,7 +65,14 @@ export default function SuratTugasListPage() {
           <Link to={`/st/${b.id}/dokumen`} className={buttonVariants({ variant: 'outline', size: 'sm' })} aria-label={`Dokumen ${b.nomor}`}>
             <FileTextIcon className="size-3.5" /> Dokumen
           </Link>
-          <Button variant="ghost" size="icon" aria-label={`Hapus ${b.nomor}`} onClick={() => setTarget(b)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Hapus ${b.nomor}`}
+            title={b.status === 'final' ? 'Terkunci: buka kunci dulu untuk menghapus' : undefined}
+            disabled={b.status === 'final'}
+            onClick={() => setTarget(b)}
+          >
             <Trash2Icon className="text-destructive" />
           </Button>
         </div>

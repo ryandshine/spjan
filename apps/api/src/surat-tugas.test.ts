@@ -26,7 +26,8 @@ describe("surat tugas", () => {
     const dto = res.json();
     expect(dto.id).toBeGreaterThan(0);
     expect(dto.versiSbmId).toBeGreaterThan(0);
-    const { id, versiSbmId, createdAt, updatedAt, ...isi } = dto;
+    const { id, versiSbmId, createdAt, updatedAt, status, dikunciPada, dibukaPada, jumlahDibuka, ...isi } = dto;
+    expect({ status, dikunciPada, dibukaPada, jumlahDibuka }).toEqual({ status: "draft", dikunciPada: null, dibukaPada: null, jumlahDibuka: 0 });
     expect(isi).toEqual({
       ...stResa,
       pelaksana: stResa.pelaksana.map((p) => ({ ...p, pangkatGolongan: "", instansi: "Direktorat Pengendalian Perhutanan Sosial" })),

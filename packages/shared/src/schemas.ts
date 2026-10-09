@@ -127,9 +127,17 @@ export const LoginSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
+export type StatusSt = "draft" | "final";
+
 export interface SuratTugasDto extends SuratTugasPayload {
   id: number;
   versiSbmId: number;
+  /** `final` = terkunci: tidak bisa diubah/dihapus sampai kunci dibuka. */
+  status: StatusSt;
+  dikunciPada: string | null;
+  dibukaPada: string | null;
+  /** Berapa kali kunci dibuka kembali (jejak revisi). */
+  jumlahDibuka: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -158,6 +166,7 @@ export interface SuratTugasRingkasDto {
   nomor: string;
   tanggal: string;
   jumlahPelaksana: number;
+  status: StatusSt;
   /** Total SPTB seluruh pelaksana (rupiah), dihitung dengan SBM yang di-pin surat tugas. */
   total: number;
   /** Jumlah peringatan data di semua pelaksana; 0 berarti siap cetak. */

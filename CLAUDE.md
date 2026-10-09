@@ -32,6 +32,7 @@ Untuk memeriksa tata letak tanpa peramban: `npm run pdf:contoh -w web -- /tmp/sp
   Buat sekali: `docker exec spjan-dev-postgres psql -U postgres -c "create database spjan_test"` (dan `spjan_dev` untuk menjalankan server lokal).
   Tes memakai `TEST_DATABASE_URL` (default `postgres://postgres:postgres@localhost:55432/spjan_test`) dan membuat ulang skema `public` setiap kali dijalankan.
 - Produksi: database `spjan` di server PostgreSQL yang sama dengan SIPEKAPS (dibuat pengguna).
+- Kunci surat tugas: `surat_tugas.status` (`draft`/`final`). ST final menolak PUT/DELETE, perubahan berkas, dan PUT laporan dengan 409 `ST_TERKUNCI` (penjaga di `repositories/surat-tugas.ts`); buka kunci dicatat (`jumlah_dibuka`). Rute tulis baru yang menyentuh data ST wajib memanggil `tolakBilaTerkunci`/`tolakBilaBerkasTerkunci`.
 - Migrasi: `apps/api/migrations/*.sql` (node-pg-migrate), otomatis dijalankan saat server boot. Data SBM disimpan sebagai `jsonb` di `sbm_versi.data` dan diisi `seedSbm()` dari `SBM_2026`.
 
 Setelah mengubah `packages/shared/src`, jalankan `npm run build` di `packages/shared` sebelum

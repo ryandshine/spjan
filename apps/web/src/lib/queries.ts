@@ -103,6 +103,14 @@ export function useHapusSuratTugas() {
   })
 }
 
+export function useKunciSuratTugas() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: number; kunci: boolean }) => (v.kunci ? api.suratTugas.kunci(v.id) : api.suratTugas.bukaKunci(v.id)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['st'] }),
+  })
+}
+
 export function useSuratTugas(id: number | undefined) {
   return useQuery({
     queryKey: keys.st(id ?? 0),

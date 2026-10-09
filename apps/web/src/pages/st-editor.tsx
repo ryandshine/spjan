@@ -23,18 +23,22 @@ import { AksiHeaderSt, PeringatanBelumSimpan } from '@/components/st/aksi-header
 import { BannerPeriksa } from '@/components/st/banner-periksa'
 import { BarBawahSt } from '@/components/st/bar-bawah-st'
 import { BuktiPanel } from '@/components/st/bukti-panel'
-import { DialogHapusSt, DialogNoSpd, DialogTinggalkanHalaman } from '@/components/st/dialog-editor-st'
+import { DialogHapusSt, DialogKunciSt, DialogNoSpd, DialogTinggalkanHalaman } from '@/components/st/dialog-editor-st'
 import { FotoDokumentasiPanel } from '@/components/st/foto-dokumentasi-panel'
 import { KartuDataSt } from '@/components/st/kartu-data-st'
 import { KartuPejabatSt } from '@/components/st/kartu-pejabat-st'
 import { TabPelaksanaSt } from '@/components/st/tab-pelaksana-st'
 import { UsulanHotelPanel } from '@/components/st/usulan-hotel-panel'
 import { UsulanTransportPanel } from '@/components/st/usulan-transport-panel'
+import { LockOpenIcon } from 'lucide-react'
+
 import { Alert } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { TabPanel, Tabs, type TabItem } from '@/components/ui/tabs'
 import { pesanGalat } from '@/lib/format'
 import {
   useHapusSuratTugas,
+  useKunciSuratTugas,
   usePegawai,
   usePengaturan,
   useSbm,
@@ -68,11 +72,26 @@ function deskripsiHeader({ modeLaporan, kotor, baru }: { modeLaporan: boolean; k
   return baru ? 'Isi data lalu simpan.' : 'Tersimpan.'
 }
 
-function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratTugasPayload; sbm: Sbm; pengaturan: PengaturanPayload }) {
+function Editor({
+  id,
+  awal,
+  sbm,
+  pengaturan,
+  terkunci,
+}: {
+  id: number | null
+  awal: SuratTugasPayload
+  sbm: Sbm
+  pengaturan: PengaturanPayload
+  /** Status final dari server: seluruh isian dikunci sampai kunci dibuka. */
+  terkunci: boolean
+}) {
   const navigate = useNavigate()
   const pegawai = usePegawai(true)
   const simpan = useSimpanSuratTugas()
   const hapus = useHapusSuratTugas()
+  const kunciSt = useKunciSuratTugas()
+  const [dialogKunci, setDialogKunci] = useState<'kunci' | 'buka' | null>(null)
   const [st, setSt] = useState<SuratTugasPayload>(awal)
   const [kunciPelaksana, setKunciPelaksana] = useState(() => awal.pelaksana.map(kunciPelaksanaBaru))
   const stTerserialisasi = useMemo(() => JSON.stringify(st), [st])
@@ -166,6 +185,19 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
     }
   }
 
+  async function konfirmasiKunci() {
+    if (id === null || dialogKunci === null) return
+    const kunci = dialogKunci === 'kunci'
+    try {
+      await kunciSt.mutateAsync({ id, kunci })
+      toast.success(kunci ? 'Surat tugas ditandai selesai dan dikunci.' : 'Kunci dibuka. Surat tugas bisa diubah lagi.')
+      setDialogKunci(null)
+    } catch (error) {
+      toast.error(pesanGalat(error))
+      setDialogKunci(null)
+    }
+  }
+
   const sufiksSpd = sufiksNoSpd(st.tahunAnggaran || pengaturan.tahunAnggaran || new Date().getFullYear())
 
   function terapkanNoSpd(angkaAwal: number, sufiks: string) {
@@ -201,7 +233,17 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
 
   let aksiHeader: ReactNode = null
   if (!modeLaporan) {
-    if (id !== null) aksiHeader = <AksiHeaderSt onHapus={() => setDialogHapus(true)} />
+    if (id !== null) {
+      aksiHeader = (
+        <AksiHeaderSt
+          terkunci={terkunci}
+          bisaKunci={!kotor}
+          onHapus={() => setDialogHapus(true)}
+          onKunci={() => setDialogKunci('kunci')}
+          onBukaKunci={() => setDialogKunci('buka')}
+        />
+      )
+    }
   } else if (kotor) {
     aksiHeader = <PeringatanBelumSimpan menyimpan={simpan.isPending} onSimpan={kirim} />
   }
@@ -211,9 +253,18 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
       <PageHeader
         lengket={!modeLaporan}
         title={id === null ? 'Surat tugas baru' : st.nomor || 'Surat tugas'}
-        description={deskripsiHeader({ modeLaporan, kotor, baru: id === null })}
+        description={terkunci ? 'Selesai dan terkunci. Buka kunci untuk mengubah.' : deskripsiHeader({ modeLaporan, kotor, baru: id === null })}
         actions={aksiHeader}
       />
+
+      {terkunci ? (
+        <Alert className="mb-5 flex flex-wrap items-center justify-between gap-2">
+          <span>Surat tugas ini sudah ditandai selesai dan terkunci, jadi data, bukti, dan laporan tidak bisa diubah. Dokumen tetap bisa dicetak.</span>
+          <Button size="sm" variant="outline" onClick={() => setDialogKunci('buka')}>
+            <LockOpenIcon /> Buka kunci
+          </Button>
+        </Alert>
+      ) : null}
 
       {pesanTampil.length > 0 ? (
         <div ref={alertRef}>
@@ -232,7 +283,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
 
       <Tabs item={itemTab} aktif={tab} onPilih={setTab} idAwal="st" label="Bagian surat tugas" />
 
-      <div className={modeLaporan ? 'min-w-0' : 'min-w-0 max-w-6xl'}>
+      <fieldset disabled={terkunci} className={`m-0 border-0 p-0 ${modeLaporan ? 'min-w-0' : 'min-w-0 max-w-6xl'}`}>
         <TabPanel idAwal="st" kunci="data" aktif={tab === 'data'}>
           <div className="grid gap-6">
             <KartuDataSt st={st} peta={peta} pengaturan={pengaturan} onUbah={ubahSt} onUbahSumberDana={ubahSumberDana} />
@@ -251,7 +302,7 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
               </div>
             </TabPanel>
             <TabPanel idAwal="st" kunci="laporan" aktif={tab === 'laporan'}>
-              <LaporanEditor stId={id} />
+              <LaporanEditor stId={id} terkunci={terkunci} />
             </TabPanel>
           </>
         ) : null}
@@ -272,10 +323,16 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
             onAutoIsiNoSpd={autoIsiNoSpd}
           />
         </TabPanel>
-      </div>
+      </fieldset>
 
       {modeLaporan ? null : (
-        <BarBawahSt id={id} hasil={hasil} kotor={kotor} menyimpan={simpan.isPending} onSimpan={kirim} onPerbaiki={perbaikiIsian} />
+        <BarBawahSt
+          id={id} hasil={hasil} kotor={kotor} menyimpan={simpan.isPending} onSimpan={kirim}
+          terkunci={terkunci}
+          onPerbaiki={perbaikiIsian}
+          onKunci={() => setDialogKunci('kunci')}
+          onBukaKunci={() => setDialogKunci('buka')}
+        />
       )}
 
       <DialogNoSpd
@@ -286,6 +343,14 @@ function Editor({ id, awal, sbm, pengaturan }: { id: number | null; awal: SuratT
         onKonfirmasi={(angkaAwal) => terapkanNoSpd(angkaAwal, sufiksSpd)}
       />
       <DialogHapusSt buka={dialogHapus} onBukaChange={setDialogHapus} nomor={st.nomor} menghapus={hapus.isPending} onKonfirmasi={konfirmasiHapus} />
+      <DialogKunciSt
+        buka={dialogKunci !== null}
+        onBukaChange={(b) => !b && setDialogKunci(null)}
+        kunci={dialogKunci === 'kunci'}
+        nomor={st.nomor}
+        memproses={kunciSt.isPending}
+        onKonfirmasi={konfirmasiKunci}
+      />
       <DialogTinggalkanHalaman blocker={blocker} />
     </div>
   )
@@ -311,5 +376,5 @@ export default function StEditorPage() {
   const awal: SuratTugasPayload = st.data
     ? payloadDariDto(st.data)
     : stKosong(pengaturan.data.kodeAkunDefault, pengaturan.data.tahunAnggaran)
-  return <Editor key={id ?? 'baru'} id={id} awal={awal} sbm={sbm.data.data} pengaturan={pengaturan.data} />
+  return <Editor key={id ?? 'baru'} id={id} awal={awal} sbm={sbm.data.data} pengaturan={pengaturan.data} terkunci={st.data?.status === 'final'} />
 }

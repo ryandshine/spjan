@@ -16,6 +16,7 @@ import { hapusFileYatim, listBerkas, shaBerkasSt, tautkanBerkasKeSt } from "../r
 import { getPengaturan } from "../repositories/pengaturan.js";
 import { getVersiSbm, versiAktifTerbaru } from "../repositories/sbm.js";
 import {
+  aturKunciSt,
   createSuratTugas,
   deleteSuratTugas,
   getSuratTugas,
@@ -70,6 +71,18 @@ export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; sto
     const { id } = IdSchema.parse(req.params);
     const payload = SuratTugasPayloadSchema.parse(req.body);
     if (!(await replaceSuratTugas(id, payload))) throw notFound("Surat tugas");
+    return getSuratTugas(opts.db, id);
+  });
+
+  app.post("/:id/kunci", async (req) => {
+    const { id } = IdSchema.parse(req.params);
+    if (!(await aturKunciSt(opts.db, id, true))) throw notFound("Surat tugas");
+    return getSuratTugas(opts.db, id);
+  });
+
+  app.post("/:id/buka-kunci", async (req) => {
+    const { id } = IdSchema.parse(req.params);
+    if (!(await aturKunciSt(opts.db, id, false))) throw notFound("Surat tugas");
     return getSuratTugas(opts.db, id);
   });
 
