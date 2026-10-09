@@ -1,0 +1,74 @@
+import { FileTextIcon, SaveIcon, Trash2Icon } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { toast } from 'sonner'
+
+import { Button, buttonVariants } from '@/components/ui/button'
+import { MenuAksi } from '@/components/ui/menu-aksi'
+import { rupiah } from '@/lib/format'
+
+function TombolSimpan({ menyimpan, nonaktif, onSimpan }: { menyimpan: boolean; nonaktif?: boolean; onSimpan: () => void }) {
+  return (
+    <Button onClick={onSimpan} disabled={menyimpan || nonaktif}>
+      <SaveIcon /> {menyimpan ? 'Menyimpan...' : 'Simpan'}
+    </Button>
+  )
+}
+
+/** Dipakai di tab Laporan, yang memiliki header sendiri: hanya mengingatkan bila data surat tugas belum tersimpan. */
+export function PeringatanBelumSimpan({ menyimpan, onSimpan }: { menyimpan: boolean; onSimpan: () => void }) {
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-warning/50 bg-warning/10 px-3 py-1.5 text-sm">
+      Data surat tugas belum disimpan
+      <Button size="sm" onClick={onSimpan} disabled={menyimpan}>
+        <SaveIcon /> {menyimpan ? 'Menyimpan...' : 'Simpan'}
+      </Button>
+    </div>
+  )
+}
+
+/** Total SPTB, tautan Dokumen, tombol Simpan, dan menu hapus. `id` null berarti surat tugas belum tersimpan. */
+export function AksiHeaderSt({
+  id,
+  total,
+  kotor,
+  menyimpan,
+  onSimpan,
+  onHapus,
+}: {
+  id: number | null
+  total: number
+  kotor: boolean
+  menyimpan: boolean
+  onSimpan: () => void
+  onHapus: () => void
+}) {
+  return (
+    <>
+      <div className="mr-1 text-right leading-tight" aria-live="polite">
+        <p className="text-xs text-muted-foreground">Total SPTB</p>
+        <p className="text-base font-semibold tabular-nums">{rupiah(total)}</p>
+      </div>
+      {id !== null ? (
+        <Link
+          to={`/st/${id}/dokumen`}
+          className={buttonVariants({ variant: 'outline' })}
+          aria-disabled={kotor}
+          onClick={(e) => {
+            if (!kotor) return
+            e.preventDefault()
+            toast.info('Simpan perubahan dulu sebelum membuka dokumen.')
+          }}
+        >
+          <FileTextIcon className="size-4" /> Dokumen
+        </Link>
+      ) : null}
+      <TombolSimpan menyimpan={menyimpan} nonaktif={!kotor && id !== null} onSimpan={onSimpan} />
+      {id !== null ? (
+        <MenuAksi
+          label="Atur surat tugas"
+          item={[{ label: 'Hapus surat tugas', ikon: <Trash2Icon className="size-4" />, bahaya: true, onPilih: onHapus }]}
+        />
+      ) : null}
+    </>
+  )
+}
