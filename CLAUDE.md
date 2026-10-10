@@ -3,6 +3,7 @@
 Aplikasi web untuk menyusun SPJ perjalanan dinas (SPTB, Rincian Biaya Perjalanan Dinas, Kuitansi)
 Direktorat Pengendalian Perhutanan Sosial. Banyak pengguna (satu orang satu akun; peran `admin`/`operator`). Domain produksi: spjan.ditpps.com.
 Arsitektur dan aturan hitung: `docs/superpowers/specs/2026-10-04-spjan-design.md`.
+Status pekerjaan, keputusan, dan risiko yang diketahui: `docs/STATUS.md`. Baca di awal sesi; perbarui di akhir pekerjaan bermakna (tanpa commit sendiri, ikuti alur kerja di bawah).
 
 ## Struktur monorepo (npm workspaces)
 
