@@ -99,7 +99,7 @@ export default function SuratTugasListPage() {
               <FileUpIcon className="size-4" /> Buat dari ST
             </Link>
             <Link to="/st/baru" className={buttonVariants()}>
-              <PlusIcon className="size-4" /> Surat tugas baru
+              <PlusIcon className="size-4" /> Isi manual
             </Link>
           </div>
         }
