@@ -22,12 +22,9 @@ const NAV_ADMIN = [
 
 function Merek() {
   return (
-    <div className="flex items-center gap-3">
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">SJ</span>
-      <div className="min-w-0 leading-tight">
-        <p className="text-base font-bold">SPJAN</p>
-        <p className="text-xs text-muted-foreground">SPJ Perjalanan Dinas</p>
-      </div>
+    <div className="min-w-0 leading-tight">
+      <p className="text-base font-bold">SPJAN</p>
+      <p className="text-xs text-muted-foreground">Jarang Puiang</p>
     </div>
   )
 }

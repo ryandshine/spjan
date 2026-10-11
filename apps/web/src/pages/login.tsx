@@ -42,12 +42,9 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-screen place-items-center px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex items-center justify-center gap-3">
-          <span className="grid size-10 place-items-center rounded-xl bg-primary text-base font-bold text-primary-foreground">SJ</span>
-          <div className="leading-tight">
-            <p className="text-lg font-semibold">SPJAN</p>
-            <p className="text-xs text-muted-foreground">SPJ Perjalanan Dinas</p>
-          </div>
+        <div className="mb-6 text-center leading-tight">
+          <p className="text-lg font-semibold">SPJAN</p>
+          <p className="text-xs text-muted-foreground">Jarang Puiang</p>
         </div>
         <Card>
           <CardHeader>
