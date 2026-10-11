@@ -175,7 +175,8 @@ export const UbahPenggunaSchema = z
   .partial();
 export type UbahPenggunaPayload = z.infer<typeof UbahPenggunaSchema>;
 
-export const ResetPasswordSchema = z.object({ password: PasswordBaru });
+/** Reset password pengguna lain: butuh password admin yang melakukannya (bukan password lama pengguna, yang tidak diketahui admin). */
+export const ResetPasswordSchema = z.object({ password: PasswordBaru, passwordAdmin: z.string().min(1).max(200) });
 export const GantiPasswordSchema = z.object({ passwordLama: z.string().min(1).max(200), passwordBaru: PasswordBaru });
 export type GantiPasswordPayload = z.infer<typeof GantiPasswordSchema>;
 

@@ -315,7 +315,7 @@ export function usePenggunaMutations() {
   return {
     buat: useMutation({ mutationFn: (p: BuatPenggunaPayload) => api.pengguna.create(p), onSuccess: refresh }),
     ubah: useMutation({ mutationFn: (v: { id: number; data: UbahPenggunaPayload }) => api.pengguna.update(v.id, v.data), onSuccess: refresh }),
-    resetPassword: useMutation({ mutationFn: (v: { id: number; password: string }) => api.pengguna.resetPassword(v.id, v.password) }),
+    resetPassword: useMutation({ mutationFn: (v: { id: number; password: string; passwordAdmin: string }) => api.pengguna.resetPassword(v.id, v.password, v.passwordAdmin) }),
   }
 }
 

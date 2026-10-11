@@ -75,7 +75,8 @@ describe("pengguna dan peran", () => {
 
   it("reset password oleh admin dan ganti password sendiri", async () => {
     const op = await buatOperator("sementara2");
-    expect((await kirim(admin, "POST", `/api/admin/pengguna/${op.id}/reset-password`, { password: "sandi-baru-9999" })).statusCode).toBe(204);
+    expect((await kirim(admin, "POST", `/api/admin/pengguna/${op.id}/reset-password`, { password: "sandi-baru-9999", passwordAdmin: "salah-salah" })).statusCode).toBe(403);
+    expect((await kirim(admin, "POST", `/api/admin/pengguna/${op.id}/reset-password`, { password: "sandi-baru-9999", passwordAdmin: "sandi-uji-12345" })).statusCode).toBe(204);
     expect((await kirim(op.cookie, "GET", "/api/auth/me")).statusCode).toBe(401);
     const login = await app.inject({ method: "POST", url: "/api/auth/login", payload: { username: "sementara2", password: "sandi-baru-9999" } });
     const raw = login.headers["set-cookie"];

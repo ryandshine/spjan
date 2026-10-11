@@ -119,15 +119,18 @@ function DialogBuat({ buka, onBukaChange, pegawaiAwal }: { buka: boolean; onBuka
 function DialogReset({ target, onTutup }: { target: PenggunaDto | null; onTutup: () => void }) {
   const { resetPassword } = usePenggunaMutations()
   const [password, setPassword] = useState('')
+  const [passwordAdmin, setPasswordAdmin] = useState('')
   const [galat, setGalat] = useState<string | null>(null)
 
   async function kirim() {
     if (!target) return
     if (password.length < 10) return setGalat('Minimal 10 karakter.')
+    if (!passwordAdmin) return setGalat('Isi password Anda untuk konfirmasi.')
     try {
-      await resetPassword.mutateAsync({ id: target.id, password })
+      await resetPassword.mutateAsync({ id: target.id, password, passwordAdmin })
       toast.success(`Password ${target.username} direset; semua sesinya keluar.`)
       setPassword('')
+      setPasswordAdmin('')
       setGalat(null)
       onTutup()
     } catch (error) {
@@ -151,6 +154,9 @@ function DialogReset({ target, onTutup }: { target: PenggunaDto | null; onTutup:
           </DialogHeader>
           <Field label="Password baru" htmlFor="rp-password" mode="wajib" hint="Minimal 10 karakter.">
             <Input id="rp-password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          </Field>
+          <Field label="Password Anda" htmlFor="rp-password-admin" mode="wajib" hint="Konfirmasi dengan password admin Anda sendiri.">
+            <Input id="rp-password-admin" type="password" autoComplete="current-password" value={passwordAdmin} onChange={(e) => setPasswordAdmin(e.target.value)} />
           </Field>
           {galat ? <Alert variant="destructive">{galat}</Alert> : null}
           <DialogFooter>

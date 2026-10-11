@@ -77,7 +77,7 @@ export const api = {
     list: () => request<PenggunaDto[]>('GET', '/api/admin/pengguna'),
     create: (p: BuatPenggunaPayload) => request<PenggunaDto>('POST', '/api/admin/pengguna', p),
     update: (id: number, p: UbahPenggunaPayload) => request<PenggunaDto>('PATCH', `/api/admin/pengguna/${id}`, p),
-    resetPassword: (id: number, password: string) => request<void>('POST', `/api/admin/pengguna/${id}/reset-password`, { password }),
+    resetPassword: (id: number, password: string, passwordAdmin: string) => request<void>('POST', `/api/admin/pengguna/${id}/reset-password`, { password, passwordAdmin }),
   },
   audit: (stId?: number) => request<LogAuditDto[]>('GET', stId !== undefined ? `/api/admin/audit?stId=${stId}` : '/api/admin/audit'),
 

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { BookOpenIcon, FileTextIcon, HistoryIcon, KeyRoundIcon, LogOutIcon, SettingsIcon, ShieldIcon, Trash2Icon, UserIcon, UsersIcon } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 
 import { DialogGantiPassword } from '@/components/dialog-ganti-password'
@@ -10,16 +9,16 @@ import { SlotSidebarContext } from '@/lib/slot-sidebar'
 import { cn } from '@/lib/utils'
 
 const NAV = [
-  { to: '/', label: 'Surat Tugas', icon: FileTextIcon, end: true },
-  { to: '/pegawai', label: 'Pegawai', icon: UsersIcon, end: false },
-  { to: '/pengaturan', label: 'Pengaturan', icon: SettingsIcon, end: false },
-  { to: '/sbm', label: 'Tabel SBM', icon: BookOpenIcon, end: false },
+  { to: '/', label: 'Surat Tugas', end: true },
+  { to: '/pegawai', label: 'Pegawai', end: false },
+  { to: '/pengaturan', label: 'Pengaturan', end: false },
+  { to: '/sbm', label: 'Tabel SBM', end: false },
 ]
 
 const NAV_ADMIN = [
-  { to: '/pengguna', label: 'Pengguna', icon: ShieldIcon, end: false },
-  { to: '/sampah', label: 'Tempat Sampah', icon: Trash2Icon, end: false },
-  { to: '/audit', label: 'Log Audit', icon: HistoryIcon, end: false },
+  { to: '/pengguna', label: 'Pengguna', end: false },
+  { to: '/sampah', label: 'Tempat Sampah', end: false },
+  { to: '/audit', label: 'Log Audit', end: false },
 ]
 
 function Merek() {
@@ -50,10 +49,10 @@ function KartuPengguna({
   onGantiPassword: () => void
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded-lg border bg-card p-2.5">
+    <div className="grid gap-2 rounded-lg border bg-card p-2.5">
       <div className="flex min-w-0 items-center gap-2.5">
         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary" aria-hidden>
-          {username ? username.slice(0, 2).toUpperCase() : <UserIcon className="size-4" />}
+          {(username ?? 'P').slice(0, 2).toUpperCase()}
         </span>
         <div className="min-w-0 leading-tight">
           <p className="truncate text-sm font-medium">{nama || username || 'Pengguna'}</p>
@@ -62,12 +61,12 @@ function KartuPengguna({
           </p>
         </div>
       </div>
-      <div className="flex shrink-0">
-        <Button variant="ghost" size="icon" onClick={onGantiPassword} title="Ganti password" aria-label="Ganti password">
-          <KeyRoundIcon />
+      <div className="flex gap-1">
+        <Button variant="outline" size="sm" className="flex-1" onClick={onGantiPassword}>
+          Ganti password
         </Button>
-        <Button variant="ghost" size="icon" onClick={keluar} disabled={sedangKeluar} title="Keluar" aria-label="Keluar">
-          <LogOutIcon />
+        <Button variant="outline" size="sm" onClick={keluar} disabled={sedangKeluar}>
+          Keluar
         </Button>
       </div>
     </div>
@@ -95,15 +94,15 @@ export function AppShell() {
             <div className="flex items-center gap-2 px-5 py-4">
               <Merek />
               <ZoomHalaman className="ml-auto md:hidden" />
-              <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setGantiPw(true)} title="Ganti password" aria-label="Ganti password">
-                <KeyRoundIcon />
+              <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setGantiPw(true)}>
+                Ganti password
               </Button>
-              <Button variant="ghost" size="icon" className="md:hidden" onClick={keluar} disabled={logout.isPending} title="Keluar" aria-label="Keluar">
-                <LogOutIcon />
+              <Button variant="ghost" size="sm" className="md:hidden" onClick={keluar} disabled={logout.isPending}>
+                Keluar
               </Button>
             </div>
             <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:pb-0" aria-label="Menu utama">
-              {menu.map(({ to, label, icon: Icon, end }) => (
+              {menu.map(({ to, label, end }) => (
                 <NavLink
                   key={to}
                   to={to}
@@ -117,7 +116,6 @@ export function AppShell() {
                     )
                   }
                 >
-                  <Icon className="size-4" />
                   {label}
                 </NavLink>
               ))}

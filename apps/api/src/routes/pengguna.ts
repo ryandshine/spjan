@@ -5,7 +5,7 @@ import { z } from "zod";
 import { aturPassword, cabutSesi } from "../auth.js";
 import type { Db } from "../db.js";
 import { notFound } from "../errors.js";
-import { penggunaAktif, wajibAdmin } from "../izin.js";
+import { penggunaAktif, wajibAdmin, wajibPasswordBenar } from "../izin.js";
 import { catatAudit, daftarAudit } from "../repositories/audit.js";
 import { buatPengguna, daftarPengguna, getPengguna, ubahPengguna } from "../repositories/pengguna.js";
 
@@ -37,7 +37,8 @@ export async function penggunaRoutes(app: FastifyInstance, opts: { db: Db }): Pr
 
   app.post("/pengguna/:id/reset-password", async (req, reply) => {
     const { id } = IdSchema.parse(req.params);
-    const { password } = ResetPasswordSchema.parse(req.body);
+    const { password, passwordAdmin } = ResetPasswordSchema.parse(req.body);
+    await wajibPasswordBenar(opts.db, req, passwordAdmin);
     if (!(await getPengguna(opts.db, id))) throw notFound("Pengguna");
     await aturPassword(opts.db, id, password);
     await cabutSesi(opts.db, id);
