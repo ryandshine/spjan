@@ -1,6 +1,7 @@
 import { Trash2Icon, TriangleAlertIcon } from 'lucide-react'
 import {
   isKotaJabodetabek,
+  norm,
   provinsiDariKotaJabodetabek,
   ringkasEtape,
   type EtapePayload,
@@ -17,6 +18,16 @@ import { InputTanggal } from '@/components/ui/input-tanggal'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { tanggalPanjang } from '@/lib/format'
+
+/** Saran kota tujuan: kab/kota provinsi terpilih menurut SBM (transport ibukota-kab); tanpa provinsi, daftar Jakarta-sekitarnya. */
+function saranKota(sbm: Sbm | undefined, provinsi: string): string[] {
+  if (!sbm) return []
+  if (!provinsi) return sbm.transportJakarta.map((t) => t.kabKota)
+  const kunci = norm(provinsi)
+  const dariIbukota = sbm.transportIbukota.filter((r) => r.provinsi === kunci).map((r) => r.kabKota)
+  const dariJakarta = sbm.transportJakarta.filter((t) => norm(provinsiDariKotaJabodetabek(t.kabKota) ?? '') === kunci).map((t) => t.kabKota)
+  return [...new Set([...dariIbukota, ...dariJakarta])].sort((a, b) => a.localeCompare(b, 'id'))
+}
 
 export function EtapeForm({
   idAwal,
@@ -102,8 +113,8 @@ export function EtapeForm({
             }}
           />
           <datalist id={id('list-kota')}>
-            {(sbm?.transportJakarta ?? []).map((t) => (
-              <option key={t.kabKota} value={t.kabKota} />
+            {saranKota(sbm, etape.provinsi).map((nama) => (
+              <option key={nama} value={nama} />
             ))}
           </datalist>
         </Field>
