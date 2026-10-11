@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 
 import { DialogGantiPassword } from '@/components/dialog-ganti-password'
-import { Button } from '@/components/ui/button'
 import { ZoomHalaman } from '@/components/zoom-halaman'
 import { useLogout, useMe } from '@/lib/queries'
 import { SlotSidebarContext } from '@/lib/slot-sidebar'
@@ -25,7 +24,7 @@ function Merek() {
   return (
     <div className="flex items-center gap-3">
       <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">SJ</span>
-      <div className="leading-tight">
+      <div className="min-w-0 leading-tight">
         <p className="text-base font-bold">SPJAN</p>
         <p className="text-xs text-muted-foreground">SPJ Perjalanan Dinas</p>
       </div>
@@ -83,13 +82,7 @@ export function AppShell() {
           <div className="flex min-h-0 flex-col md:flex-1 md:overflow-y-auto">
             <div className="flex items-center gap-2 px-5 py-4">
               <Merek />
-              <ZoomHalaman className="ml-auto md:hidden" />
-              <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setGantiPw(true)}>
-                Ganti password
-              </Button>
-              <Button variant="ghost" size="sm" className="md:hidden" onClick={keluar} disabled={logout.isPending}>
-                Keluar
-              </Button>
+              <ZoomHalaman className="ml-auto shrink-0 md:hidden" />
             </div>
             <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:pb-0" aria-label="Menu utama">
               {menu.map(({ to, label, end }) => (
@@ -109,6 +102,13 @@ export function AppShell() {
                   {label}
                 </NavLink>
               ))}
+              {/* Di ponsel aksi akun ikut di jalur menu (menu samping tersembunyi). */}
+              <button type="button" onClick={() => setGantiPw(true)} className="flex min-h-10 items-center rounded-md px-3 text-sm font-medium whitespace-nowrap text-muted-foreground md:hidden">
+                Ganti password
+              </button>
+              <button type="button" onClick={keluar} disabled={logout.isPending} className="flex min-h-10 items-center rounded-md px-3 text-sm font-medium whitespace-nowrap text-muted-foreground disabled:opacity-50 md:hidden">
+                Keluar
+              </button>
             </nav>
             <div ref={setSlotSidebar} className="hidden px-3 pt-3 pb-3 md:block md:empty:hidden" />
           </div>

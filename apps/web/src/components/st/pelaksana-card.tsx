@@ -242,7 +242,7 @@ export function PelaksanaCard({
 
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between gap-2">
+      <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
         <CardTitle className="min-w-0 [overflow-wrap:anywhere]">
           Pelaksana {nomor}
           {p.nama ? <span className="ml-2 font-normal text-muted-foreground">{p.nama}</span> : null}

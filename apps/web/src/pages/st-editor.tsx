@@ -435,7 +435,7 @@ function Editor({
               ) : null}
               {berikutnya && !modeLaporan ? (
                 <Button onClick={() => setTab(berikutnya.kunci)}>
-                  Lanjut ke {berikutnya.label} <ArrowRightIcon />
+                  Lanjut<span className="hidden sm:inline"> ke {berikutnya.label}</span> <ArrowRightIcon />
                 </Button>
               ) : null}
             </div>
