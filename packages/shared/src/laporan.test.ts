@@ -10,6 +10,7 @@ const pengaturan = { kotaKedudukan: "Jakarta" } as PengaturanPayload;
 function stUji(over: Partial<SuratTugasDto> = {}): SuratTugasDto {
   return {
     id: 1, versiSbmId: 1, createdAt: "", updatedAt: "",
+    status: "draft", dikunciPada: null, dibukaPada: null, jumlahDibuka: 0, dibuatOleh: null, dibuatOlehNama: null,
     nomor: "ST.228/PPS/PEMPS/PSL.04.02/B/09/2026", tanggal: "2026-09-14", tanggalSpj: "2026-09-21",
     kodeAkun: "", catatan: "", tahunAnggaran: null, sumberDana: "RM", pjNama: null, pjNip: null, pjJabatan: null,
     pelaksana: [

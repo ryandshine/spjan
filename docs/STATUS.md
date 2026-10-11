@@ -39,6 +39,13 @@ Arsitektur dan aturan hitung: `docs/superpowers/specs/2026-10-04-spjan-design.md
 - Tombol sun/moon (`components/tombol-tema.tsx`) di footer sidebar (di samping zoom) dan di header ponsel. Hanya warna yang dipindah; font DESIGN.md (Sora/Space Grotesk) sengaja tidak dipakai. PDF tetap terang.
 - Belum dilihat di peramban; periksa kontras tiap halaman dalam mode gelap (kelas slate/amber/sky bawaan yang memakai varian `dark:` belum diselaraskan satu per satu dengan palet neon).
 
+## Pembersihan kode (belum di-commit)
+
+- Logika turunan kartu pelaksana (ubah tujuan/biaya, tambah tiket/taksi/transport Jakarta, hapus tujuan, batas hotel) dipindah dari `pelaksana-card.tsx` ke fungsi murni `lib/pelaksana-ubah.ts` (+ tes). Seret-lepas berkas dipusatkan di `lib/use-seret-lepas.ts` (dipakai bukti, foto dokumentasi, buat-dari-st).
+- Panel bersarang diratakan (kartu penginapan, kotak Opsi Tambahan/paket rapat/hotel 30%, kartu uang harian, kartu putus-putus ganda di buat-dari-st); warna slate/amber/gray bawaan di sana diganti token tema.
+- Dihapus: `ekstraktorKlasifikasi` (api, tak terpakai). Fixture tes shared dilengkapi agar `npm run lint` hijau.
+- Skrip `apps/api/scripts/probe-*.ts` dan `buat-akun-massal*` sengaja dipertahankan (alat manual yang dirujuk di docs).
+
 ## Keputusan dan alasannya
 
 - Satu orang satu akun; admin bisa semuanya; operator hanya melihat ST buatannya atau yang memuat namanya sebagai pelaksana (ST lain tersembunyi, 404), dan hanya pembuat/admin yang mengubah/mengunci/menghapus; pelaksana lain hanya lihat dan unduh. Alasan: ST orang lain bukan kepentingannya; hindari perubahan tak sengaja. Catatan: berkas yang belum tertaut ke ST (unggahan sebelum ST dibuat) belum dibatasi.

@@ -4,18 +4,11 @@ import {
   STATUS_KODE,
   STATUS_LABEL,
   biayaKosong,
-  cocokkanKotaJakartaSekitar,
   etapeKosong,
   indeksBarisTransport,
   INSTANSI_BAWAAN,
-  isKotaJabodetabek,
-  norm,
-  tarifTerminal,
   pelaksanaDariPegawai,
-  provinsiDariKotaJabodetabek,
-  ringkasEtape,
   type BiayaPayload,
-  type EtapePayload,
   type PegawaiDto,
   type PelaksanaHasil,
   type PelaksanaPayload,
@@ -40,8 +33,8 @@ import { MenuAksi } from '@/components/ui/menu-aksi'
 import { TextareaOtomatis } from '@/components/ui/textarea-otomatis'
 import { Select } from '@/components/ui/select'
 import { TabPanel, Tabs, type TabItem } from '@/components/ui/tabs'
-import { rupiah } from '@/lib/format'
-import { tanggalPanjang } from '@/lib/format'
+import { rupiah, tanggalPanjang } from '@/lib/format'
+import { batasHotelEtape, biayaTaksiKedudukan, biayaTaksiTerminal, biayaTiketPergi, hapusEtape, tambahTransportJakartaSekitar, ubahBiaya, ubahEtape } from '@/lib/pelaksana-ubah'
 import type { BagianPelaksana } from '@/lib/periksa'
 import { cakupanGalat, type PetaGalat } from '@/lib/validasi'
 
@@ -84,149 +77,14 @@ export function PelaksanaCard({
   const cfg = p.status ? sbm.statusKonfigurasi[p.status] : undefined
   const indeks = indeksBarisTransport(p.biaya)
 
-  const ubahEtape = (i: number, patch: Partial<EtapePayload>) =>
-    onUbah((x) => {
-      const etapeBaru = x.etape.map((e, j) => (j === i ? { ...e, ...patch } : e))
-      let biayaBaru = x.biaya
-
-      if (patch.kota) {
-        const cocok = cocokkanKotaJakartaSekitar(patch.kota, sbm.transportJakarta)
-        if (cocok) {
-          biayaBaru = biayaBaru.map((b) => {
-            if (b.jenis === 'TRANSPORT_JAKARTA_SEKITAR' && (b.etapeIndex == null || b.etapeIndex === i)) {
-              return {
-                ...b,
-                uraian: cocok.kabKota,
-                tarif: cocok.besaran,
-                qty: b.qty ?? 2,
-              }
-            }
-            return b
-          })
-        }
-      }
-
-      return {
-        ...x,
-        etape: etapeBaru,
-        biaya: biayaBaru,
-      }
-    })
-
-  const ubahBiaya = (i: number, patch: Partial<BiayaPayload>) =>
-    onUbah((x) => {
-      let etapeBaru = x.etape
-      const bLama = x.biaya[i]
-      const bBaru = { ...bLama, ...patch }
-
-      if (bBaru.jenis === 'TRANSPORT_JAKARTA_SEKITAR') {
-        const etapeIdx = bBaru.etapeIndex ?? 0
-        const eTarget = etapeBaru[etapeIdx]
-        if (eTarget) {
-          const patchE: Partial<EtapePayload> = {}
-          if (!eTarget.dalamKota8Jam) {
-            patchE.dalamKota8Jam = true
-            const { hari } = ringkasEtape(eTarget)
-            if (hari === 1) patchE.malamOverride = 0
-          }
-          if (bBaru.uraian) {
-            if (!eTarget.kota || isKotaJabodetabek(eTarget.kota)) {
-              patchE.kota = bBaru.uraian
-            }
-            if (!eTarget.provinsi) {
-              const prov = provinsiDariKotaJabodetabek(bBaru.uraian)
-              if (prov) patchE.provinsi = prov
-            }
-          }
-          if (Object.keys(patchE).length > 0) {
-            etapeBaru = etapeBaru.map((e, j) => (j === etapeIdx ? { ...e, ...patchE } : e))
-          }
-        }
-      }
-
-      return {
-        ...x,
-        etape: etapeBaru,
-        biaya: x.biaya.map((b, j) => (j === i ? { ...b, ...patch } : b)),
-      }
-    })
-
   const tambahBiaya = (b: BiayaPayload) => onUbah((x) => ({ ...x, biaya: [...x.biaya, b] }))
 
-  function tambahTransportJakartaSekitar() {
-    const kotaEtape = p.etape[0]?.kota
-    const cocok = cocokkanKotaJakartaSekitar(kotaEtape, sbm.transportJakarta)
-
-    onUbah((x) => {
-      let etapeBaru = x.etape
-      if (etapeBaru.length > 0 && !etapeBaru[0]?.dalamKota8Jam) {
-        const { hari } = ringkasEtape(etapeBaru[0]!)
-        etapeBaru = etapeBaru.map((e, j) =>
-          j === 0 ? { ...e, dalamKota8Jam: true, ...(hari === 1 ? { malamOverride: 0 } : {}) } : e,
-        )
-      }
-
-      const biayaBaru: BiayaPayload = {
-        ...biayaKosong('TRANSPORT_JAKARTA_SEKITAR'),
-        uraian: cocok ? cocok.kabKota : null,
-        tarif: cocok ? cocok.besaran : 0,
-        qty: 2,
-        keterangan: 'Bukti terlampir',
-      }
-
-      return {
-        ...x,
-        etape: etapeBaru,
-        biaya: [...x.biaya, biayaBaru],
-      }
-    })
-  }
-
-  function tambahTiketPergi() {
-    const sudah = p.biaya.filter((b) => b.jenis === 'TIKET_PERGI').length
-    tambahBiaya({ ...biayaKosong('TIKET_PERGI'), etapeIndex: sudah < p.etape.length ? sudah : null })
-  }
-
-  function tambahTaksiKedudukan() {
-    const tarif = provinsiKedudukan ? (tarifTerminal(sbm, provinsiKedudukan) ?? 0) : 0
-    tambahBiaya({
-      ...biayaKosong('TAKSI_KEDUDUKAN'),
-      tarif,
-      qty: 1,
-    })
-  }
-
-  function tambahTaksiTerminal() {
-    const sudah = p.biaya.filter((b) => b.jenis === 'TAKSI_TERMINAL').length
-    const etapeIdx = sudah < p.etape.length ? sudah : 0
-    const etapeTarget =
-      (sudah < p.etape.length && p.etape[sudah]?.provinsi ? p.etape[sudah] : undefined) ??
-      p.etape.find((e) => e.provinsi) ??
-      p.etape[0]
-    const namaProv = etapeTarget?.provinsi || null
-    const tarif = namaProv ? (tarifTerminal(sbm, namaProv) ?? 0) : 0
-
-    tambahBiaya({
-      ...biayaKosong('TAKSI_TERMINAL'),
-      etapeIndex: etapeIdx,
-      provinsi: namaProv,
-      tarif,
-      qty: 2,
-      keterangan: null,
-    })
-  }
-
-  const batasHotel = (e: EtapePayload): number | null => {
-    if (!cfg) return null
-    return sbm.penginapan[norm(e.provinsi)]?.[cfg.kolomHotel - 1] ?? null
-  }
-
   function tambahDariMenu(jenis: string) {
-    if (jenis === 'TIKET_PERGI') tambahTiketPergi()
+    if (jenis === 'TIKET_PERGI') tambahBiaya(biayaTiketPergi(p))
     else if (jenis === 'TIKET_KEMBALI') tambahBiaya(biayaKosong('TIKET_KEMBALI'))
-    else if (jenis === 'TAKSI_KEDUDUKAN') tambahTaksiKedudukan()
-    else if (jenis === 'TAKSI_TERMINAL') tambahTaksiTerminal()
-    else if (jenis === 'TRANSPORT_JAKARTA_SEKITAR') tambahTransportJakartaSekitar()
+    else if (jenis === 'TAKSI_KEDUDUKAN') tambahBiaya(biayaTaksiKedudukan(provinsiKedudukan, sbm))
+    else if (jenis === 'TAKSI_TERMINAL') tambahBiaya(biayaTaksiTerminal(p, sbm))
+    else if (jenis === 'TRANSPORT_JAKARTA_SEKITAR') onUbah((x) => tambahTransportJakartaSekitar(x, sbm))
     else if (jenis === 'LAINNYA') tambahBiaya(biayaKosong('LAINNYA'))
   }
 
@@ -364,14 +222,8 @@ export function PelaksanaCard({
                     peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
                     galat={cakupanGalat(galat, `etape.${i}`)}
                     bisaHapus={p.etape.length > 1}
-                    onUbah={(patch) => ubahEtape(i, patch)}
-                    onHapus={() =>
-                      onUbah((x) => ({
-                        ...x,
-                        etape: x.etape.filter((_, j) => j !== i),
-                        biaya: x.biaya.map((b) => (b.etapeIndex != null && b.etapeIndex >= i ? { ...b, etapeIndex: b.etapeIndex === i ? null : b.etapeIndex - 1 } : b)),
-                      }))
-                    }
+                    onUbah={(patch) => onUbah((x) => ubahEtape(x, i, patch, sbm))}
+                    onHapus={() => onUbah((x) => hapusEtape(x, i))}
                   />
                 ))}
                 <div>
@@ -389,7 +241,7 @@ export function PelaksanaCard({
           <KelompokIsian terkunci={terkunci}>
             <div className="grid gap-5">
               <BlokForm judul="Transportasi">
-                <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="overflow-x-auto rounded-lg border">
                   <table className="w-full min-w-[56rem] table-fixed border-collapse text-sm">
                     <colgroup>
                       <col className="min-w-[240px]" />
@@ -400,7 +252,7 @@ export function PelaksanaCard({
                       <col className="w-12" />
                       <col className="w-12" />
                     </colgroup>
-                    <thead className="bg-slate-50 text-xs text-slate-600 dark:bg-slate-900/40 dark:text-slate-400">
+                    <thead className="bg-muted/50 text-xs text-muted-foreground">
                       <tr className="text-left [&>th]:px-2 [&>th]:py-2 [&>th]:font-medium">
                         <th scope="col">Komponen Biaya &amp; Provinsi</th>
                         <th scope="col" className="text-center">
@@ -422,7 +274,7 @@ export function PelaksanaCard({
                     <tbody>
                       {p.biaya.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-3 py-4 text-center text-sm text-slate-600 dark:text-slate-400">
+                          <td colSpan={7} className="px-3 py-4 text-center text-sm text-muted-foreground">
                             Belum ada biaya.
                           </td>
                         </tr>
@@ -437,7 +289,7 @@ export function PelaksanaCard({
                           provinsiKedudukan={provinsiKedudukan}
                           baris={indeks[i] != null ? hasil?.transport[indeks[i] as number] : null}
                           sbm={sbm}
-                          onUbah={(patch) => ubahBiaya(i, patch)}
+                          onUbah={(patch) => onUbah((x) => ubahBiaya(x, i, patch))}
                           onHapus={() => onUbah((x) => ({ ...x, biaya: x.biaya.filter((_, j) => j !== i) }))}
                         />
                       ))}
@@ -457,7 +309,7 @@ export function PelaksanaCard({
                       { label: 'Biaya Riil Lainnya', onPilih: () => tambahDariMenu('LAINNYA') },
                     ]}
                   />
-                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  <p className="text-sm font-semibold text-foreground">
                     Subtotal Transportasi: <span className="font-mono tabular-nums">{rupiah(hasil?.totalTransport ?? 0)}</span>
                   </p>
                 </div>
@@ -484,10 +336,10 @@ export function PelaksanaCard({
                     nomor={i + 1}
                     etape={e}
                     bolehRepresentasi={(cfg?.barisRepresentasi ?? 0) > 0}
-                    batasHotel={batasHotel(e)}
+                    batasHotel={batasHotelEtape(e, p.status, sbm)}
                     sbm={sbm}
                     peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
-                    onUbah={(patch) => ubahEtape(i, patch)}
+                    onUbah={(patch) => onUbah((x) => ubahEtape(x, i, patch, sbm))}
                   />
                 ))}
               </BlokForm>

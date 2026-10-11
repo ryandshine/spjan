@@ -14,12 +14,12 @@ import { api } from '@/lib/api'
 import { formatUkuran, pesanGalat, tanggalPendek } from '@/lib/format'
 import { keteranganFoto, kompresGambar, type HasilKompresi } from '@/lib/gambar'
 import { useDaftarBerkas, useUbahJenisBerkas, useUpdateBerkas } from '@/lib/queries'
+import { useSeretLepas } from '@/lib/use-seret-lepas'
 
 /** Foto kegiatan untuk lembar "Bukti Dokumentasi Kegiatan". Tidak dibaca AI dan tidak memengaruhi hitungan biaya. */
 export function FotoDokumentasiPanel({ stId }: { stId: number }) {
   const fotoInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
-  const [dragOver, setDragOver] = useState(false)
   const [sedangUnggah, setSedangUnggah] = useState(false)
   const [akanDihapus, setAkanDihapus] = useState<BerkasDto | null>(null)
   const [previewFoto, setPreviewFoto] = useState<BerkasDto | null>(null)
@@ -74,6 +74,8 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
       setSedangUnggahFoto(false)
     }
   }
+
+  const seret = useSeretLepas((files) => void prosesUnggah(files))
 
   async function prosesUnggah(files: FileList | File[]) {
     const list = Array.from(files)
@@ -188,18 +190,9 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
           <p className="py-6 text-center text-sm text-muted-foreground">Memuat foto...</p>
         ) : foto.length === 0 ? (
           <div
-            onDragOver={(e) => {
-              e.preventDefault()
-              setDragOver(true)
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault()
-              setDragOver(false)
-              if (e.dataTransfer.files) void prosesUnggah(e.dataTransfer.files)
-            }}
+            {...seret.props}
             className={`flex min-h-16 items-center gap-3 rounded-lg border border-dashed px-4 py-3 transition-colors ${
-              dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/30'
+              seret.dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/30'
             }`}
           >
             <ImageIcon className="size-6 shrink-0 text-muted-foreground/50" aria-hidden />
@@ -212,17 +205,8 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
           </div>
         ) : (
           <div
-            onDragOver={(e) => {
-              e.preventDefault()
-              setDragOver(true)
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault()
-              setDragOver(false)
-              if (e.dataTransfer.files) void prosesUnggah(e.dataTransfer.files)
-            }}
-            className={`grid grid-cols-2 gap-3 rounded-lg sm:grid-cols-3 xl:grid-cols-4 ${dragOver ? 'ring-2 ring-primary/50' : ''}`}
+            {...seret.props}
+            className={`grid grid-cols-2 gap-3 rounded-lg sm:grid-cols-3 xl:grid-cols-4 ${seret.dragOver ? 'ring-2 ring-primary/50' : ''}`}
           >
             {foto.map((b, idx) => {
               const sedangEdit = editCaptionId === b.id

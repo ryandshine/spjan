@@ -40,6 +40,7 @@ import {
 import { api } from '@/lib/api'
 import { formatUkuran, pesanGalat, tanggalPendek } from '@/lib/format'
 import { kompresGambar } from '@/lib/gambar'
+import { useSeretLepas } from '@/lib/use-seret-lepas'
 import {
   useDaftarBerkas,
   useUbahJenisBerkas,
@@ -55,7 +56,6 @@ function ikonBerkas(mime: string) {
 
 export function BuktiPanel({ stId }: { stId: number }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [dragOver, setDragOver] = useState(false)
   const [sedangUnggah, setSedangUnggah] = useState(false)
   const [berkasAkanDihapus, setBerkasAkanDihapus] = useState<BerkasDto | null>(null)
   const [previewFoto, setPreviewFoto] = useState<BerkasDto | null>(null)
@@ -66,6 +66,8 @@ export function BuktiPanel({ stId }: { stId: number }) {
 
   // Foto dokumentasi punya panel sendiri dan tidak ikut hitungan biaya.
   const daftarBerkas = (semuaBerkas ?? []).filter((b) => b.jenis !== 'dokumentasi' && b.jenis !== 'laporan')
+
+  const seret = useSeretLepas((files) => void prosesUnggah(files))
 
   async function prosesUnggah(files: FileList | File[]) {
     const list = Array.from(files)
@@ -193,18 +195,9 @@ export function BuktiPanel({ stId }: { stId: number }) {
 
       <CardContent className="space-y-4">
         <div
-          onDragOver={(e) => {
-            e.preventDefault()
-            setDragOver(true)
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => {
-            e.preventDefault()
-            setDragOver(false)
-            if (e.dataTransfer.files) void prosesUnggah(e.dataTransfer.files)
-          }}
+          {...seret.props}
           className={`flex min-h-16 items-center gap-3 rounded-lg border border-dashed px-4 py-3 transition-colors ${
-            dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/30 hover:border-primary/50'
+            seret.dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/30 hover:border-primary/50'
           }`}
         >
           <UploadCloudIcon className="size-6 shrink-0 text-muted-foreground" aria-hidden />

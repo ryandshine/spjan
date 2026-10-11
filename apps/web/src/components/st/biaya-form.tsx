@@ -69,7 +69,7 @@ export function BiayaBaris({
   const tarifMengikutiSbm = tarifSbm !== undefined && biaya.tarif === tarifSbm
 
   return (
-    <tr className={cn('align-top border-t border-slate-200 first:border-t-0 dark:border-slate-800', tarifKosong && 'bg-amber-50/30 dark:bg-amber-500/5')}>
+    <tr className={cn('align-top border-t first:border-t-0', tarifKosong && 'bg-warning/5')}>
       <td className="p-2">
         <div className="grid gap-1.5">
           <Select
@@ -164,13 +164,13 @@ export function BiayaBaris({
               ))}
             </Select>
           ) : null}
-          {pagu !== undefined ? <p className="text-xs text-slate-600 tabular-nums dark:text-slate-400">Pagu SBM: {rupiah(pagu)}</p> : null}
+          {pagu !== undefined ? <p className="text-xs text-muted-foreground tabular-nums">Pagu SBM: {rupiah(pagu)}</p> : null}
           {tarifTidakAda ? (
-            <p className="text-xs text-amber-600 dark:text-amber-500">
+            <p className="text-xs text-warning-foreground">
               Tarif taksi {namaProvinsiPagu} belum ada di SBM (PMK 32/2025); isi manual sesuai bukti.
             </p>
           ) : null}
-          {baris?.catatan ? <p className="text-xs text-slate-600 dark:text-slate-400">{baris.catatan}</p> : null}
+          {baris?.catatan ? <p className="text-xs text-muted-foreground">{baris.catatan}</p> : null}
         </div>
       </td>
       <td className="p-2">
@@ -216,7 +216,7 @@ export function BiayaBaris({
             )
           ) : null}
         </div>
-        {tarifKosong ? <p className="mt-1 text-[11px] leading-tight text-amber-700 dark:text-amber-500">Belum ada tarif (tidak dicetak)</p> : null}
+        {tarifKosong ? <p className="mt-1 text-[11px] leading-tight text-warning-foreground">Belum ada tarif (tidak dicetak)</p> : null}
       </td>
       <td className="p-2" title={baris ? `Tercetak: ${baris.uraian}` : undefined}>
         <div className="flex h-8 items-center justify-end font-mono text-sm font-semibold tabular-nums">{rupiah(subtotal)}</div>
@@ -282,7 +282,7 @@ function labelHarian(b: BarisBiaya): string {
 export function KartuUangHarian({ uangHarian, representasi, total }: { uangHarian: BarisBiaya[]; representasi: BarisBiaya[]; total: number }) {
   const semua = [...uangHarian, ...representasi]
   return (
-    <div className="grid gap-2 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+    <div className="grid gap-2">
       <ul className="grid gap-2">
         {semua.map((b, i) => {
           const label = labelHarian(b)
@@ -292,14 +292,14 @@ export function KartuUangHarian({ uangHarian, representasi, total }: { uangHaria
                 {b.qty ?? 1} {b.satuan ?? 'hari'} x {rupiah(b.tarif ?? 0)} = <span className="font-semibold">{rupiah(b.jumlah)}</span>
               </span>
               {label ? (
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300">{label}</span>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{label}</span>
               ) : null}
-              <span className="basis-full text-xs text-slate-600 dark:text-slate-400">{b.keterangan}</span>
+              <span className="basis-full text-xs text-muted-foreground">{b.keterangan}</span>
             </li>
           )
         })}
       </ul>
-      <p className="flex items-center justify-between border-t border-slate-200 pt-2 text-sm font-semibold dark:border-slate-800">
+      <p className="flex items-center justify-between border-t pt-2 text-sm font-semibold">
         <span>Subtotal</span>
         <span className="font-mono tabular-nums">{rupiah(total)}</span>
       </p>

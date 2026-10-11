@@ -94,10 +94,10 @@ export function PenginapanEtapeKartu({
   const judulBaris = `Tujuan ${nomor}${etape.kota ? ` - ${etape.kota}` : ''}`
 
   return (
-    <div className="grid gap-4 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-      <h4 className="text-sm font-semibold">{judulBaris}</h4>
+    <div className="grid gap-4 border-t pt-5 first:border-t-0 first:pt-0">
+      <h4 className="text-base font-semibold">{judulBaris}</h4>
       {tanpaMenginap ? (
-        <p className="flex flex-wrap items-center gap-x-2 text-sm text-slate-600 dark:text-slate-400">
+        <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
           <BedDoubleIcon className="size-4 shrink-0" aria-hidden />
           Perjalanan 1 hari tanpa menginap: biaya penginapan tidak dihitung.
           <Button type="button" variant="link" className="h-auto p-0 text-sm" onClick={() => onUbah({ malamOverride: 1 })}>
@@ -142,11 +142,11 @@ export function PenginapanEtapeKartu({
                 ) : null}
               </div>
               {etape.hotel30Persen ? (
-                <p className="text-xs text-slate-600 tabular-nums dark:text-slate-400">30% SBM: {tarif30 !== null ? rupiah(tarif30) : 'Otomatis'}</p>
+                <p className="text-xs text-muted-foreground tabular-nums">30% SBM: {tarif30 !== null ? rupiah(tarif30) : 'Otomatis'}</p>
               ) : batasHotel !== null ? (
-                <p className="text-xs text-slate-600 tabular-nums dark:text-slate-400">Batas SBM {rupiah(batasHotel)}</p>
+                <p className="text-xs text-muted-foreground tabular-nums">Batas SBM {rupiah(batasHotel)}</p>
               ) : null}
-              {tarifKosong ? <p className="text-xs text-amber-700 dark:text-amber-500">Belum ada tarif (tidak dicetak)</p> : null}
+              {tarifKosong ? <p className="text-xs text-warning-foreground">Belum ada tarif (tidak dicetak)</p> : null}
               {peringatanTarif && !tarifKosong ? (
                 <p className="flex items-start gap-1 text-xs font-medium text-warning-foreground">
                   <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> {peringatanTarif}
@@ -156,24 +156,24 @@ export function PenginapanEtapeKartu({
           </div>
           <div className="grid gap-1.5">
             <span className="text-sm font-medium text-foreground">Malam menginap</span>
-            <div className="flex min-h-9 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 dark:border-slate-700/60 dark:bg-slate-800/60">
-              <span className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-200">{malam !== null ? `${malam} malam` : '-'}</span>
+            <div className="flex min-h-9 items-center justify-between gap-2 rounded-lg bg-muted px-3 py-2">
+              <span className="text-sm font-semibold tabular-nums text-foreground">{malam !== null ? `${malam} malam` : '-'}</span>
               {etape.malamOverride == null ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-slate-200/80 px-2 py-0.5 text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">
                   <LockIcon className="size-3" aria-hidden /> Otomatis dari Tanggal
                 </span>
               ) : (
                 <button
                   type="button"
                   onClick={() => onUbah({ malamOverride: null })}
-                  className="inline-flex items-center gap-1 rounded-full bg-slate-200/80 px-2 py-0.5 text-xs text-slate-700 transition-colors hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                  className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground transition-colors hover:bg-accent/70"
                 >
                   <RotateCcwIcon className="size-3" aria-hidden /> Atur manual · kembali otomatis
                 </button>
               )}
             </div>
-            {semuaFullboard ? <p className="text-xs text-slate-600 dark:text-slate-400">Otomatis 0 malam (seluruh hari paket rapat).</p> : null}
-            <p className="mt-1 flex items-center justify-between border-t border-slate-200 pt-2 text-sm font-semibold dark:border-slate-800">
+            {semuaFullboard ? <p className="text-xs text-muted-foreground">Otomatis 0 malam (seluruh hari paket rapat).</p> : null}
+            <p className="mt-1 flex items-center justify-between border-t pt-2 text-sm font-semibold">
               <span>Subtotal Penginapan</span>
               <span className="font-mono tabular-nums">{rupiah(subtotal)}</span>
             </p>
@@ -181,16 +181,16 @@ export function PenginapanEtapeKartu({
         </div>
       )}
 
-      <div className="rounded-lg bg-slate-50/60 p-3 dark:bg-slate-900/30">
+      <div className="grid gap-3 border-t pt-4">
         <div className="grid gap-3">
-          <h5 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Opsi Tambahan (Paket Rapat)</h5>
+          <h5 className="text-sm font-semibold text-muted-foreground">Opsi Tambahan (Paket Rapat)</h5>
 
           {tampilDalamKota ? (
             <div className="grid gap-1">
               <label className="flex cursor-pointer items-start gap-2.5 text-sm select-none">
                 <input
                   type="checkbox"
-                  className="mt-0.5 size-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  className="mt-0.5 size-4 rounded border-input text-primary focus:ring-primary"
                   checked={etape.dalamKota8Jam ?? false}
                   onChange={(e) => {
                     const aktif = e.target.checked
@@ -220,7 +220,7 @@ export function PenginapanEtapeKartu({
           ) : null}
 
           {listHari.length > 0 ? (
-            <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/30">
+            <div className="grid gap-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <label className="flex cursor-pointer items-center gap-2.5 text-sm select-none">
                   <input
@@ -238,7 +238,7 @@ export function PenginapanEtapeKartu({
                     className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       jmlFullboard > 0
                         ? 'bg-accent text-accent-foreground'
-                        : 'bg-slate-200/80 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                        : 'bg-muted text-muted-foreground'
                     }`}
                     aria-live="polite"
                   >
@@ -272,7 +272,7 @@ export function PenginapanEtapeKartu({
                           className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
                             isChecked
                               ? 'border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/90'
-                              : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
+                              : 'border-input bg-card text-foreground hover:bg-accent'
                           }`}
                         >
                           {isChecked ? <CheckIcon className="size-3.5 stroke-[3]" aria-hidden /> : null}
@@ -299,11 +299,11 @@ export function PenginapanEtapeKartu({
           ) : null}
 
           {!(hari === 1 && malam === 0) ? (
-            <div className="grid gap-1 rounded-lg border p-3.5 transition-colors hover:border-slate-300 dark:hover:border-slate-600">
+            <div className="grid gap-1">
               <label className="flex cursor-pointer items-start gap-2.5 text-sm select-none">
                 <input
                   type="checkbox"
-                  className="mt-0.5 size-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  className="mt-0.5 size-4 rounded border-input text-primary focus:ring-primary"
                   checked={etape.hotel30Persen ?? false}
                   onChange={(e) => {
                     const aktif = e.target.checked

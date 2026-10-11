@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { useSeretLepas } from '@/lib/use-seret-lepas'
 
 function formatUkuran(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -45,7 +46,6 @@ export default function BuatDariStPage() {
   const [berkasId, setBerkasId] = useState<number | null>(null)
   const [mengunggah, setMengunggah] = useState(false)
   const [pesanUnggah, setPesanUnggah] = useState<string | null>(null)
-  const [dragOver, setDragOver] = useState(false)
 
   const queryBerkas = useBerkas(berkasId)
   const berkas = queryBerkas.data
@@ -83,14 +83,10 @@ export default function BuatDariStPage() {
     }
   }
 
-  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault()
-    setDragOver(false)
-    const file = e.dataTransfer.files?.[0]
-    if (file) {
-      void prosesFile(file)
-    }
-  }
+  const seret = useSeretLepas((files) => {
+    const file = files[0]
+    if (file) void prosesFile(file)
+  })
 
   async function tanganiBuatSt() {
     if (!berkasId || !usulan) return
@@ -130,18 +126,13 @@ export default function BuatDariStPage() {
       {pesanUnggah && <Alert variant="destructive">{pesanUnggah}</Alert>}
 
       {berkasId === null ? (
-        <Card className="border-dashed">
+        <Card>
           <CardContent className="pt-6">
             <div
-              onDragOver={(e) => {
-                e.preventDefault()
-                setDragOver(true)
-              }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
+              {...seret.props}
               onClick={() => inputRef.current?.click()}
               className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-10 text-center cursor-pointer transition-colors ${
-                dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/20 hover:border-primary/50 hover:bg-muted/30'
+                seret.dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/20 hover:border-primary/50 hover:bg-muted/30'
               }`}
             >
               <input

@@ -90,6 +90,7 @@ describe("payloadDariDto", () => {
       tanggalSpj: null,
       kodeAkun: "A",
       catatan: "",
+      status: "draft" as const, dikunciPada: null, dibukaPada: null, jumlahDibuka: 0, dibuatOleh: null, dibuatOlehNama: null,
       pelaksana: [pelaksanaKosong()],
     };
     const payload = payloadDariDto(dto);

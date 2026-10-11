@@ -18,12 +18,6 @@ export type Ekstraktor = (ctx: {
   klien: KlienAi;
 }) => Promise<{ model: string; hasil: unknown; jenis?: JenisBerkas }>;
 
-/** Hanya klasifikasi jenis berkas. */
-export const ekstraktorKlasifikasi: Ekstraktor = async ({ klien, konf, isi }) => {
-  const { model, hasil } = await klasifikasiBerkas(klien, konf, isi);
-  return { model, hasil, jenis: hasil.jenis };
-};
-
 /** Ekstraktor cerdas: jalankan ekstraksi detail sesuai jenis berkas (ST, Hotel, Tiket, atau Transport). */
 export const ekstraktorOtomatis: Ekstraktor = async ({ berkas, klien, konf, isi }) => {
   if (berkas.jenis === "st") {
