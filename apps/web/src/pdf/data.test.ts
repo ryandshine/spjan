@@ -87,21 +87,6 @@ describe('siapkanDokumen', () => {
     expect(hasil.tempatTanggal).not.toContain('   ')
   })
 
-  it('menyertakan daftar foto dokumentasi jika disediakan', () => {
-    const foto = [
-      {
-        id: 10,
-        namaAsli: 'foto1.jpg',
-        keterangan: 'Kunjungan Lapangan',
-        mime: 'image/jpeg',
-        src: 'data:image/jpeg;base64,sample',
-      },
-    ]
-    const hasil = siapkanDokumen(mockDto, foto)
-    expect(hasil.dokumentasi).toHaveLength(1)
-    expect(hasil.dokumentasi?.[0]?.keterangan).toBe('Kunjungan Lapangan')
-  })
-
   it('dapat membuat elemen SpjDocument dengan jenis spd', () => {
     const hasil = siapkanDokumen(mockDto)
     const el = SpjDocument({ d: hasil, jenis: 'spd' })

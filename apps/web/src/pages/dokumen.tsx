@@ -1,7 +1,7 @@
 import '../pdf/polyfill-buffer'
 import type * as React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeftIcon, DownloadIcon, ImageIcon, UserIcon } from 'lucide-react'
+import { ArrowLeftIcon, DownloadIcon, UserIcon } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { buatLaporanAwal, idGambarLaporan, susunLaporan, type FotoDokumentasi } from '@spjan/shared'
 
@@ -126,8 +126,8 @@ export default function DokumenPage() {
   }, [fotoFiles])
 
   const d = useMemo(
-    () => (hasil.data ? siapkanDokumen(hasil.data, fotoDokumentasi) : null),
-    [hasil.data, fotoDokumentasi],
+    () => (hasil.data ? siapkanDokumen(hasil.data) : null),
+    [hasil.data],
   )
   const modelLaporan = useMemo(
     () => (d ? susunLaporan(d.st, d.pengaturan, laporanQuery.data?.isi ?? buatLaporanAwal(), fotoDokumentasi) : null),
@@ -173,17 +173,10 @@ export default function DokumenPage() {
         daftar.push({ kunci: `dpr:${i}`, label: 'DPR', jenis: 'dpr', indeks: i })
       }
     })
-    if (fotoDokumentasi.length > 0) {
-      daftar.push({
-        kunci: 'dokumentasi',
-        label: `Bukti Dokumentasi (${fotoDokumentasi.length} foto)`,
-        jenis: 'dokumentasi',
-      })
-    }
     daftar.push({ kunci: 'laporan', label: 'Laporan Perjalanan Dinas', jenis: 'laporan' })
     daftar.push({ kunci: 'semua', label: 'Semua dokumen (satu berkas)', jenis: 'semua' })
     return daftar
-  }, [d, fotoDokumentasi])
+  }, [d])
 
   const terpilih = pilihan.find((p) => p.kunci === kunci) ?? pilihan[0]
 
@@ -258,7 +251,6 @@ export default function DokumenPage() {
           <Segmen aria-label="Dokumen umum">
             {umum.map((p) => (
               <ItemSegmen key={p.kunci} aktif={terpilih?.kunci === p.kunci} onClick={() => setKunci(p.kunci)}>
-                {p.jenis === 'dokumentasi' ? <ImageIcon className="size-3.5 text-sky-600" aria-hidden /> : null}
                 {p.label}
               </ItemSegmen>
             ))}
