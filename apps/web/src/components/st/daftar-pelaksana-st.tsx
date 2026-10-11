@@ -1,4 +1,4 @@
-import { PlusIcon, SparklesIcon } from 'lucide-react'
+import { PlusIcon } from 'lucide-react'
 import type { PelaksanaHasil, PelaksanaPayload } from '@spjan/shared'
 
 import { Badge } from '@/components/ui/badge'
@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { cakupanGalat, type PetaGalat } from '@/lib/validasi'
 
 /**
- * Daftar pelaksana untuk memilih satu pelaksana yang dibuka, plus tombol tambah dan auto-isi No. SPD.
+ * Daftar pelaksana untuk memilih satu pelaksana yang dibuka, plus tombol tambah.
  * `baris` = deretan yang bisa digulir mendatar (di dalam halaman); selain itu daftar menurun ringkas (di sidebar).
  */
 export function DaftarPelaksanaSt({
@@ -21,7 +21,6 @@ export function DaftarPelaksanaSt({
   aktif,
   onPilih,
   onTambah,
-  onAutoIsiNoSpd,
 }: {
   baris?: boolean
   pelaksana: PelaksanaPayload[]
@@ -32,7 +31,6 @@ export function DaftarPelaksanaSt({
   aktif: number
   onPilih: (indeks: number) => void
   onTambah: () => void
-  onAutoIsiNoSpd: () => void
 }) {
   const i = Math.min(aktif, pelaksana.length - 1)
   return (
@@ -75,11 +73,6 @@ export function DaftarPelaksanaSt({
           <Button variant="outline" size="sm" onClick={onTambah}>
             <PlusIcon /> Tambah
           </Button>
-          {pelaksana.length > 0 ? (
-            <Button variant="ghost" size="sm" onClick={onAutoIsiNoSpd} title="Isi nomor SPD secara otomatis dan berurutan untuk semua pelaksana">
-              <SparklesIcon className="mr-1 size-4 text-primary" /> Auto-isi No. SPD
-            </Button>
-          ) : null}
         </div>
       )}
     </div>

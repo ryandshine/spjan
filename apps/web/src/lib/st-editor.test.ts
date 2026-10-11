@@ -2,11 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { biayaKosong, pelaksanaKosong, stKosong, type PegawaiDto, type SuratTugasPayload } from '@spjan/shared'
 
 import {
-  bacaNomorUrutAwal,
-  bacaPolaNoSpd,
-  cariNoSpdTerisi,
   cariPegawaiPejabat,
-  isiNoSpdBerurutan,
   pejabatDariPegawai,
   rincianTotal,
   sesuaikanKodeAkun,
@@ -47,45 +43,6 @@ describe('sesuaikanKodeAkun', () => {
 
   it('tidak mengubah kode akun kosong', () => {
     expect(sesuaikanKodeAkun('', 'RM')).toBe('')
-  })
-})
-
-describe('nomor SPD', () => {
-  it('membaca angka awal dan sufiks dari nomor yang ada', () => {
-    expect(bacaPolaNoSpd('405/SPD/PPS/2026', '/X')).toEqual({ angkaAwal: 405, sufiks: '/SPD/PPS/2026' })
-  })
-
-  it('memakai sufiks bawaan bila nomor hanya berisi angka', () => {
-    expect(bacaPolaNoSpd('12', '/SPD/PPS/2026')).toEqual({ angkaAwal: 12, sufiks: '/SPD/PPS/2026' })
-  })
-
-  it('kembali ke 401 bila nomor tidak diawali angka', () => {
-    expect(bacaPolaNoSpd('SPD-1', '/SPD/PPS/2026')).toEqual({ angkaAwal: 401, sufiks: '/SPD/PPS/2026' })
-  })
-
-  it('menolak nomor urut awal yang bukan angka positif', () => {
-    expect(bacaNomorUrutAwal('abc')).toBeNull()
-    expect(bacaNomorUrutAwal('0')).toBeNull()
-    expect(bacaNomorUrutAwal(' 401 ')).toBe(401)
-  })
-
-  it('mengisi berurutan dan melengkapi tanggal SPD yang kosong saja', () => {
-    const st = stDenganPelaksana(3)
-    const pertama = st.pelaksana[0]
-    if (!pertama) throw new Error('pelaksana pertama tidak ada')
-    pertama.tanggalSpd = '2026-08-30'
-    const hasil = isiNoSpdBerurutan(st, 401, '/SPD/PPS/2026')
-    expect(hasil.pelaksana.map((p) => p.noSpd)).toEqual(['401/SPD/PPS/2026', '402/SPD/PPS/2026', '403/SPD/PPS/2026'])
-    expect(hasil.pelaksana.map((p) => p.tanggalSpd)).toEqual(['2026-08-30', '2026-09-01', '2026-09-01'])
-  })
-
-  it('mencari nomor SPD pertama yang terisi', () => {
-    const st = stDenganPelaksana(2)
-    expect(cariNoSpdTerisi(st.pelaksana)).toBeUndefined()
-    const kedua = st.pelaksana[1]
-    if (!kedua) throw new Error('pelaksana kedua tidak ada')
-    kedua.noSpd = ' 7/SPD '
-    expect(cariNoSpdTerisi(st.pelaksana)).toBe('7/SPD')
   })
 })
 

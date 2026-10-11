@@ -15,43 +15,6 @@ export function sesuaikanKodeAkun(kodeAkun: string, sumberDana: SumberDana): str
   return bersih ? `${bersih} (${sumberDana})` : kodeAkun
 }
 
-const NOMOR_URUT_SPD_AWAL = 401
-
-export function sufiksNoSpd(tahun: number): string {
-  return `/SPD/PPS/${tahun}`
-}
-
-/** Nomor SPD pertama yang sudah terisi pada daftar pelaksana, atau undefined bila belum ada. */
-export function cariNoSpdTerisi(pelaksana: SuratTugasPayload['pelaksana']): string | undefined {
-  return pelaksana.find((p) => p.noSpd?.trim())?.noSpd?.trim()
-}
-
-/** Membaca pola "401/SPD/PPS/2026" menjadi angka awal dan sufiks; sufiks bawaan dipakai bila bagian itu kosong. */
-export function bacaPolaNoSpd(noSpd: string, sufiksBawaan: string): { angkaAwal: number; sufiks: string } {
-  const cocok = /^(\d+)(.*)$/.exec(noSpd)
-  if (!cocok) return { angkaAwal: NOMOR_URUT_SPD_AWAL, sufiks: sufiksBawaan }
-  const [, digit = '', sisa = ''] = cocok
-  return { angkaAwal: parseInt(digit, 10), sufiks: sisa || sufiksBawaan }
-}
-
-/** Mengubah isian "Nomor urut awal" menjadi bilangan bulat positif; null bila tidak valid. */
-export function bacaNomorUrutAwal(isian: string): number | null {
-  const angka = parseInt(isian.replace(/\D/g, ''), 10)
-  return Number.isInteger(angka) && angka > 0 ? angka : null
-}
-
-/** Mengisi No. SPD berurutan untuk semua pelaksana; tanggal SPD yang kosong mengikuti tanggal surat tugas. */
-export function isiNoSpdBerurutan(st: SuratTugasPayload, angkaAwal: number, sufiks: string): SuratTugasPayload {
-  return {
-    ...st,
-    pelaksana: st.pelaksana.map((p, i) => ({
-      ...p,
-      noSpd: `${angkaAwal + i}${sufiks}`,
-      tanggalSpd: p.tanggalSpd || st.tanggal || null,
-    })),
-  }
-}
-
 /** Menerapkan usulan hotel ke satu tujuan (etape) milik satu pelaksana. */
 export function terapkanHotelKeEtape(
   st: SuratTugasPayload,

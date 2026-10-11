@@ -23,7 +23,7 @@ import { LaporanEditor } from '@/components/laporan/laporan-editor'
 import { AksiHeaderSt, PeringatanBelumSimpan } from '@/components/st/aksi-header-st'
 import { BuktiPanel } from '@/components/st/bukti-panel'
 import { DialogKonfirmasiPassword } from '@/components/dialog-konfirmasi-password'
-import { DialogKunciSt, DialogNoSpd, DialogTinggalkanHalaman } from '@/components/st/dialog-editor-st'
+import { DialogKunciSt, DialogTinggalkanHalaman } from '@/components/st/dialog-editor-st'
 import { FotoDokumentasiPanel } from '@/components/st/foto-dokumentasi-panel'
 import { KartuDataSt } from '@/components/st/kartu-data-st'
 import { KartuPejabatSt } from '@/components/st/kartu-pejabat-st'
@@ -53,11 +53,7 @@ import {
   useVersiSbm,
 } from '@/lib/queries'
 import {
-  bacaPolaNoSpd,
-  cariNoSpdTerisi,
-  isiNoSpdBerurutan,
   sesuaikanKodeAkun,
-  sufiksNoSpd,
   tabBergalat,
   tambahBiayaKePelaksana,
   terapkanHotelKeEtape,
@@ -114,7 +110,6 @@ function Editor({
   const [dialogHapus, setDialogHapus] = useState(false)
   const [cobaSimpan, setCobaSimpan] = useState(false)
   const [tab, setTab] = useState<TabKunci>(id !== null && awal.pelaksana.length > 0 ? 'pelaksana' : 'data')
-  const [dialogSpd, setDialogSpd] = useState(false)
   const slotSidebar = useSlotSidebar()
   const [pelaksanaAktif, setPelaksanaAktif] = useState(0)
   const [bagianPelaksana, setBagianPelaksana] = useState<BagianPelaksana>('perjalanan')
@@ -221,25 +216,6 @@ function Editor({
     setDialogKunci(null)
   }
 
-  const sufiksSpd = sufiksNoSpd(st.tahunAnggaran || pengaturan.tahunAnggaran || new Date().getFullYear())
-
-  function terapkanNoSpd(angkaAwal: number, sufiks: string) {
-    setSt((s) => isiNoSpdBerurutan(s, angkaAwal, sufiks))
-    toast.success(`Nomor SPD berhasil diisi berurutan untuk ${st.pelaksana.length} pelaksana.`)
-  }
-
-  function autoIsiNoSpd() {
-    if (st.pelaksana.length === 0) return
-    const noSpdTerisi = cariNoSpdTerisi(st.pelaksana)
-    if (!noSpdTerisi) {
-      setDialogSpd(true)
-      return
-    }
-    // Sudah ada nomor: lanjutkan polanya tanpa bertanya.
-    const { angkaAwal, sufiks } = bacaPolaNoSpd(noSpdTerisi, sufiksSpd)
-    terapkanNoSpd(angkaAwal, sufiks)
-  }
-
   const adaPerlu = hasil.pelaksana.some((p) => p.peringatan.length > 0)
   const langkah: LangkahItem<TabKunci>[] = [
     { kunci: 'data', label: 'Data surat tugas', deskripsi: 'Identitas & anggaran', galat: galatTab.data },
@@ -342,7 +318,6 @@ function Editor({
                     aktif={pelaksanaAktif}
                     onPilih={pilihPelaksana}
                     onTambah={tambahPelaksana}
-                    onAutoIsiNoSpd={autoIsiNoSpd}
                   />
                 ),
               }}
@@ -414,7 +389,6 @@ function Editor({
               onUbah={ubahPelaksana}
               onHapus={hapusPelaksana}
               onTambah={tambahPelaksana}
-              onAutoIsiNoSpd={autoIsiNoSpd}
             />
           </TabPanel>
 
@@ -449,13 +423,6 @@ function Editor({
         )}
       </div>
 
-      <DialogNoSpd
-        buka={dialogSpd}
-        onBukaChange={setDialogSpd}
-        jumlahPelaksana={st.pelaksana.length}
-        sufiks={sufiksSpd}
-        onKonfirmasi={(angkaAwal) => terapkanNoSpd(angkaAwal, sufiksSpd)}
-      />
       <DialogKunciSt
         buka={dialogKunci === 'kunci'}
         onBukaChange={(b) => !b && setDialogKunci(null)}
