@@ -34,7 +34,7 @@ import { RingkasanRingkas, RingkasanSt } from '@/components/st/ringkasan-st'
 import { TabPelaksanaSt } from '@/components/st/tab-pelaksana-st'
 import { UsulanHotelPanel } from '@/components/st/usulan-hotel-panel'
 import { UsulanTransportPanel } from '@/components/st/usulan-transport-panel'
-import { ArrowLeftIcon, ArrowRightIcon, LockOpenIcon } from 'lucide-react'
+import { ArrowLeftIcon, ArrowRightIcon, LockOpenIcon, SaveIcon } from 'lucide-react'
 
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -418,7 +418,8 @@ function Editor({
             />
           </TabPanel>
 
-          <div className="mt-6 flex items-center justify-between gap-3">
+          {/* Navigasi langkah menempel di bawah layar supaya selalu terjangkau di halaman panjang; di ponsel (header tidak lengket) Simpan ikut di sini. */}
+          <div className="sticky bottom-0 z-10 mt-6 -mb-6 flex items-center justify-between gap-3 border-t bg-background/95 py-3 backdrop-blur">
             {sebelumnya ? (
               <Button variant="outline" onClick={() => setTab(sebelumnya.kunci)}>
                 <ArrowLeftIcon /> Kembali
@@ -426,11 +427,18 @@ function Editor({
             ) : (
               <span />
             )}
-            {berikutnya && !modeLaporan ? (
-              <Button onClick={() => setTab(berikutnya.kunci)}>
-                Lanjut ke {berikutnya.label} <ArrowRightIcon />
-              </Button>
-            ) : null}
+            <div className="flex items-center gap-2">
+              {!modeLaporan && bolehUbah && !dikunci ? (
+                <Button className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700 md:hidden" onClick={kirim} disabled={simpan.isPending || (!kotor && id !== null)}>
+                  <SaveIcon /> {simpan.isPending ? 'Menyimpan...' : 'Simpan'}
+                </Button>
+              ) : null}
+              {berikutnya && !modeLaporan ? (
+                <Button onClick={() => setTab(berikutnya.kunci)}>
+                  Lanjut ke {berikutnya.label} <ArrowRightIcon />
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
 
