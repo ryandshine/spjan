@@ -49,25 +49,15 @@ function KartuPengguna({
   onGantiPassword: () => void
 }) {
   return (
-    <div className="grid gap-2 rounded-lg border bg-card p-2.5">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary" aria-hidden>
-          {(username ?? 'P').slice(0, 2).toUpperCase()}
-        </span>
-        <div className="min-w-0 leading-tight">
-          <p className="truncate text-sm font-medium">{nama || username || 'Pengguna'}</p>
-          <p className="flex items-center gap-1 text-xs text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-success" aria-hidden /> {peran === 'admin' ? 'Admin' : 'Operator'}
-          </p>
-        </div>
-      </div>
-      <div className="flex gap-1">
-        <Button variant="outline" size="sm" className="flex-1" onClick={onGantiPassword}>
+    <div className="px-1" title={peran === 'admin' ? 'Admin' : 'Operator'}>
+      <p className="truncate text-sm font-medium">{nama || username || 'Pengguna'}</p>
+      <div className="mt-0.5 flex items-center gap-3 text-xs">
+        <button type="button" onClick={onGantiPassword} className="text-muted-foreground transition-colors hover:text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none">
           Ganti password
-        </Button>
-        <Button variant="outline" size="sm" onClick={keluar} disabled={sedangKeluar}>
+        </button>
+        <button type="button" onClick={keluar} disabled={sedangKeluar} className="text-muted-foreground transition-colors hover:text-destructive hover:underline focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-50">
           Keluar
-        </Button>
+        </button>
       </div>
     </div>
   )
