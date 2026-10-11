@@ -253,6 +253,8 @@ export interface SuratTugasRingkasDto {
   total: number;
   /** Jumlah peringatan data di semua pelaksana; 0 berarti siap cetak. */
   jumlahPeringatan: number;
+  /** Rute perjalanan, mis. "Jakarta - Papua Barat Daya"; beberapa rute berbeda dipisah "; ". Kosong bila belum ada etape. */
+  tujuan: string;
   /** Rincian per komponen (hanya yang bernilai > 0), untuk daftar. */
   komponen: { label: string; nilai: number }[];
   updatedAt: string;

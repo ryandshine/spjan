@@ -31,6 +31,7 @@ export default function SuratTugasListPage() {
       ),
     },
     { judul: 'Tanggal', teks: (b) => tanggalPendek(b.tanggal), sel: (b) => tanggalPendek(b.tanggal) },
+    { judul: 'Tujuan', teks: (b) => b.tujuan, sel: (b) => b.tujuan || <span className="text-muted-foreground">-</span> },
     { judul: 'Pelaksana', rataKanan: true, sel: (b) => b.jumlahPelaksana },
     { judul: 'Pembuat', teks: (b) => b.dibuatOlehNama ?? '', sel: (b) => <span className="text-muted-foreground">{b.dibuatOlehNama ?? '-'}</span> },
     { judul: 'Total', rataKanan: true, sel: (b) => (b.jumlahPelaksana > 0 ? rupiah(b.total) : <span className="text-muted-foreground">-</span>) },

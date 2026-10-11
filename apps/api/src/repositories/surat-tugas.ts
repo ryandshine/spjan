@@ -7,7 +7,7 @@ import { HttpError } from "../errors.js";
 import { kondisiTerlihat } from "../izin.js";
 
 /** Admin melihat semua; operator hanya surat tugas yang dibuatnya atau yang memuat namanya sebagai pelaksana. */
-export async function listSuratTugas(db: Db, pengguna: { id: number; peran: string }): Promise<Omit<SuratTugasRingkasDto, "total" | "jumlahPeringatan" | "komponen">[]> {
+export async function listSuratTugas(db: Db, pengguna: { id: number; peran: string }): Promise<Omit<SuratTugasRingkasDto, "total" | "jumlahPeringatan" | "komponen" | "tujuan">[]> {
   const { rows } = await db.query<{
     id: number;
     nomor: string;
