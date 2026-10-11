@@ -35,6 +35,22 @@ export default function SuratTugasListPage() {
     { judul: 'Pembuat', teks: (b) => b.dibuatOlehNama ?? '', sel: (b) => <span className="text-muted-foreground">{b.dibuatOlehNama ?? '-'}</span> },
     { judul: 'Total', rataKanan: true, sel: (b) => (b.jumlahPelaksana > 0 ? rupiah(b.total) : <span className="text-muted-foreground">-</span>) },
     {
+      judul: 'Per komponen',
+      sel: (b) =>
+        b.komponen.length > 0 ? (
+          <ul className="grid gap-0.5 text-xs text-muted-foreground tabular-nums">
+            {b.komponen.map((k) => (
+              <li key={k.label} className="flex justify-between gap-3">
+                <span>{k.label}</span>
+                <span>{rupiah(k.nilai)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
+    },
+    {
       judul: 'Status',
       sel: (b) =>
         b.status === 'final' ? (

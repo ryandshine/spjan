@@ -5,6 +5,7 @@ import {
   KonfirmasiPasswordSchema,
   petakanHotelKeUsulan,
   petakanTransportKeUsulan,
+  rincianTotal,
   SuratTugasPayloadSchema,
   toSpjInput,
   type SuratTugasRingkasDto,
@@ -47,6 +48,7 @@ export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; sto
         ...ringkas,
         total: spj?.total ?? 0,
         jumlahPeringatan: spj ? spj.pelaksana.reduce((n, p) => n + p.peringatan.length, 0) : 0,
+        komponen: spj ? rincianTotal(spj.pelaksana).filter((r) => r.nilai > 0) : [],
       });
     }
     return hasil;
