@@ -26,7 +26,7 @@ function Bagian({ judul, children }: { judul: string; children: ReactNode }) {
   )
 }
 
-function FormPengaturan({ awal }: { awal: PengaturanPayload }) {
+function FormPengaturan({ awal, admin }: { awal: PengaturanPayload; admin: boolean }) {
   const simpanMut = useSimpanPengaturan()
   const versi = useVersiSbm()
   const sbm = useSbm(versi.data?.[0]?.id)
@@ -36,8 +36,8 @@ function FormPengaturan({ awal }: { awal: PengaturanPayload }) {
   const [galatServer, setGalatServer] = useState<string | null>(null)
 
   const set = <K extends keyof PengaturanPayload>(k: K, v: PengaturanPayload[K]) => setForm((f) => ({ ...f, [k]: v }))
-  const teks = (k: keyof PengaturanPayload, label: string, opsi?: { hint?: string; opsional?: boolean; kelas?: string }) => (
-    <Field label={label} htmlFor={k} error={galat[k]} hint={opsi?.hint} className={opsi?.kelas}>
+  const teks = (k: keyof PengaturanPayload, label: string, opsi?: { hint?: string; opsional?: boolean; kelas?: string; wajib?: boolean }) => (
+    <Field label={label} htmlFor={k} error={galat[k]} hint={opsi?.hint} className={opsi?.kelas} mode={opsi?.wajib ? 'wajib' : undefined}>
       <Input
         id={k}
         value={(form[k] as string | null | undefined) ?? ''}
@@ -66,77 +66,87 @@ function FormPengaturan({ awal }: { awal: PengaturanPayload }) {
     }
   }
 
+  const tombolSimpan = (kelas?: string) => (
+    <Button type="submit" form="form-pengaturan" className={kelas} disabled={simpanMut.isPending}>
+      {simpanMut.isPending ? 'Menyimpan...' : 'Simpan pengaturan'}
+    </Button>
+  )
+
   return (
-    <form onSubmit={simpan} className="grid max-w-4xl gap-5">
-      {galatServer ? <Alert variant="destructive">{galatServer}</Alert> : null}
-      <Bagian judul="Satuan kerja">
-        {teks('kodeSatker', 'Kode satker')}
-        <Field label="Tahun anggaran" htmlFor="tahunAnggaran" error={galat.tahunAnggaran}>
-          <Input
-            id="tahunAnggaran"
-            type="number"
-            inputMode="numeric"
-            value={form.tahunAnggaran}
-            onChange={(e) => set('tahunAnggaran', Number(e.target.value))}
-          />
-        </Field>
-        {teks('namaSatker', 'Nama satker', { kelas: 'sm:col-span-2' })}
-        {teks('dasarDipa', 'Tanggal dan nomor DIPA', { kelas: 'sm:col-span-2' })}
-        {teks('kodeAkunDefault', 'Kode akun (mata anggaran) bawaan', { kelas: 'sm:col-span-2' })}
-      </Bagian>
-      <Bagian judul="Pejabat penandatangan">
-        {teks('ppkNama', 'Pejabat Pembuat Komitmen - nama')}
-        {teks('ppkNip', 'Pejabat Pembuat Komitmen - NIP', { hint: 'Tulis seperti yang tercetak, mis. NIP. 19740218 200212 1 003' })}
-        {teks('bendaharaNama', 'Bendahara Pengeluaran Pembantu - nama')}
-        {teks('bendaharaNip', 'Bendahara Pengeluaran Pembantu - NIP')}
-        {teks('pjNama', 'Pejabat yang bertanggung jawab - nama')}
-        {teks('pjNip', 'Pejabat yang bertanggung jawab - NIP')}
-        {teks('pjJabatan', 'Pejabat yang bertanggung jawab - jabatan', { kelas: 'sm:col-span-2' })}
-        {teks('pembuatDaftarNama', 'Pembuat daftar - nama (opsional)', { opsional: true, hint: 'Kosong = pelaksana pertama pada surat tugas.' })}
-        {teks('pembuatDaftarNip', 'Pembuat daftar - NIP (opsional)', { opsional: true })}
-      </Bagian>
-      <Bagian judul="Tempat kedudukan">
-        {teks('kotaKedudukan', 'Kota tempat kedudukan')}
-        <Field label="Provinsi tempat kedudukan" htmlFor="provinsiKedudukan" error={galat.provinsiKedudukan}>
-          {provinsi.length > 0 ? (
-            <Select id="provinsiKedudukan" value={form.provinsiKedudukan} onChange={(e) => set('provinsiKedudukan', e.target.value)}>
-              {!provinsi.includes(form.provinsiKedudukan) ? <option value={form.provinsiKedudukan}>{form.provinsiKedudukan}</option> : null}
-              {provinsi.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </Select>
-          ) : (
-            <Input id="provinsiKedudukan" value={form.provinsiKedudukan} onChange={(e) => set('provinsiKedudukan', e.target.value)} />
-          )}
-        </Field>
-      </Bagian>
-      <div>
-        <Button type="submit" disabled={simpanMut.isPending}>
-          {simpanMut.isPending ? 'Menyimpan...' : 'Simpan pengaturan'}
-        </Button>
-      </div>
-    </form>
+    <div>
+      <PageHeader
+        lengket
+        title="Pengaturan"
+        description="Data satuan kerja, pejabat, dan model pembaca dokumen yang dipakai di semua surat tugas."
+        actions={admin ? tombolSimpan('hidden md:inline-flex') : null}
+      />
+      {admin ? null : <Alert className="mb-5">Hanya admin yang dapat mengubah pengaturan. Anda bisa melihatnya saja.</Alert>}
+      <fieldset disabled={!admin} className="m-0 min-w-0 border-0 p-0">
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+          <form id="form-pengaturan" onSubmit={simpan} className="grid gap-6">
+            {galatServer ? <Alert variant="destructive">{galatServer}</Alert> : null}
+            <Bagian judul="Satuan kerja">
+              {teks('kodeSatker', 'Kode satker')}
+              <Field label="Tahun anggaran" htmlFor="tahunAnggaran" error={galat.tahunAnggaran} mode="wajib">
+                <Input
+                  id="tahunAnggaran"
+                  type="number"
+                  inputMode="numeric"
+                  value={form.tahunAnggaran}
+                  onChange={(e) => set('tahunAnggaran', Number(e.target.value))}
+                />
+              </Field>
+              {teks('namaSatker', 'Nama satker', { kelas: 'sm:col-span-2' })}
+              {teks('dasarDipa', 'Tanggal dan nomor DIPA', { kelas: 'sm:col-span-2' })}
+              {teks('kodeAkunDefault', 'Kode akun (mata anggaran) bawaan', { kelas: 'sm:col-span-2' })}
+            </Bagian>
+            <Bagian judul="Pejabat penandatangan">
+              {teks('ppkNama', 'Pejabat Pembuat Komitmen - nama')}
+              {teks('ppkNip', 'Pejabat Pembuat Komitmen - NIP', { hint: 'Tulis seperti yang tercetak, mis. NIP. 19740218 200212 1 003' })}
+              {teks('bendaharaNama', 'Bendahara Pengeluaran Pembantu - nama')}
+              {teks('bendaharaNip', 'Bendahara Pengeluaran Pembantu - NIP')}
+              {teks('pjNama', 'Pejabat yang bertanggung jawab - nama')}
+              {teks('pjNip', 'Pejabat yang bertanggung jawab - NIP')}
+              {teks('pjJabatan', 'Pejabat yang bertanggung jawab - jabatan', { kelas: 'sm:col-span-2' })}
+              {teks('pembuatDaftarNama', 'Pembuat daftar - nama (opsional)', { opsional: true, hint: 'Kosong = pelaksana pertama pada surat tugas.' })}
+              {teks('pembuatDaftarNip', 'Pembuat daftar - NIP (opsional)', { opsional: true })}
+            </Bagian>
+            <Bagian judul="Tempat kedudukan">
+              {teks('kotaKedudukan', 'Kota tempat kedudukan', { wajib: true })}
+              <Field label="Provinsi tempat kedudukan" htmlFor="provinsiKedudukan" error={galat.provinsiKedudukan} mode="wajib">
+                {provinsi.length > 0 ? (
+                  <Select id="provinsiKedudukan" value={form.provinsiKedudukan} onChange={(e) => set('provinsiKedudukan', e.target.value)}>
+                    {!provinsi.includes(form.provinsiKedudukan) ? <option value={form.provinsiKedudukan}>{form.provinsiKedudukan}</option> : null}
+                    {provinsi.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  <Input id="provinsiKedudukan" value={form.provinsiKedudukan} onChange={(e) => set('provinsiKedudukan', e.target.value)} />
+                )}
+              </Field>
+            </Bagian>
+            {admin ? <div className="md:hidden">{tombolSimpan()}</div> : null}
+          </form>
+          <div className="xl:sticky xl:top-24">
+            <ModelAiCard />
+          </div>
+        </div>
+      </fieldset>
+    </div>
   )
 }
 
 export default function PengaturanPage() {
   const data = usePengaturan()
   const me = useMe()
-  const admin = me.data?.peran === 'admin'
+  if (data.data) return <FormPengaturan awal={data.data} admin={me.data?.peran === 'admin'} />
   return (
     <div>
       <PageHeader title="Pengaturan" />
-      {admin ? null : <Alert className="mb-5">Hanya admin yang dapat mengubah pengaturan. Anda bisa melihatnya saja.</Alert>}
-      {data.isError ? <Alert variant="destructive">{pesanGalat(data.error)}</Alert> : null}
-      {data.isPending ? <p className="text-sm text-muted-foreground">Memuat...</p> : null}
-      <fieldset disabled={!admin} className="m-0 min-w-0 border-0 p-0">
-        {data.data ? <FormPengaturan awal={data.data} /> : null}
-        <div className="mt-5">
-          <ModelAiCard />
-        </div>
-      </fieldset>
+      {data.isError ? <Alert variant="destructive">{pesanGalat(data.error)}</Alert> : <p className="text-sm text-muted-foreground">Memuat...</p>}
     </div>
   )
 }
