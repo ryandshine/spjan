@@ -29,6 +29,33 @@
   --sidebar: oklch(0.995 0.002 255);
 }
 
+/* Mode gelap (Vibrant Neon Dark): aktif bila <html> berkelas "dark" (lib/tema.ts). */
+.dark {
+  color-scheme: dark;
+  --background: #111126;
+  --foreground: #e2e0fd;
+  --card: #1d1d33;
+  --card-foreground: #e2e0fd;
+  --popover: #28283e;
+  --popover-foreground: #e2e0fd;
+  --primary: #ff4c83;
+  --primary-foreground: #4a001c;
+  --secondary: #28283e;
+  --secondary-foreground: #e2e0fd;
+  --muted: #19192f;
+  --muted-foreground: #a9a7c9;
+  --accent: #28283e;
+  --accent-foreground: #ffd9df;
+  --destructive: #ffb4ab;
+  --border: #333349;
+  --input: #3d3d57;
+  --ring: #24ffcd;
+  --success: #00e0b3;
+  --warning: #e3c630;
+  --warning-foreground: #ffe25a;
+  --sidebar: #0c0c21;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -85,7 +112,7 @@
 .editor-teks .tiptap h3 { font-weight: 700; font-size: 1.1rem; line-height: 1.35; margin-top: 1rem; text-align: left; }
 .editor-teks .tiptap ul { list-style: disc; padding-left: 1.5rem; }
 .editor-teks .tiptap ol { list-style: decimal; padding-left: 1.5rem; }
-.editor-teks .tiptap a { color: oklch(0.45 0.18 255); text-decoration: underline; cursor: pointer; }
+.editor-teks .tiptap a { color: var(--primary); text-decoration: underline; cursor: pointer; }
 .editor-teks .tiptap img { max-width: 100%; max-height: 22rem; object-fit: contain; }
 .editor-teks .tiptap img.ProseMirror-selectednode { outline: 2px solid var(--ring); }
 .editor-teks .tiptap table { border-collapse: collapse; width: 100%; table-layout: fixed; }

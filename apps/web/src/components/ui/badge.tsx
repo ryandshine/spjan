@@ -9,7 +9,7 @@ const badgeVariants = cva('inline-flex items-center rounded-full border px-2 py-
       default: 'border-transparent bg-primary/10 text-primary',
       muted: 'border-transparent bg-muted text-muted-foreground',
       success: 'border-transparent bg-success/15 text-success',
-      warning: 'border-transparent bg-warning/20 text-[oklch(0.45_0.1_70)]',
+      warning: 'border-transparent bg-warning/20 text-warning-foreground',
       destructive: 'border-transparent bg-destructive/10 text-destructive',
       outline: 'text-foreground',
     },

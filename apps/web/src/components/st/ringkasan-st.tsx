@@ -81,8 +81,8 @@ export function RingkasanSt({ hasil, status, onPerbaiki, className }: { hasil: S
         <Badge variant="muted">{hasil.pelaksana.length} pelaksana</Badge>
       </div>
 
-      <div className="rounded-md bg-primary p-3 text-primary-foreground" title={hasil.terbilang} aria-live="polite">
-        <p className="text-xs tracking-wide text-primary-foreground/80 uppercase">Total SPTB</p>
+      <div className="rounded-md bg-primary p-3 text-primary-foreground dark:border dark:border-primary/50 dark:bg-primary/10 dark:text-foreground" title={hasil.terbilang} aria-live="polite">
+        <p className="text-xs tracking-wide text-primary-foreground/80 uppercase dark:text-primary">Total SPTB</p>
         <p className="font-mono text-xl font-bold tracking-tight tabular-nums">{rupiah(hasil.total)}</p>
       </div>
 

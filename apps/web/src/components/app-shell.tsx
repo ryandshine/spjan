@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 
 import { DialogGantiPassword } from '@/components/dialog-ganti-password'
+import { TombolTema } from '@/components/tombol-tema'
 import { ZoomHalaman } from '@/components/zoom-halaman'
 import { useLogout, useMe } from '@/lib/queries'
 import { SlotSidebarContext } from '@/lib/slot-sidebar'
@@ -79,7 +80,10 @@ export function AppShell() {
           <div className="flex min-h-0 flex-col md:flex-1 md:overflow-y-auto">
             <div className="flex items-center gap-2 px-5 py-4">
               <Merek />
-              <ZoomHalaman className="ml-auto shrink-0 md:hidden" />
+              <div className="ml-auto flex shrink-0 items-center gap-2 md:hidden">
+                <TombolTema />
+                <ZoomHalaman />
+              </div>
             </div>
             <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:pb-0" aria-label="Menu utama">
               {menu.map(({ to, label, end }) => (
@@ -110,7 +114,10 @@ export function AppShell() {
             <div ref={setSlotSidebar} className="hidden px-3 pt-3 pb-3 md:block md:empty:hidden" />
           </div>
           <div className="hidden flex-col gap-3 border-t p-3 md:flex">
-            <ZoomHalaman className="w-full" />
+            <div className="flex items-center gap-2">
+              <ZoomHalaman className="flex-1" />
+              <TombolTema />
+            </div>
             <KartuPengguna username={me.data?.username} nama={me.data?.nama} peran={me.data?.peran} keluar={keluar} sedangKeluar={logout.isPending} onGantiPassword={() => setGantiPw(true)} />
           </div>
         </aside>

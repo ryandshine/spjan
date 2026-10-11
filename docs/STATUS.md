@@ -33,6 +33,12 @@ Arsitektur dan aturan hitung: `docs/superpowers/specs/2026-10-04-spjan-design.md
 - Palet hijau diganti biru (acuan: desain Stitch proyek `5727215774991893270`), hanya warna: token di `apps/web/src/index.css`, tombol Simpan, kotak Total SPTB (latar primer), chip fullboard.
 - Isian wajib yang belum lengkap (`Field` dengan `warning`) kini bertanda merah (border, latar, pesan); ringkasan "Perlu dilengkapi" tetap kuning. Belum dilihat di peramban.
 
+## Mode gelap (belum di-commit)
+
+- Dua mode: terang (palet biru, bawaan) dan gelap (Vibrant Neon Dark dari DESIGN.md Stitch). Token gelap ada di blok `.dark` `apps/web/src/index.css`; kelas `dark` dipasang pada `<html>` oleh `lib/tema.ts` (disimpan di `localStorage` kunci `spjan.tema`, bawaan terang; `index.html` memasangnya lebih awal agar tidak berkedip).
+- Tombol sun/moon (`components/tombol-tema.tsx`) di footer sidebar (di samping zoom) dan di header ponsel. Hanya warna yang dipindah; font DESIGN.md (Sora/Space Grotesk) sengaja tidak dipakai. PDF tetap terang.
+- Belum dilihat di peramban; periksa kontras tiap halaman dalam mode gelap (kelas slate/amber/sky bawaan yang memakai varian `dark:` belum diselaraskan satu per satu dengan palet neon).
+
 ## Keputusan dan alasannya
 
 - Satu orang satu akun; admin bisa semuanya; operator hanya melihat ST buatannya atau yang memuat namanya sebagai pelaksana (ST lain tersembunyi, 404), dan hanya pembuat/admin yang mengubah/mengunci/menghapus; pelaksana lain hanya lihat dan unduh. Alasan: ST orang lain bukan kepentingannya; hindari perubahan tak sengaja. Catatan: berkas yang belum tertaut ke ST (unggahan sebelum ST dibuat) belum dibatasi.
