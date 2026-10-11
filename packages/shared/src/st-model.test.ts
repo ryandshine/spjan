@@ -42,6 +42,8 @@ describe("klasifikasi jenis biaya", () => {
     expect(jenisButuhEtape("TIKET_PERGI")).toBe(true);
     expect(jenisButuhEtape("TIKET_KEMBALI")).toBe(true);
     expect(jenisButuhEtape("TAKSI_KEDUDUKAN")).toBe(false);
+    expect(jenisButuhEtape("BBM_KENDARAAN")).toBe(true);
+    expect(jenisButuhEtape("TOL_ETOLL")).toBe(true);
     expect(jenisButuhUraian("LAINNYA")).toBe(true);
     expect(jenisButuhUraian("TAKSI_KEDUDUKAN")).toBe(false);
   });

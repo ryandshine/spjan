@@ -48,7 +48,8 @@ export function BiayaBaris({
 }) {
   const perluProvinsi = jenisButuhProvinsi(biaya.jenis)
   const perluEtape = jenisButuhEtape(biaya.jenis) && etapeJumlah > 1
-  const perluUraian = jenisButuhUraian(biaya.jenis) || !!biaya.uraian || biaya.jenis === 'TAKSI_TERMINAL'
+  const kendaraan = biaya.jenis === 'BBM_KENDARAAN' || biaya.jenis === 'TOL_ETOLL'
+  const perluUraian = jenisButuhUraian(biaya.jenis) || !!biaya.uraian || biaya.jenis === 'TAKSI_TERMINAL' || kendaraan
   const namaProvinsiPagu = biaya.jenis === 'TAKSI_KEDUDUKAN' ? provinsiKedudukan : biaya.jenis === 'TAKSI_TERMINAL' ? biaya.provinsi : null
   const tarifTidakAda = !!sbm && !!namaProvinsiPagu && !biaya.tarif && tarifTerminal(sbm, namaProvinsiPagu) === undefined
   // Taksi bandara dan taksi kedudukan: tarif otomatis dari SBM provinsi bila ada.
@@ -66,7 +67,7 @@ export function BiayaBaris({
       ? 'Kab/kota tujuan (persis PMK)'
       : biaya.jenis === 'TIKET_PERGI' || biaya.jenis === 'TIKET_KEMBALI'
         ? 'Uraian tiket'
-        : biaya.jenis === 'TAKSI_TERMINAL'
+        : biaya.jenis === 'TAKSI_TERMINAL' || kendaraan
           ? 'Uraian (opsional)'
           : 'Uraian'
   const subtotal = baris?.jumlah ?? (biaya.tarif ? (biaya.qty ?? 1) * biaya.tarif : 0)
@@ -116,7 +117,7 @@ export function BiayaBaris({
                 })
               }
             >
-              <option value="">{biaya.jenis === 'TIKET_PERGI' ? 'Tujuan 1 (otomatis)' : 'Tujuan terakhir (otomatis)'}</option>
+              <option value="">{biaya.jenis === 'TIKET_KEMBALI' ? 'Tujuan terakhir (otomatis)' : 'Tujuan 1 (otomatis)'}</option>
               {Array.from({ length: etapeJumlah }, (_, i) => (
                 <option key={i} value={i}>
                   {etapeLabel(i)}
@@ -254,7 +255,7 @@ export function BiayaBaris({
           <TextareaOtomatis
             aria-label="Keterangan"
             className={TEKS_KECIL}
-            placeholder={biaya.jenis === 'TAKSI_KEDUDUKAN' || biaya.jenis === 'TAKSI_TERMINAL' ? 'Keterangan' : 'Tanggal / no. tiket / bukti'}
+            placeholder={biaya.jenis === 'TAKSI_KEDUDUKAN' || biaya.jenis === 'TAKSI_TERMINAL' ? 'Keterangan' : kendaraan ? 'Tanggal / no. kuitansi' : 'Tanggal / no. tiket / bukti'}
             value={biaya.keterangan ?? ''}
             onChange={(e) => onUbah({ keterangan: e.target.value || null })}
           />
@@ -262,7 +263,7 @@ export function BiayaBaris({
             <TextareaOtomatis
               aria-label={uraianLabel}
               className={TEKS_KECIL}
-              placeholder={biaya.jenis === 'TAKSI_TERMINAL' ? 'Otomatis: taksi dari-ke bandara/terminal' : uraianLabel}
+              placeholder={biaya.jenis === 'TAKSI_TERMINAL' ? 'Otomatis: taksi dari-ke bandara/terminal' : kendaraan ? `Otomatis: ${biaya.jenis === 'BBM_KENDARAAN' ? 'BBM' : 'E-Toll'} dari asal ke tujuan PP` : uraianLabel}
               value={biaya.uraian ?? ''}
               onChange={(e) => onUbah({ uraian: e.target.value || null })}
             />

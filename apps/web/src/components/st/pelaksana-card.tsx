@@ -34,7 +34,7 @@ import { TextareaOtomatis } from '@/components/ui/textarea-otomatis'
 import { Select } from '@/components/ui/select'
 import { TabPanel, Tabs, type TabItem } from '@/components/ui/tabs'
 import { rupiah, tanggalPanjang } from '@/lib/format'
-import { batasHotelEtape, biayaTaksiKedudukan, biayaTaksiTerminal, biayaTiketPergi, hapusEtape, tambahTransportJakartaSekitar, ubahBiaya, ubahEtape } from '@/lib/pelaksana-ubah'
+import { batasHotelEtape, biayaPerTujuan, biayaTaksiKedudukan, biayaTaksiTerminal, hapusEtape, tambahTransportJakartaSekitar, ubahBiaya, ubahEtape } from '@/lib/pelaksana-ubah'
 import type { BagianPelaksana } from '@/lib/periksa'
 import { cakupanGalat, type PetaGalat } from '@/lib/validasi'
 
@@ -80,11 +80,12 @@ export function PelaksanaCard({
   const tambahBiaya = (b: BiayaPayload) => onUbah((x) => ({ ...x, biaya: [...x.biaya, b] }))
 
   function tambahDariMenu(jenis: string) {
-    if (jenis === 'TIKET_PERGI') tambahBiaya(biayaTiketPergi(p))
+    if (jenis === 'TIKET_PERGI') tambahBiaya(biayaPerTujuan(p, 'TIKET_PERGI'))
     else if (jenis === 'TIKET_KEMBALI') tambahBiaya(biayaKosong('TIKET_KEMBALI'))
     else if (jenis === 'TAKSI_KEDUDUKAN') tambahBiaya(biayaTaksiKedudukan(provinsiKedudukan, sbm))
     else if (jenis === 'TAKSI_TERMINAL') tambahBiaya(biayaTaksiTerminal(p, sbm))
     else if (jenis === 'TRANSPORT_JAKARTA_SEKITAR') onUbah((x) => tambahTransportJakartaSekitar(x, sbm))
+    else if (jenis === 'BBM_KENDARAAN' || jenis === 'TOL_ETOLL') tambahBiaya(biayaPerTujuan(p, jenis))
     else if (jenis === 'LAINNYA') tambahBiaya(biayaKosong('LAINNYA'))
   }
 
@@ -306,6 +307,8 @@ export function PelaksanaCard({
                       { label: 'Taksi Asal (tempat kedudukan - bandara)', onPilih: () => tambahDariMenu('TAKSI_KEDUDUKAN') },
                       { label: 'Taksi Tujuan (bandara - kota tujuan)', onPilih: () => tambahDariMenu('TAKSI_TERMINAL') },
                       { label: 'Transport Jakarta - sekitarnya (PP)', onPilih: () => tambahDariMenu('TRANSPORT_JAKARTA_SEKITAR') },
+                      { label: 'BBM Kendaraan (PP)', onPilih: () => tambahDariMenu('BBM_KENDARAAN') },
+                      { label: 'E-Toll (PP)', onPilih: () => tambahDariMenu('TOL_ETOLL') },
                       { label: 'Biaya Riil Lainnya', onPilih: () => tambahDariMenu('LAINNYA') },
                     ]}
                   />

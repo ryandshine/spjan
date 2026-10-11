@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SBM_2026, biayaKosong, etapeKosong, type PelaksanaPayload } from '@spjan/shared'
 
-import { batasHotelEtape, biayaTiketPergi, hapusEtape, tambahTransportJakartaSekitar, ubahBiaya, ubahEtape } from './pelaksana-ubah'
+import { batasHotelEtape, biayaPerTujuan, hapusEtape, tambahTransportJakartaSekitar, ubahBiaya, ubahEtape } from './pelaksana-ubah'
 
 const sbm = SBM_2026
 const pelaksana = (p: Partial<PelaksanaPayload> = {}): PelaksanaPayload => ({
@@ -61,14 +61,20 @@ describe('tambahTransportJakartaSekitar', () => {
   })
 })
 
-describe('biayaTiketPergi', () => {
+describe('biayaPerTujuan', () => {
+  it('BBM dan E-Toll dihitung per jenis sendiri-sendiri', () => {
+    const p = pelaksana({ biaya: [{ ...biayaKosong('BBM_KENDARAAN'), etapeIndex: 0 }] })
+    expect(biayaPerTujuan(p, 'BBM_KENDARAAN').etapeIndex).toBe(1)
+    expect(biayaPerTujuan(p, 'TOL_ETOLL').etapeIndex).toBe(0)
+  })
+
   it('menautkan ke tujuan berikutnya yang belum punya tiket pergi, lalu tanpa tautan', () => {
     const p = pelaksana()
-    expect(biayaTiketPergi(p).etapeIndex).toBe(0)
+    expect(biayaPerTujuan(p, 'TIKET_PERGI').etapeIndex).toBe(0)
     const satu = pelaksana({ biaya: [{ ...biayaKosong('TIKET_PERGI'), etapeIndex: 0 }] })
-    expect(biayaTiketPergi(satu).etapeIndex).toBe(1)
+    expect(biayaPerTujuan(satu, 'TIKET_PERGI').etapeIndex).toBe(1)
     const penuh = pelaksana({ biaya: [biayaKosong('TIKET_PERGI'), biayaKosong('TIKET_PERGI')] })
-    expect(biayaTiketPergi(penuh).etapeIndex).toBeNull()
+    expect(biayaPerTujuan(penuh, 'TIKET_PERGI').etapeIndex).toBeNull()
   })
 })
 

@@ -8,6 +8,7 @@ import {
   tarifTerminal,
   type BiayaPayload,
   type EtapePayload,
+  type JenisBiaya,
   type PelaksanaPayload,
   type Sbm,
   type StatusKode,
@@ -94,10 +95,10 @@ export function tambahTransportJakartaSekitar(x: PelaksanaPayload, sbm: Sbm): Pe
   return { ...x, etape, biaya: [...x.biaya, baru] }
 }
 
-/** Baris tiket pergi baru; ditautkan ke tujuan berikutnya yang belum punya tiket pergi. */
-export function biayaTiketPergi(x: PelaksanaPayload): BiayaPayload {
-  const sudah = x.biaya.filter((b) => b.jenis === 'TIKET_PERGI').length
-  return { ...biayaKosong('TIKET_PERGI'), etapeIndex: sudah < x.etape.length ? sudah : null }
+/** Baris biaya per tujuan (tiket pergi, BBM, E-Toll); ditautkan ke tujuan berikutnya yang belum punya biaya jenis ini. */
+export function biayaPerTujuan(x: PelaksanaPayload, jenis: JenisBiaya): BiayaPayload {
+  const sudah = x.biaya.filter((b) => b.jenis === jenis).length
+  return { ...biayaKosong(jenis), etapeIndex: sudah < x.etape.length ? sudah : null }
 }
 
 /** Baris taksi dari tempat kedudukan ke terminal, tarif dari provinsi kedudukan. */

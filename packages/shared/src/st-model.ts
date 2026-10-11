@@ -66,14 +66,14 @@ export function pelaksanaKosong(): PelaksanaPayload {
 }
 
 const BUTUH_PROVINSI = new Set<JenisBiaya>(["TRANSPORT_DARAT", "TAKSI_TERMINAL", "SEWA_RODA4", "SEWA_RODA6", "SEWA_BUS_BESAR"]);
-const BUTUH_ETAPE = new Set<JenisBiaya>(["TIKET_PERGI", "TIKET_KEMBALI"]);
+const BUTUH_ETAPE = new Set<JenisBiaya>(["TIKET_PERGI", "TIKET_KEMBALI", "BBM_KENDARAAN", "TOL_ETOLL"]);
 
 /** Jenis yang pagunya dicari berdasarkan provinsi. */
 export function jenisButuhProvinsi(jenis: JenisBiaya): boolean {
   return BUTUH_PROVINSI.has(jenis);
 }
 
-/** Jenis yang terkait dengan satu etape (tiket). */
+/** Jenis yang terkait dengan satu etape (tiket, BBM, dan E-Toll). */
 export function jenisButuhEtape(jenis: JenisBiaya): boolean {
   return BUTUH_ETAPE.has(jenis);
 }
@@ -126,6 +126,10 @@ export function indeksBarisTransport(
         return 51;
       case "TRANSPORT_KEGIATAN_PP":
         return 52;
+      case "BBM_KENDARAAN":
+        return 53;
+      case "TOL_ETOLL":
+        return 54;
       case "SEWA_RODA4":
       case "SEWA_RODA6":
       case "SEWA_BUS_BESAR":

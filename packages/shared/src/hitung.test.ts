@@ -238,6 +238,30 @@ describe("hitungSpj - kasus emas", () => {
     expect(h.catatan.some((c) => c.startsWith("Tiket PP"))).toBe(false);
   });
 
+  it("perjalanan mobil: BBM dan E-Toll PP per tujuan, uraian otomatis dan nominal sesuai kuitansi", () => {
+    const mobil: PelaksanaInput = {
+      ...resa,
+      etape: [etapeYogya({ hotelNama: "Hotel A", hotelTarif: 500_000 }), etapeBali({ berangkat: "2026-09-13", pulang: "2026-09-14", hotelNama: "Hotel B", hotelTarif: 500_000 })],
+      biaya: [
+        { jenis: "TOL_ETOLL", etapeIndex: 0, tarif: 310_000 },
+        { jenis: "BBM_KENDARAAN", etapeIndex: 0, tarif: 450_000 },
+        { jenis: "BBM_KENDARAAN", etapeIndex: 1, tarif: 200_000, uraian: "BBM Pertamax Dex" },
+      ],
+    };
+    const h = hitungSpj(spj([mobil]), SBM_2026).pelaksana[0]!;
+    expect(h.transport.map((r) => [r.uraian, r.jumlah])).toEqual([
+      ["BBM dari Jakarta ke Yogyakarta PP", 450_000],
+      ["BBM Pertamax Dex", 200_000],
+      ["E-Toll dari Jakarta ke Yogyakarta PP", 310_000],
+    ]);
+    expect(h.totalTransport).toBe(960_000);
+  });
+
+  it("BBM tanpa tarif tidak menghasilkan baris", () => {
+    const h = hitungSpj(spj([{ ...riandi, biaya: [{ jenis: "BBM_KENDARAAN", tarif: 0 }] }]), SBM_2026).pelaksana[0]!;
+    expect(h.transport).toEqual([]);
+  });
+
   it("total SPTB menjumlahkan semua pelaksana", () => {
     const hasil = hitungSpj(spj([resa, resa]), SBM_2026);
     expect(hasil.total).toBe(13_931_958);

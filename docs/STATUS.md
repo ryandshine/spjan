@@ -46,6 +46,12 @@ Arsitektur dan aturan hitung: `docs/superpowers/specs/2026-10-04-spjan-design.md
 - Dihapus: `ekstraktorKlasifikasi` (api, tak terpakai). Fixture tes shared dilengkapi agar `npm run lint` hijau.
 - Skrip `apps/api/scripts/probe-*.ts` dan `buat-akun-massal*` sengaja dipertahankan (alat manual yang dirujuk di docs).
 
+## Biaya mobil: BBM dan E-Toll (belum di-commit)
+
+- Jenis biaya baru `BBM_KENDARAAN` ("BBM kendaraan (PP)") dan `TOL_ETOLL` ("E-Toll (PP)") di `@spjan/shared` (`types.ts`, urutan 53/54 di `hitung.ts` **dan** `st-model.ts`, tertaut ke tujuan lewat `etapeIndex`). Uraian otomatis "BBM|E-Toll dari {asal} ke {tujuan} PP" (asal = kedudukan atau tujuan sebelumnya); boleh ditimpa lewat kolom uraian. Tidak ada pagu SBM: tarif = nominal di kuitansi, qty 1.
+- Menu "Tambah Biaya" memuat dua opsi baru; `biayaTiketPergi` digeneralisasi menjadi `biayaPerTujuan(x, jenis)`.
+- Belum: pembaca AI (`transport-ekstraksi`) belum mengenali kuitansi BBM/E-Toll; ceklis DPR tidak otomatis.
+
 ## Keputusan dan alasannya
 
 - Satu orang satu akun; admin bisa semuanya; operator hanya melihat ST buatannya atau yang memuat namanya sebagai pelaksana (ST lain tersembunyi, 404), dan hanya pembuat/admin yang mengubah/mengunci/menghapus; pelaksana lain hanya lihat dan unduh. Alasan: ST orang lain bukan kepentingannya; hindari perubahan tak sengaja. Catatan: berkas yang belum tertaut ke ST (unggahan sebelum ST dibuat) belum dibatasi.

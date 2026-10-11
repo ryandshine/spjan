@@ -93,6 +93,14 @@ function uraianBiaya(b: BiayaInput, input: SpjInput, etape: EtapeInput[]): strin
       }
       return LABEL_URAIAN.TAKSI_TERMINAL ?? b.jenis;
     }
+    case "BBM_KENDARAAN":
+    case "TOL_ETOLL": {
+      if (uraian) return uraian;
+      const i = b.etapeIndex ?? 0;
+      const tujuan = etape[i]?.kota ?? "";
+      const asal = i > 0 ? (etape[i - 1]?.kota ?? kedudukan) : kedudukan;
+      return `${b.jenis === "BBM_KENDARAAN" ? "BBM" : "E-Toll"} dari ${asal} ke ${tujuan} PP`;
+    }
     case "LAINNYA":
       return uraian || "Biaya lainnya";
     default: {
@@ -340,6 +348,10 @@ function urutanBiayaTransport(jenis: JenisBiaya): number {
       return 51;
     case "TRANSPORT_KEGIATAN_PP":
       return 52;
+    case "BBM_KENDARAAN":
+      return 53;
+    case "TOL_ETOLL":
+      return 54;
     case "SEWA_RODA4":
     case "SEWA_RODA6":
     case "SEWA_BUS_BESAR":
