@@ -6,6 +6,7 @@ import { DialogGantiPassword } from '@/components/dialog-ganti-password'
 import { Button } from '@/components/ui/button'
 import { ZoomHalaman } from '@/components/zoom-halaman'
 import { useLogout, useMe } from '@/lib/queries'
+import { SlotSidebarContext } from '@/lib/slot-sidebar'
 import { cn } from '@/lib/utils'
 
 const NAV = [
@@ -78,6 +79,7 @@ export function AppShell() {
   const me = useMe()
   const logout = useLogout()
   const [gantiPw, setGantiPw] = useState(false)
+  const [slotSidebar, setSlotSidebar] = useState<HTMLElement | null>(null)
   const menu = me.data?.peran === 'admin' ? [...NAV, ...NAV_ADMIN] : NAV
 
   async function keluar() {
@@ -86,49 +88,52 @@ export function AppShell() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="flex shrink-0 flex-col justify-between border-b border-border bg-sidebar md:sticky md:top-0 md:h-screen md:w-60 md:border-r md:border-b-0">
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 px-5 py-4">
-            <Merek />
-            <ZoomHalaman className="ml-auto md:hidden" />
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setGantiPw(true)} title="Ganti password" aria-label="Ganti password">
-              <KeyRoundIcon />
-            </Button>
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={keluar} disabled={logout.isPending} title="Keluar" aria-label="Keluar">
-              <LogOutIcon />
-            </Button>
+    <SlotSidebarContext.Provider value={slotSidebar}>
+      <div className="flex min-h-screen flex-col md:flex-row">
+        <aside className="flex shrink-0 flex-col justify-between border-b border-border bg-sidebar md:sticky md:top-0 md:h-screen md:w-60 md:border-r md:border-b-0">
+          <div className="flex min-h-0 flex-col md:flex-1 md:overflow-y-auto">
+            <div className="flex items-center gap-2 px-5 py-4">
+              <Merek />
+              <ZoomHalaman className="ml-auto md:hidden" />
+              <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setGantiPw(true)} title="Ganti password" aria-label="Ganti password">
+                <KeyRoundIcon />
+              </Button>
+              <Button variant="ghost" size="icon" className="md:hidden" onClick={keluar} disabled={logout.isPending} title="Keluar" aria-label="Keluar">
+                <LogOutIcon />
+              </Button>
+            </div>
+            <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:pb-0" aria-label="Menu utama">
+              {menu.map(({ to, label, icon: Icon, end }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  className={({ isActive }) =>
+                    cn(
+                      'relative flex min-h-10 items-center gap-2.5 rounded-md px-3 text-sm font-medium whitespace-nowrap transition-colors',
+                      isActive
+                        ? 'bg-primary/10 text-primary before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-full before:bg-primary'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                    )
+                  }
+                >
+                  <Icon className="size-4" />
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
+            <div ref={setSlotSidebar} className="hidden px-3 pt-3 pb-3 md:block md:empty:hidden" />
           </div>
-          <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:pb-0" aria-label="Menu utama">
-            {menu.map(({ to, label, icon: Icon, end }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={end}
-                className={({ isActive }) =>
-                  cn(
-                    'relative flex min-h-10 items-center gap-2.5 rounded-md px-3 text-sm font-medium whitespace-nowrap transition-colors',
-                    isActive
-                      ? 'bg-primary/10 text-primary before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-full before:bg-primary'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                  )
-                }
-              >
-                <Icon className="size-4" />
-                {label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-        <div className="hidden flex-col gap-3 border-t p-3 md:flex">
-          <ZoomHalaman className="w-full" />
-          <KartuPengguna username={me.data?.username} nama={me.data?.nama} peran={me.data?.peran} keluar={keluar} sedangKeluar={logout.isPending} onGantiPassword={() => setGantiPw(true)} />
-        </div>
-      </aside>
-      <main className="min-w-0 flex-1 px-5 py-6 md:px-8">
-        <Outlet />
-      </main>
-      <DialogGantiPassword buka={gantiPw} onBukaChange={setGantiPw} />
-    </div>
+          <div className="hidden flex-col gap-3 border-t p-3 md:flex">
+            <ZoomHalaman className="w-full" />
+            <KartuPengguna username={me.data?.username} nama={me.data?.nama} peran={me.data?.peran} keluar={keluar} sedangKeluar={logout.isPending} onGantiPassword={() => setGantiPw(true)} />
+          </div>
+        </aside>
+        <main className="min-w-0 flex-1 px-5 py-6 md:px-8">
+          <Outlet />
+        </main>
+        <DialogGantiPassword buka={gantiPw} onBukaChange={setGantiPw} />
+      </div>
+    </SlotSidebarContext.Provider>
   )
 }

@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
@@ -26,6 +27,7 @@ import { DialogKunciSt, DialogNoSpd, DialogTinggalkanHalaman } from '@/component
 import { FotoDokumentasiPanel } from '@/components/st/foto-dokumentasi-panel'
 import { KartuDataSt } from '@/components/st/kartu-data-st'
 import { KartuPejabatSt } from '@/components/st/kartu-pejabat-st'
+import { DaftarPelaksanaSt } from '@/components/st/daftar-pelaksana-st'
 import { KelompokIsian } from '@/components/st/kelompok-isian'
 import { LangkahSt, type LangkahItem } from '@/components/st/langkah-st'
 import { RingkasanRingkas, RingkasanSt } from '@/components/st/ringkasan-st'
@@ -61,6 +63,7 @@ import {
   terapkanHotelKeEtape,
 } from '@/lib/st-editor'
 import { bagianUntukSasaran, lompatKeIsian, type BagianPelaksana } from '@/lib/periksa'
+import { useSlotSidebar } from '@/lib/slot-sidebar'
 import { usePenjagaPerubahan } from '@/lib/use-penjaga-perubahan'
 import { pesanValidasi, petaGalat } from '@/lib/validasi'
 
@@ -112,6 +115,7 @@ function Editor({
   const [cobaSimpan, setCobaSimpan] = useState(false)
   const [tab, setTab] = useState<TabKunci>(id !== null && awal.pelaksana.length > 0 ? 'pelaksana' : 'data')
   const [dialogSpd, setDialogSpd] = useState(false)
+  const slotSidebar = useSlotSidebar()
   const [pelaksanaAktif, setPelaksanaAktif] = useState(0)
   const [bagianPelaksana, setBagianPelaksana] = useState<BagianPelaksana>('perjalanan')
   const [subBukti, setSubBukti] = useState<SubBukti>('bukti')
@@ -139,6 +143,10 @@ function Editor({
 
   const ubahPelaksana = (i: number, fn: (p: PelaksanaPayload) => PelaksanaPayload) =>
     setSt((s) => ({ ...s, pelaksana: s.pelaksana.map((p, j) => (j === i ? fn(p) : p)) }))
+  const pilihPelaksana = (i: number) => {
+    setTab('pelaksana')
+    setPelaksanaAktif(i)
+  }
   const tambahPelaksana = () => {
     setSt((s) => ({ ...s, pelaksana: [...s.pelaksana, pelaksanaKosong()] }))
     setKunciPelaksana((k) => [...k, kunciPelaksanaBaru()])
@@ -313,9 +321,40 @@ function Editor({
         </div>
       ) : null}
 
-      <div className={cn('grid items-start gap-6 lg:grid-cols-[13rem_minmax(0,1fr)]', !modeLaporan && 'xl:grid-cols-[13rem_minmax(0,1fr)_18rem]')}>
+      {/* Menu langkah (dan daftar pelaksana) ada di sidebar aplikasi; di layar sempit tanpa sidebar tampil sebagai baris tab di sini. */}
+      {slotSidebar
+        ? createPortal(
+            <LangkahSt
+              kolom
+              item={langkah}
+              aktif={tab}
+              onPilih={setTab}
+              idAwal="st-menu"
+              label="Langkah surat tugas"
+              anak={{
+                pelaksana: (
+                  <DaftarPelaksanaSt
+                    pelaksana={st.pelaksana}
+                    kunci={kunciPelaksana}
+                    hasil={hasil.pelaksana}
+                    peta={peta}
+                    terkunci={terkunci}
+                    aktif={pelaksanaAktif}
+                    onPilih={pilihPelaksana}
+                    onTambah={tambahPelaksana}
+                    onAutoIsiNoSpd={autoIsiNoSpd}
+                  />
+                ),
+              }}
+            />,
+            slotSidebar,
+          )
+        : null}
+      <div className="md:hidden">
         <LangkahSt item={langkah} aktif={tab} onPilih={setTab} idAwal="st" label="Langkah surat tugas" />
+      </div>
 
+      <div className={cn('grid items-start gap-6', !modeLaporan && 'xl:grid-cols-[minmax(0,1fr)_18rem]')}>
         <div className="min-w-0">
           {modeLaporan ? null : (
             <div className="xl:hidden">
@@ -370,7 +409,7 @@ function Editor({
               terkunci={terkunci}
               aktif={pelaksanaAktif}
               bagian={bagianPelaksana}
-              onPilih={setPelaksanaAktif}
+              onPilih={pilihPelaksana}
               onBagian={setBagianPelaksana}
               onUbah={ubahPelaksana}
               onHapus={hapusPelaksana}
