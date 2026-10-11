@@ -4,8 +4,10 @@ import { INSTANSI_BAWAAN, normalkanUraianTiket, type StatusKode, type StatusSt, 
 import type { Db } from "../db.js";
 import { withTransaction } from "../db.js";
 import { HttpError } from "../errors.js";
+import { kondisiTerlihat } from "../izin.js";
 
-export async function listSuratTugas(db: Db): Promise<Omit<SuratTugasRingkasDto, "total" | "jumlahPeringatan">[]> {
+/** Admin melihat semua; operator hanya surat tugas yang dibuatnya atau yang memuat namanya sebagai pelaksana. */
+export async function listSuratTugas(db: Db, pengguna: { id: number; peran: string }): Promise<Omit<SuratTugasRingkasDto, "total" | "jumlahPeringatan">[]> {
   const { rows } = await db.query<{
     id: number;
     nomor: string;
@@ -19,7 +21,9 @@ export async function listSuratTugas(db: Db): Promise<Omit<SuratTugasRingkasDto,
     `select st.id, st.nomor, st.tanggal, st.status, st.updated_at, st.dibuat_oleh, u.nama as dibuat_oleh_nama,
             (select count(*)::int from pelaksana p where p.st_id = st.id) as n
        from surat_tugas st left join users u on u.id = st.dibuat_oleh
-      where st.dihapus_pada is null order by st.tanggal desc, st.id desc`,
+      where st.dihapus_pada is null ${pengguna.peran === "admin" ? "" : `and ${kondisiTerlihat("st", "$1")}`}
+      order by st.tanggal desc, st.id desc`,
+    pengguna.peran === "admin" ? [] : [pengguna.id],
   );
   return rows.map((r) => ({ id: r.id, nomor: r.nomor, tanggal: r.tanggal, status: r.status, dibuatOleh: r.dibuat_oleh, dibuatOlehNama: r.dibuat_oleh_nama, jumlahPelaksana: r.n, updatedAt: r.updated_at.toISOString() }));
 }

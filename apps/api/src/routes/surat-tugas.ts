@@ -14,7 +14,7 @@ import { z } from "zod";
 import type { BerkasStore } from "../berkas/store.js";
 import type { Db } from "../db.js";
 import { HttpError, notFound } from "../errors.js";
-import { penggunaAktif, wajibPasswordBenar, wajibPemilikAtauAdmin } from "../izin.js";
+import { penggunaAktif, wajibBolehLihatSt, wajibPasswordBenar, wajibPemilikAtauAdmin } from "../izin.js";
 import { catatAudit } from "../repositories/audit.js";
 import { listBerkas, tautkanBerkasKeSt } from "../repositories/berkas.js";
 import { getPengaturan } from "../repositories/pengaturan.js";
@@ -32,8 +32,8 @@ const IdSchema = z.object({ id: z.coerce.number().int().positive() });
 const PostQuerySchema = z.object({ berkasId: z.coerce.number().int().positive().optional() });
 
 export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; store: BerkasStore }): Promise<void> {
-  app.get("/", async () => {
-    const [daftar, pengaturan] = await Promise.all([listSuratTugas(opts.db), getPengaturan(opts.db)]);
+  app.get("/", async (req) => {
+    const [daftar, pengaturan] = await Promise.all([listSuratTugas(opts.db, penggunaAktif(req)), getPengaturan(opts.db)]);
     const sbmPerVersi = new Map<number, Awaited<ReturnType<typeof getVersiSbm>>>();
     const hasil: SuratTugasRingkasDto[] = [];
     for (const ringkas of daftar) {
@@ -68,6 +68,7 @@ export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; sto
 
   app.get("/:id", async (req) => {
     const { id } = IdSchema.parse(req.params);
+    await wajibBolehLihatSt(opts.db, req, id);
     const dto = await getSuratTugas(opts.db, id);
     if (!dto) throw notFound("Surat tugas");
     return dto;
@@ -115,6 +116,7 @@ export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; sto
 
   app.get("/:id/hasil", async (req) => {
     const { id } = IdSchema.parse(req.params);
+    await wajibBolehLihatSt(opts.db, req, id);
     const st = await getSuratTugas(opts.db, id);
     if (!st) throw notFound("Surat tugas");
     const [pengaturan, sbm] = await Promise.all([getPengaturan(opts.db), getVersiSbm(opts.db, st.versiSbmId)]);
@@ -124,6 +126,7 @@ export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; sto
 
   app.get("/:id/usulan-hotel", async (req) => {
     const { id } = IdSchema.parse(req.params);
+    await wajibBolehLihatSt(opts.db, req, id);
     const st = await getSuratTugas(opts.db, id);
     if (!st) throw notFound("Surat tugas");
     const [berkasList, sbm] = await Promise.all([
@@ -136,6 +139,7 @@ export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; sto
 
   app.get("/:id/usulan-transport", async (req) => {
     const { id } = IdSchema.parse(req.params);
+    await wajibBolehLihatSt(opts.db, req, id);
     const st = await getSuratTugas(opts.db, id);
     if (!st) throw notFound("Surat tugas");
     const [berkasList, sbm] = await Promise.all([

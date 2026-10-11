@@ -297,7 +297,7 @@ function Editor({
 
       {!bolehUbah ? (
         <Alert className="mb-5">
-          Surat tugas ini dibuat oleh {pembuat ?? 'pengguna lain'}. Anda hanya bisa melihat dan mencetak dokumennya; perubahan hanya oleh pembuat atau admin.
+          Surat tugas ini dibuat oleh {pembuat ?? 'pengguna lain'}. Anda tercantum sebagai pelaksana, jadi bisa melihat serta mengunduh dokumen dan berkasnya; perubahan hanya oleh pembuat atau admin.
         </Alert>
       ) : dikunci ? (
         <Alert className="mb-5 flex flex-wrap items-center justify-between gap-2">

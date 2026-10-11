@@ -36,6 +36,15 @@ async function buatOperator(username: string): Promise<{ id: number; cookie: str
   return { id: res.json().id, cookie: (Array.isArray(raw) ? raw[0] : raw)!.split(";")[0]! };
 }
 
+async function buatDariPegawai(pegawaiId: number): Promise<{ id: number; cookie: string }> {
+  const res = await kirim(admin, "POST", "/api/admin/pengguna", { pegawaiId, peran: "operator", password: PW });
+  expect(res.statusCode).toBe(201);
+  const login = await app.inject({ method: "POST", url: "/api/auth/login", payload: { username: res.json().username, password: PW } });
+  expect(login.statusCode).toBe(200);
+  const raw = login.headers["set-cookie"];
+  return { id: res.json().id, cookie: (Array.isArray(raw) ? raw[0] : raw)!.split(";")[0]! };
+}
+
 describe("pengguna dan peran", () => {
   it("admin membuat operator; login mengembalikan peran; username ganda 409", async () => {
     expect((await kirim(budi.cookie, "GET", "/api/auth/me")).json()).toMatchObject({ username: "budi", peran: "operator" });
@@ -88,23 +97,54 @@ describe("pengguna dan peran", () => {
 });
 
 describe("kepemilikan surat tugas", () => {
-  it("operator hanya mengubah miliknya; operator lain 403; admin boleh semua", async () => {
+  it("operator hanya mengubah miliknya; operator tanpa kaitan tidak melihat apa pun (404); admin boleh semua", async () => {
     const a = ani;
     const b = budi;
     const dto = (await kirim(a.cookie, "POST", "/api/surat-tugas", stResa)).json();
     expect(dto).toMatchObject({ dibuatOleh: a.id, dibuatOlehNama: "Operator ani" });
-    // operator lain boleh melihat
-    expect((await kirim(b.cookie, "GET", `/api/surat-tugas/${dto.id}`)).statusCode).toBe(200);
-    expect((await kirim(b.cookie, "GET", "/api/surat-tugas")).json()).toHaveLength(1);
+    // operator lain yang namanya tidak tercantum tidak melihat surat tugas ini sama sekali
+    expect((await kirim(b.cookie, "GET", `/api/surat-tugas/${dto.id}`)).statusCode).toBe(404);
+    expect((await kirim(b.cookie, "GET", `/api/surat-tugas/${dto.id}/hasil`)).statusCode).toBe(404);
+    expect((await kirim(b.cookie, "GET", `/api/surat-tugas/${dto.id}/laporan`)).statusCode).toBe(404);
+    expect((await kirim(b.cookie, "GET", `/api/berkas?stId=${dto.id}`)).statusCode).toBe(404);
+    expect((await kirim(b.cookie, "GET", "/api/surat-tugas")).json()).toEqual([]);
     const ubah = { ...stResa, nomor: "UBAH" };
-    const tolak = await kirim(b.cookie, "PUT", `/api/surat-tugas/${dto.id}`, ubah);
-    expect(tolak.statusCode).toBe(403);
-    expect(tolak.json().pesan).toContain("Operator ani");
-    expect((await kirim(b.cookie, "POST", `/api/surat-tugas/${dto.id}/kunci`)).statusCode).toBe(403);
-    expect((await kirim(b.cookie, "DELETE", `/api/surat-tugas/${dto.id}`, { password: PW })).statusCode).toBe(403);
-    expect((await kirim(b.cookie, "PUT", `/api/surat-tugas/${dto.id}/laporan`, { versi: 2, bagian: [] })).statusCode).toBe(403);
+    expect((await kirim(b.cookie, "PUT", `/api/surat-tugas/${dto.id}`, ubah)).statusCode).toBe(404);
+    expect((await kirim(b.cookie, "POST", `/api/surat-tugas/${dto.id}/kunci`)).statusCode).toBe(404);
+    expect((await kirim(b.cookie, "DELETE", `/api/surat-tugas/${dto.id}`, { password: PW })).statusCode).toBe(404);
+    expect((await kirim(a.cookie, "GET", "/api/surat-tugas")).json()).toHaveLength(1);
     expect((await kirim(a.cookie, "PUT", `/api/surat-tugas/${dto.id}`, ubah)).statusCode).toBe(200);
     expect((await kirim(admin, "PUT", `/api/surat-tugas/${dto.id}`, { ...stResa, nomor: "ADMIN" })).statusCode).toBe(200);
+    expect((await kirim(admin, "GET", "/api/surat-tugas")).json()).toHaveLength(1);
+  });
+
+  it("pelaksana yang tercantum bisa melihat dan membuka dokumen, tetapi tidak bisa mengubah (403)", async () => {
+    const a = ani;
+    // Akun pelaksana: pegawai dengan NIP yang sama dengan pelaksana di stResa (pelaksana diisi manual, pegawaiId null).
+    const pg = (await kirim(admin, "POST", "/api/pegawai", { nama: "R Resa Adam Gunawan, S.T.", nip: stResa.pelaksana[0]!.nip, jabatan: "Surveyor", status: "ESELON_IV_GOL_III_II_I" })).json();
+    const akun = await buatDariPegawai(pg.id);
+    const dto = (await kirim(a.cookie, "POST", "/api/surat-tugas", stResa)).json();
+    expect((await kirim(akun.cookie, "GET", `/api/surat-tugas/${dto.id}`)).statusCode).toBe(200);
+    expect((await kirim(akun.cookie, "GET", `/api/surat-tugas/${dto.id}/hasil`)).statusCode).toBe(200);
+    expect((await kirim(akun.cookie, "GET", `/api/surat-tugas/${dto.id}/laporan`)).statusCode).toBe(200);
+    expect((await kirim(akun.cookie, "GET", `/api/berkas?stId=${dto.id}`)).statusCode).toBe(200);
+    expect((await kirim(akun.cookie, "GET", "/api/surat-tugas")).json()).toHaveLength(1);
+    const tolak = await kirim(akun.cookie, "PUT", `/api/surat-tugas/${dto.id}`, { ...stResa, nomor: "UBAH" });
+    expect(tolak.statusCode).toBe(403);
+    expect(tolak.json().pesan).toContain("Operator ani");
+    expect((await kirim(akun.cookie, "POST", `/api/surat-tugas/${dto.id}/kunci`)).statusCode).toBe(403);
+    expect((await kirim(akun.cookie, "DELETE", `/api/surat-tugas/${dto.id}`, { password: PW })).statusCode).toBe(403);
+    expect((await kirim(akun.cookie, "PUT", `/api/surat-tugas/${dto.id}/laporan`, { versi: 2, bagian: [] })).statusCode).toBe(403);
+    expect((await kirim(akun.cookie, "POST", `/api/berkas?stId=${dto.id}`)).statusCode).toBe(403);
+    // Terhubung lewat pegawaiId (bukan NIP): ST lain dengan pelaksana yang memilih pegawai itu.
+    const st2 = { ...stResa, nomor: "ST-2", pelaksana: [{ ...stResa.pelaksana[0]!, pegawaiId: pg.id, nip: "tidak-sama" }] };
+    const dto2 = (await kirim(a.cookie, "POST", "/api/surat-tugas", st2)).json();
+    expect((await kirim(akun.cookie, "GET", `/api/surat-tugas/${dto2.id}`)).statusCode).toBe(200);
+    expect((await kirim(akun.cookie, "GET", "/api/surat-tugas")).json()).toHaveLength(2);
+    // Setelah dicabut dari daftar pelaksana, aksesnya hilang.
+    const st3 = { ...st2, pelaksana: [{ ...st2.pelaksana[0]!, pegawaiId: null, nip: "199999999999999999", nama: "Orang Lain" }] };
+    expect((await kirim(a.cookie, "PUT", `/api/surat-tugas/${dto2.id}`, st3)).statusCode).toBe(200);
+    expect((await kirim(akun.cookie, "GET", `/api/surat-tugas/${dto2.id}`)).statusCode).toBe(404);
   });
 
   it("buka kunci butuh alasan dan password sendiri, dan tercatat di audit", async () => {

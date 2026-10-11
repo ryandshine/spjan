@@ -25,7 +25,7 @@ import {
   updateBerkas,
   updateUsulanStatus,
 } from "../repositories/berkas.js";
-import { wajibPasswordBenar, wajibPemilikAtauAdmin, wajibPemilikBerkasAtauAdmin, penggunaAktif } from "../izin.js";
+import { wajibBolehLihatBerkas, wajibBolehLihatSt, wajibPasswordBenar, wajibPemilikAtauAdmin, wajibPemilikBerkasAtauAdmin, penggunaAktif } from "../izin.js";
 import { catatAudit } from "../repositories/audit.js";
 import { tolakBilaBerkasTerkunci, tolakBilaTerkunci } from "../repositories/surat-tugas.js";
 import { listPegawai } from "../repositories/pegawai.js";
@@ -73,11 +73,13 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
 
   app.get("/", async (req) => {
     const { stId } = StQuerySchema.parse(req.query);
+    if (stId !== undefined) await wajibBolehLihatSt(opts.db, req, stId);
     return listBerkas(opts.db, stId ?? null);
   });
 
   app.get("/:id", async (req) => {
     const { id } = IdSchema.parse(req.params);
+    await wajibBolehLihatBerkas(opts.db, req, id);
     const b = await getBerkas(opts.db, id);
     if (!b) throw notFound("Berkas");
     return b;
@@ -95,6 +97,7 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
 
   app.get("/:id/isi", async (req, reply) => {
     const { id } = IdSchema.parse(req.params);
+    await wajibBolehLihatBerkas(opts.db, req, id);
     const meta = await metaBerkas(opts.db, id);
     if (!meta) throw notFound("Berkas");
     let data: Buffer;
@@ -147,6 +150,7 @@ export async function berkasRoutes(app: FastifyInstance, opts: { db: Db; store: 
 
   app.get("/:id/usulan-st", async (req) => {
     const { id } = IdSchema.parse(req.params);
+    await wajibBolehLihatBerkas(opts.db, req, id);
     const b = await getBerkas(opts.db, id);
     if (!b) throw notFound("Berkas");
     if (!b.ekstraksi) {
