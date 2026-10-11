@@ -24,7 +24,7 @@ function Merek() {
   return (
     <div className="min-w-0 leading-tight">
       <p className="text-base font-bold">SPJAN</p>
-      <p className="text-xs text-muted-foreground">Jarang Puiang</p>
+      <p className="text-xs text-muted-foreground">Jarang Pulang</p>
     </div>
   )
 }

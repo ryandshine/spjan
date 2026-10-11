@@ -44,7 +44,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center leading-tight">
           <p className="text-lg font-semibold">SPJAN</p>
-          <p className="text-xs text-muted-foreground">Jarang Puiang</p>
+          <p className="text-xs text-muted-foreground">Jarang Pulang</p>
         </div>
         <Card>
           <CardHeader>
