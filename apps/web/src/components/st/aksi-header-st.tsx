@@ -77,7 +77,7 @@ export function AksiHeaderSt({
               <LockIcon /> Tandai selesai
             </Button>
           ) : null}
-          <Button className="gap-2 rounded-lg bg-emerald-600 px-5 py-2 font-medium text-white shadow-sm hover:bg-emerald-700" onClick={onSimpan} disabled={menyimpan || (!kotor && id !== null)}>
+          <Button className="gap-2 rounded-lg px-5 py-2 font-medium shadow-sm" onClick={onSimpan} disabled={menyimpan || (!kotor && id !== null)}>
             <SaveIcon /> {menyimpan ? 'Menyimpan...' : 'Simpan'}
           </Button>
           {id !== null ? (

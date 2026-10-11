@@ -28,6 +28,11 @@ Arsitektur dan aturan hitung: `docs/superpowers/specs/2026-10-04-spjan-design.md
 - Beda dengan mockup Figma: mockup memuat isian "Dasar penugasan", "Tujuan & waktu", "Provinsi" di langkah 1 yang tidak ada di model data (tujuan dan tanggal ada per pelaksana di sub-tab Perjalanan).
 - Lulus tsc, eslint, build. **Belum dilihat di peramban**; periksa tampilan dan alur (simpan, tandai selesai, buka kunci, "perlu dilengkapi" menuju isian, ST terkunci) sebelum commit.
 
+## Palet warna baru (belum di-commit)
+
+- Palet hijau diganti biru (acuan: desain Stitch proyek `5727215774991893270`), hanya warna: token di `apps/web/src/index.css`, tombol Simpan, kotak Total SPTB (latar primer), chip fullboard.
+- Isian wajib yang belum lengkap (`Field` dengan `warning`) kini bertanda merah (border, latar, pesan); ringkasan "Perlu dilengkapi" tetap kuning. Belum dilihat di peramban.
+
 ## Keputusan dan alasannya
 
 - Satu orang satu akun; admin bisa semuanya; operator hanya melihat ST buatannya atau yang memuat namanya sebagai pelaksana (ST lain tersembunyi, 404), dan hanya pembuat/admin yang mengubah/mengunci/menghapus; pelaksana lain hanya lihat dan unduh. Alasan: ST orang lain bukan kepentingannya; hindari perubahan tak sengaja. Catatan: berkas yang belum tertaut ke ST (unggahan sebelum ST dibuat) belum dibatasi.

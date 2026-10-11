@@ -403,7 +403,7 @@ function Editor({
             )}
             <div className="flex items-center gap-2">
               {!modeLaporan && bolehUbah && !dikunci ? (
-                <Button className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700 md:hidden" onClick={kirim} disabled={simpan.isPending || (!kotor && id !== null)}>
+                <Button className="gap-2 md:hidden" onClick={kirim} disabled={simpan.isPending || (!kotor && id !== null)}>
                   <SaveIcon /> {simpan.isPending ? 'Menyimpan...' : 'Simpan'}
                 </Button>
               ) : null}

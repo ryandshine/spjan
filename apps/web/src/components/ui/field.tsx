@@ -33,7 +33,11 @@ function Field({
   children: React.ReactNode
 }) {
   return (
-    <div className={cn('flex flex-col justify-start gap-1.5', className)}>
+    <div className={cn(
+        'flex flex-col justify-start gap-1.5',
+        warning && !error && '[&_input]:border-destructive [&_input]:bg-destructive/5 [&_select]:border-destructive [&_select]:bg-destructive/5',
+        className,
+      )}>
       <div className="flex min-h-5 items-center justify-between gap-2">
         <Label htmlFor={htmlFor}>
           {label}
@@ -45,7 +49,7 @@ function Field({
       {hint && !error ? <p className="text-xs leading-snug text-muted-foreground">{hint}</p> : null}
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
       {warning && !error ? (
-        <p className="flex items-start gap-1 text-xs font-medium text-warning-foreground">
+        <p className="flex items-start gap-1 text-xs font-medium text-destructive">
           <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> {warning}
         </p>
       ) : null}

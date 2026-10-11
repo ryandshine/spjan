@@ -81,9 +81,9 @@ export function RingkasanSt({ hasil, status, onPerbaiki, className }: { hasil: S
         <Badge variant="muted">{hasil.pelaksana.length} pelaksana</Badge>
       </div>
 
-      <div className="rounded-md border bg-accent/40 p-3" title={hasil.terbilang} aria-live="polite">
-        <p className="text-xs tracking-wide text-muted-foreground uppercase">Total SPTB</p>
-        <p className="font-mono text-xl font-bold tracking-tight text-emerald-600 tabular-nums dark:text-emerald-400">{rupiah(hasil.total)}</p>
+      <div className="rounded-md bg-primary p-3 text-primary-foreground" title={hasil.terbilang} aria-live="polite">
+        <p className="text-xs tracking-wide text-primary-foreground/80 uppercase">Total SPTB</p>
+        <p className="font-mono text-xl font-bold tracking-tight tabular-nums">{rupiah(hasil.total)}</p>
       </div>
 
       {hasil.pelaksana.length > 0 ? (
@@ -133,7 +133,7 @@ export function RingkasanRingkas({ hasil, onPerbaiki }: { hasil: SpjHasil; onPer
     <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border bg-card px-4 py-3" role="complementary" aria-label="Ringkasan surat tugas">
       <p className="flex items-baseline gap-2" title={hasil.terbilang} aria-live="polite">
         <span className="text-sm text-muted-foreground">Total SPTB</span>
-        <span className="font-mono text-lg font-bold text-emerald-600 tabular-nums dark:text-emerald-400">{rupiah(hasil.total)}</span>
+        <span className="font-mono text-lg font-bold text-primary tabular-nums">{rupiah(hasil.total)}</span>
       </p>
       {pertama ? (
         <button

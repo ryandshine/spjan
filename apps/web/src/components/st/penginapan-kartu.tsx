@@ -237,7 +237,7 @@ export function PenginapanEtapeKartu({
                   <span
                     className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       jmlFullboard > 0
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                        ? 'bg-accent text-accent-foreground'
                         : 'bg-slate-200/80 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
                     }`}
                     aria-live="polite"
@@ -271,7 +271,7 @@ export function PenginapanEtapeKartu({
                           onClick={() => toggleFullboard(tgl, !isChecked)}
                           className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
                             isChecked
-                              ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700'
+                              ? 'border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/90'
                               : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
                           }`}
                         >
