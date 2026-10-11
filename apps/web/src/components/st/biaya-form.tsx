@@ -5,6 +5,7 @@ import {
   jenisButuhEtape,
   jenisButuhProvinsi,
   jenisButuhUraian,
+  norm,
   tarifTerminal,
   type BarisBiaya,
   type BiayaPayload,
@@ -55,7 +56,11 @@ export function BiayaBaris({
     sbm && namaProvinsiPagu && (biaya.jenis === 'TAKSI_KEDUDUKAN' || biaya.jenis === 'TAKSI_TERMINAL') ? tarifTerminal(sbm, namaProvinsiPagu) : undefined
   const tarifSbmJakarta =
     biaya.jenis === 'TRANSPORT_JAKARTA_SEKITAR' && biaya.uraian ? sbm?.transportJakarta.find((t) => t.kabKota === biaya.uraian)?.besaran : undefined
-  const pagu = tarifSbm ?? tarifSbmJakarta
+  // Transport darat ibukota ke kab/kota: pilihan kab/kota dan tarifnya dari SBM provinsi terpilih.
+  const daftarDarat = biaya.jenis === 'TRANSPORT_DARAT' && biaya.provinsi && sbm ? sbm.transportIbukota.filter((r) => r.provinsi === norm(biaya.provinsi ?? '')) : []
+  const tarifSbmDarat = biaya.uraian ? daftarDarat.find((r) => r.kabKota === biaya.uraian)?.besaran : undefined
+  const pilihDarat = daftarDarat.length > 0
+  const pagu = tarifSbm ?? tarifSbmJakarta ?? tarifSbmDarat
   const uraianLabel =
     biaya.jenis === 'TRANSPORT_DARAT' || biaya.jenis === 'TRANSPORT_JAKARTA_SEKITAR'
       ? 'Kab/kota tujuan (persis PMK)'
@@ -127,9 +132,12 @@ export function BiayaBaris({
               onChange={(e) => {
                 const pVal = e.target.value || null
                 const tarifAuto = biaya.jenis === 'TAKSI_TERMINAL' && pVal && sbm && !biaya.tarif ? tarifTerminal(sbm, pVal) : undefined
+                // Transport darat: kab/kota milik provinsi lama dilepas, tarifnya ikut direset bila masih tarif SBM-nya.
+                const daratBerganti = biaya.jenis === 'TRANSPORT_DARAT' && !!biaya.uraian && !sbm?.transportIbukota.some((r) => pVal && r.provinsi === norm(pVal) && r.kabKota === biaya.uraian)
                 onUbah({
                   provinsi: pVal,
                   ...(tarifAuto ? { tarif: tarifAuto } : {}),
+                  ...(daratBerganti ? { uraian: null, ...(tarifSbmDarat !== undefined && biaya.tarif === tarifSbmDarat ? { tarif: 0 } : {}) } : {}),
                 })
               }}
             >
@@ -160,6 +168,26 @@ export function BiayaBaris({
               {(sbm?.transportJakarta ?? []).map((t) => (
                 <option key={t.kabKota} value={t.kabKota}>
                   {t.kabKota} ({rupiah(t.besaran)})
+                </option>
+              ))}
+            </Select>
+          ) : null}
+          {pilihDarat ? (
+            <Select
+              aria-label="Kab/kota tujuan"
+              className={SEL_KECIL}
+              value={biaya.uraian ?? ''}
+              onChange={(e) => {
+                const kota = e.target.value
+                const barisSbm = daftarDarat.find((r) => r.kabKota === kota)
+                onUbah({ uraian: kota || null, ...(barisSbm ? { tarif: barisSbm.besaran } : {}) })
+              }}
+            >
+              <option value="">- pilih kab/kota -</option>
+              {biaya.uraian && !tarifSbmDarat ? <option value={biaya.uraian}>{biaya.uraian}</option> : null}
+              {daftarDarat.map((r) => (
+                <option key={r.kabKota} value={r.kabKota}>
+                  {r.kabKota} ({rupiah(r.besaran)})
                 </option>
               ))}
             </Select>
@@ -230,7 +258,7 @@ export function BiayaBaris({
             value={biaya.keterangan ?? ''}
             onChange={(e) => onUbah({ keterangan: e.target.value || null })}
           />
-          {perluUraian && biaya.jenis !== 'TRANSPORT_JAKARTA_SEKITAR' ? (
+          {perluUraian && biaya.jenis !== 'TRANSPORT_JAKARTA_SEKITAR' && !pilihDarat ? (
             <TextareaOtomatis
               aria-label={uraianLabel}
               className={TEKS_KECIL}
