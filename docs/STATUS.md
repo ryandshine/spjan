@@ -52,6 +52,12 @@ Arsitektur dan aturan hitung: `docs/superpowers/specs/2026-10-04-spjan-design.md
 - Menu "Tambah Biaya" memuat dua opsi baru; `biayaTiketPergi` digeneralisasi menjadi `biayaPerTujuan(x, jenis)`.
 - Belum: pembaca AI (`transport-ekstraksi`) belum mengenali kuitansi BBM/E-Toll; ceklis DPR tidak otomatis.
 
+## Uang harian "dalam kota > 8 jam" (belum di-commit)
+
+- Bug: menambah/mengubah biaya "Transport Jakarta ke kota sekitar" (`lib/pelaksana-ubah.ts`) menandai tujuan sebagai `dalamKota8Jam` tanpa memeriksa lama perjalanan, sehingga perjalanan 3 hari pun dihitung dengan tarif dalam kota (Rp150.000, bukan luar kota).
+- Perbaikan: mesin hitung (`hitung.ts`) hanya memakai tarif dalam kota bila perjalanannya sehari; penanda otomatis di UI juga hanya untuk perjalanan sehari; kotak centang dalam kota hanya tampil untuk perjalanan sehari. Kota asal tidak perlu ditanya: asal = kota kedudukan (Pengaturan).
+- Dampak: ST lama yang tersimpan dengan penanda ini dan lebih dari sehari kini terhitung luar kota (total naik).
+
 ## Keputusan dan alasannya
 
 - Satu orang satu akun; admin bisa semuanya; operator hanya melihat ST buatannya atau yang memuat namanya sebagai pelaksana (ST lain tersembunyi, 404), dan hanya pembuat/admin yang mengubah/mengunci/menghapus; pelaksana lain hanya lihat dan unduh. Alasan: ST orang lain bukan kepentingannya; hindari perubahan tak sengaja. Catatan: berkas yang belum tertaut ke ST (unggahan sebelum ST dibuat) belum dibatasi.

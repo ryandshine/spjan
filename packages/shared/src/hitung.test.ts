@@ -262,6 +262,24 @@ describe("hitungSpj - kasus emas", () => {
     expect(h.transport).toEqual([]);
   });
 
+  it("dalam kota > 8 jam hanya berlaku untuk perjalanan sehari; beberapa hari tetap luar kota", () => {
+    const etapeBanten = (over: Partial<EtapeInput>): EtapeInput => ({
+      provinsi: "BANTEN",
+      kota: "Kab. Tangerang",
+      kegiatan: "Rapat",
+      berangkat: "2026-10-12",
+      pulang: "2026-10-12",
+      dalamKota8Jam: true,
+      ...over,
+    });
+    const hitungBanten = (e: EtapeInput) => hitungSpj(spj([{ ...riandi, etape: [e], biaya: [] }]), SBM_2026).pelaksana[0]!;
+    const sehari = hitungBanten(etapeBanten({}));
+    expect(sehari.uangHarian[0]?.keterangan).toMatch(/^Dalam kota \(> 8 jam\)/);
+    const tigaHari = hitungBanten(etapeBanten({ pulang: "2026-10-14" }));
+    expect(tigaHari.uangHarian[0]?.keterangan).toMatch(/^Lumpsum/);
+    expect(tigaHari.uangHarian[0]?.tarif).toBeGreaterThan(sehari.uangHarian[0]?.tarif ?? 0);
+  });
+
   it("total SPTB menjumlahkan semua pelaksana", () => {
     const hasil = hitungSpj(spj([resa, resa]), SBM_2026);
     expect(hasil.total).toBe(13_931_958);

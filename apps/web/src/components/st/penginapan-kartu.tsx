@@ -58,8 +58,8 @@ export function PenginapanEtapeKartu({
   const provNorm = norm(etape.provinsi)
   const tarifLuarKota = sbm?.uangHarian[provNorm]?.luarKota
   const tarifDalamKota = sbm?.uangHarian[provNorm]?.dalamKota8Jam
-  // Opsi dalam kota hanya relevan untuk perjalanan 1 hari atau tujuan Jabodetabek; selain itu disembunyikan agar form tidak membingungkan.
-  const tampilDalamKota = (etape.dalamKota8Jam ?? false) || hari === 1 || isKotaJabodetabek(etape.kota)
+  // Opsi dalam kota (> 8 jam) hanya untuk perjalanan sehari; beberapa hari selalu luar kota, jadi opsinya disembunyikan.
+  const tampilDalamKota = hari === 1
   const catatanOtomatis = (etape.dalamKota8Jam ?? false) && hari === 1 && isKotaJabodetabek(etape.kota)
 
   const tglAwal = parseTanggal(etape.berangkat)

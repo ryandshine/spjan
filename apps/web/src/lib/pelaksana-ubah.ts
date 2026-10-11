@@ -48,9 +48,10 @@ export function ubahBiaya(x: PelaksanaPayload, i: number, patch: Partial<BiayaPa
     const target = etape[idx]
     if (target) {
       const patchE: Partial<EtapePayload> = {}
-      if (!target.dalamKota8Jam) {
+      // Dalam kota > 8 jam hanya untuk perjalanan sehari; beberapa hari tetap luar kota.
+      if (!target.dalamKota8Jam && ringkasEtape(target).hari === 1) {
         patchE.dalamKota8Jam = true
-        if (ringkasEtape(target).hari === 1) patchE.malamOverride = 0
+        patchE.malamOverride = 0
       }
       if (baru.uraian) {
         if (!target.kota || isKotaJabodetabek(target.kota)) patchE.kota = baru.uraian
@@ -80,9 +81,8 @@ export function tambahTransportJakartaSekitar(x: PelaksanaPayload, sbm: Sbm): Pe
   const cocok = cocokkanKotaJakartaSekitar(x.etape[0]?.kota, sbm.transportJakarta)
   let etape = x.etape
   const pertama = etape[0]
-  if (pertama && !pertama.dalamKota8Jam) {
-    const { hari } = ringkasEtape(pertama)
-    etape = etape.map((e, j) => (j === 0 ? { ...e, dalamKota8Jam: true, ...(hari === 1 ? { malamOverride: 0 } : {}) } : e))
+  if (pertama && !pertama.dalamKota8Jam && ringkasEtape(pertama).hari === 1) {
+    etape = etape.map((e, j) => (j === 0 ? { ...e, dalamKota8Jam: true, malamOverride: 0 } : e))
   }
 
   const baru: BiayaPayload = {

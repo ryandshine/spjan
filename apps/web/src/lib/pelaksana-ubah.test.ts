@@ -45,6 +45,16 @@ describe('ubahBiaya', () => {
     expect(hasil.biaya[0]?.uraian).toBe('Kota Bogor')
   })
 
+  it('transport Jakarta-sekitarnya tidak menandai dalam kota bila perjalanan beberapa hari', () => {
+    const p = pelaksana({
+      etape: [{ ...etapeKosong(), berangkat: '2026-10-12', pulang: '2026-10-14' }],
+      biaya: [biayaKosong('TRANSPORT_JAKARTA_SEKITAR')],
+    })
+    const hasil = ubahBiaya(p, 0, { uraian: 'Kab. Tangerang' })
+    expect(hasil.etape[0]?.dalamKota8Jam).toBeFalsy()
+    expect(hasil.etape[0]?.malamOverride ?? null).toBeNull()
+  })
+
   it('biaya jenis lain tidak menyentuh tujuan', () => {
     const p = pelaksana({ biaya: [biayaKosong('LAINNYA')] })
     const hasil = ubahBiaya(p, 0, { uraian: 'Parkir' })
@@ -53,6 +63,11 @@ describe('ubahBiaya', () => {
 })
 
 describe('tambahTransportJakartaSekitar', () => {
+  it('tidak menandai dalam kota bila perjalanan beberapa hari', () => {
+    const p = pelaksana({ etape: [{ ...etapeKosong(), berangkat: '2026-10-12', pulang: '2026-10-14' }] })
+    expect(tambahTransportJakartaSekitar(p, sbm).etape[0]?.dalamKota8Jam).toBeFalsy()
+  })
+
   it('menambah satu baris biaya PP dan menandai tujuan pertama dalam kota', () => {
     const hasil = tambahTransportJakartaSekitar(pelaksana(), sbm)
     expect(hasil.biaya).toHaveLength(1)
