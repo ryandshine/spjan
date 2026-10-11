@@ -20,23 +20,25 @@ import {
 import { PageHeader } from '@/components/page-header'
 import { LaporanEditor } from '@/components/laporan/laporan-editor'
 import { AksiHeaderSt, PeringatanBelumSimpan } from '@/components/st/aksi-header-st'
-import { BannerPeriksa } from '@/components/st/banner-periksa'
-import { BarBawahSt } from '@/components/st/bar-bawah-st'
 import { BuktiPanel } from '@/components/st/bukti-panel'
 import { DialogKonfirmasiPassword } from '@/components/dialog-konfirmasi-password'
 import { DialogKunciSt, DialogNoSpd, DialogTinggalkanHalaman } from '@/components/st/dialog-editor-st'
 import { FotoDokumentasiPanel } from '@/components/st/foto-dokumentasi-panel'
 import { KartuDataSt } from '@/components/st/kartu-data-st'
 import { KartuPejabatSt } from '@/components/st/kartu-pejabat-st'
+import { KelompokIsian } from '@/components/st/kelompok-isian'
+import { LangkahSt, type LangkahItem } from '@/components/st/langkah-st'
+import { RingkasanRingkas, RingkasanSt } from '@/components/st/ringkasan-st'
 import { TabPelaksanaSt } from '@/components/st/tab-pelaksana-st'
 import { UsulanHotelPanel } from '@/components/st/usulan-hotel-panel'
 import { UsulanTransportPanel } from '@/components/st/usulan-transport-panel'
-import { LockOpenIcon } from 'lucide-react'
+import { ArrowLeftIcon, ArrowRightIcon, LockOpenIcon } from 'lucide-react'
 
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { TabPanel, Tabs, type TabItem } from '@/components/ui/tabs'
 import { pesanGalat } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import {
   useHapusSuratTugas,
   useKunciSuratTugas,
@@ -58,11 +60,12 @@ import {
   tambahBiayaKePelaksana,
   terapkanHotelKeEtape,
 } from '@/lib/st-editor'
-import { lompatKeIsian } from '@/lib/periksa'
+import { bagianUntukSasaran, lompatKeIsian, type BagianPelaksana } from '@/lib/periksa'
 import { usePenjagaPerubahan } from '@/lib/use-penjaga-perubahan'
 import { pesanValidasi, petaGalat } from '@/lib/validasi'
 
 type TabKunci = 'data' | 'pelaksana' | 'bukti' | 'laporan'
+type SubBukti = 'bukti' | 'hotel' | 'transport' | 'foto'
 
 /** Kunci stabil per kartu pelaksana agar state lokal kartu tidak bergeser ke kartu lain saat ada yang dihapus. */
 let urutanKunciPelaksana = 0
@@ -109,6 +112,9 @@ function Editor({
   const [cobaSimpan, setCobaSimpan] = useState(false)
   const [tab, setTab] = useState<TabKunci>(id !== null && awal.pelaksana.length > 0 ? 'pelaksana' : 'data')
   const [dialogSpd, setDialogSpd] = useState(false)
+  const [pelaksanaAktif, setPelaksanaAktif] = useState(0)
+  const [bagianPelaksana, setBagianPelaksana] = useState<BagianPelaksana>('perjalanan')
+  const [subBukti, setSubBukti] = useState<SubBukti>('bukti')
   const alertRef = useRef<HTMLDivElement>(null)
   const kotor = stTerserialisasi !== baseline
   const { blocker, izinkanNavigasi } = usePenjagaPerubahan(kotor)
@@ -136,10 +142,13 @@ function Editor({
   const tambahPelaksana = () => {
     setSt((s) => ({ ...s, pelaksana: [...s.pelaksana, pelaksanaKosong()] }))
     setKunciPelaksana((k) => [...k, kunciPelaksanaBaru()])
+    setPelaksanaAktif(st.pelaksana.length)
+    setBagianPelaksana('perjalanan')
   }
   const hapusPelaksana = (i: number) => {
     setSt((s) => ({ ...s, pelaksana: s.pelaksana.filter((_, j) => j !== i) }))
     setKunciPelaksana((k) => k.filter((_, j) => j !== i))
+    setPelaksanaAktif((a) => Math.max(0, i < a ? a - 1 : Math.min(a, st.pelaksana.length - 2)))
   }
 
   /** Menerapkan usulan ke form lalu langsung menyimpannya; kegagalan simpan dilempar ke panel pemanggil untuk ditampilkan. */
@@ -161,6 +170,11 @@ function Editor({
       setGalat([])
       // Pindah ke tab yang berisi isian bermasalah, karena kolom merahnya tidak terlihat di tab lain.
       setTab(cek.error.issues.some((i) => i.path[0] !== 'pelaksana') ? 'data' : 'pelaksana')
+      const galatPelaksana = cek.error.issues.find((i) => i.path[0] === 'pelaksana' && typeof i.path[1] === 'number')
+      if (galatPelaksana) {
+        setPelaksanaAktif(Number(galatPelaksana.path[1]))
+        setBagianPelaksana('perjalanan')
+      }
       toast.error('Ada isian yang belum benar. Lihat kolom bertanda merah.')
       window.setTimeout(() => alertRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
       return
@@ -218,39 +232,54 @@ function Editor({
     terapkanNoSpd(angkaAwal, sufiks)
   }
 
-  const itemTab: TabItem<TabKunci>[] = [
-    { kunci: 'data', label: 'Data surat tugas', galat: galatTab.data },
-    { kunci: 'pelaksana', label: 'Pelaksana', jumlah: st.pelaksana.length, galat: galatTab.pelaksana },
+  const adaPerlu = hasil.pelaksana.some((p) => p.peringatan.length > 0)
+  const langkah: LangkahItem<TabKunci>[] = [
+    { kunci: 'data', label: 'Data surat tugas', deskripsi: 'Identitas & anggaran', galat: galatTab.data },
+    { kunci: 'pelaksana', label: 'Pelaksana', deskripsi: 'Personel, perjalanan, biaya', jumlah: st.pelaksana.length, galat: galatTab.pelaksana, perlu: adaPerlu },
   ]
-  if (id !== null) itemTab.push({ kunci: 'bukti', label: 'Bukti & usulan' }, { kunci: 'laporan', label: 'Laporan' })
+  if (id !== null) langkah.push({ kunci: 'bukti', label: 'Bukti & usulan', deskripsi: 'Lampiran dan usulan biaya' }, { kunci: 'laporan', label: 'Laporan', deskripsi: 'Laporan perjalanan dinas' })
 
   const modeLaporan = tab === 'laporan' && id !== null
+  const posisiLangkah = langkah.findIndex((l) => l.kunci === tab)
+  const sebelumnya = langkah[posisiLangkah - 1]
+  const berikutnya = langkah[posisiLangkah + 1]
 
-  // Isian pelaksana ada di tab Pelaksana: buka tabnya dulu supaya elemen terlihat sebelum difokuskan.
+  // Isian pelaksana ada di langkah Pelaksana: buka langkah, pelaksana, dan sub-tabnya dulu supaya elemen terlihat sebelum difokuskan.
   const perbaikiIsian = (sasaranId: string, nomorPelaksana: number) => {
     setTab('pelaksana')
-    window.setTimeout(() => lompatKeIsian(sasaranId, nomorPelaksana), 60)
+    setPelaksanaAktif(nomorPelaksana - 1)
+    setBagianPelaksana(bagianUntukSasaran(sasaranId))
+    window.setTimeout(() => lompatKeIsian(sasaranId), 60)
   }
 
   let aksiHeader: ReactNode = null
   if (!modeLaporan) {
-    if (id !== null && bolehUbah) {
-      aksiHeader = (
-        <AksiHeaderSt
-          terkunci={dikunci}
-          bisaKunci={!kotor}
-          onHapus={() => setDialogHapus(true)}
-          onKunci={() => setDialogKunci('kunci')}
-          onBukaKunci={() => setDialogKunci('buka')}
-        />
-      )
-    }
+    aksiHeader = (
+      <AksiHeaderSt
+        id={id}
+        kotor={kotor}
+        menyimpan={simpan.isPending}
+        dikunci={dikunci}
+        bolehUbah={bolehUbah}
+        onSimpan={kirim}
+        onHapus={() => setDialogHapus(true)}
+        onKunci={() => setDialogKunci('kunci')}
+        onBukaKunci={() => setDialogKunci('buka')}
+      />
+    )
   } else if (kotor) {
     aksiHeader = <PeringatanBelumSimpan menyimpan={simpan.isPending} onSimpan={kirim} />
   }
 
+  const itemSubBukti: TabItem<SubBukti>[] = [
+    { kunci: 'bukti', label: 'Bukti' },
+    { kunci: 'hotel', label: 'Usulan hotel' },
+    { kunci: 'transport', label: 'Usulan transport' },
+    { kunci: 'foto', label: 'Foto dokumentasi' },
+  ]
+
   return (
-    <div className={modeLaporan ? undefined : 'pb-32'}>
+    <div>
       <PageHeader
         lengket={!modeLaporan}
         title={id === null ? 'Surat tugas baru' : st.nomor || 'Surat tugas'}
@@ -284,63 +313,94 @@ function Editor({
         </div>
       ) : null}
 
-      {modeLaporan ? null : <BannerPeriksa hasil={hasil} onPerbaiki={perbaikiIsian} />}
+      <div className={cn('grid items-start gap-6 lg:grid-cols-[13rem_minmax(0,1fr)]', !modeLaporan && 'xl:grid-cols-[13rem_minmax(0,1fr)_18rem]')}>
+        <LangkahSt item={langkah} aktif={tab} onPilih={setTab} idAwal="st" label="Langkah surat tugas" />
 
-      <Tabs item={itemTab} aktif={tab} onPilih={setTab} idAwal="st" label="Bagian surat tugas" />
+        <div className="min-w-0">
+          {modeLaporan ? null : (
+            <div className="xl:hidden">
+              <RingkasanRingkas hasil={hasil} onPerbaiki={perbaikiIsian} />
+            </div>
+          )}
 
-      <fieldset disabled={terkunci} className={`m-0 border-0 p-0 ${modeLaporan ? 'min-w-0' : 'min-w-0 max-w-6xl'}`}>
-        <TabPanel idAwal="st" kunci="data" aktif={tab === 'data'}>
-          <div className="grid gap-6">
-            <KartuDataSt st={st} peta={peta} pengaturan={pengaturan} onUbah={ubahSt} onUbahSumberDana={ubahSumberDana} />
-            <KartuPejabatSt st={st} pengaturan={pengaturan} pegawai={daftarPegawai} onUbah={ubahSt} />
-          </div>
-        </TabPanel>
-
-        {id !== null ? (
-          <>
-            <TabPanel idAwal="st" kunci="bukti" aktif={tab === 'bukti'}>
+          <TabPanel idAwal="st" kunci="data" aktif={tab === 'data'}>
+            <KelompokIsian terkunci={terkunci}>
               <div className="grid gap-6">
-                <BuktiPanel stId={id} />
-                <UsulanHotelPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanHotel} />
-                <UsulanTransportPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanTransport} />
-                <FotoDokumentasiPanel stId={id} />
+                <KartuDataSt st={st} peta={peta} pengaturan={pengaturan} onUbah={ubahSt} onUbahSumberDana={ubahSumberDana} />
+                <KartuPejabatSt st={st} pengaturan={pengaturan} pegawai={daftarPegawai} onUbah={ubahSt} />
               </div>
-            </TabPanel>
-            <TabPanel idAwal="st" kunci="laporan" aktif={tab === 'laporan'}>
-              <LaporanEditor stId={id} terkunci={terkunci} />
-            </TabPanel>
-          </>
-        ) : null}
+            </KelompokIsian>
+          </TabPanel>
 
-        <TabPanel idAwal="st" kunci="pelaksana" aktif={tab === 'pelaksana'}>
-          <TabPelaksanaSt
-            pelaksana={st.pelaksana}
-            kunci={kunciPelaksana}
-            hasil={hasil.pelaksana}
-            sbm={sbm}
-            pegawai={daftarPegawai}
-            provinsi={provinsi}
-            provinsiKedudukan={pengaturan.provinsiKedudukan}
-            peta={peta}
-            onUbah={ubahPelaksana}
-            onHapus={hapusPelaksana}
-            onTambah={tambahPelaksana}
-            onAutoIsiNoSpd={autoIsiNoSpd}
-          />
-        </TabPanel>
-      </fieldset>
+          {id !== null ? (
+            <>
+              <TabPanel idAwal="st" kunci="bukti" aktif={tab === 'bukti'}>
+                <Tabs gaya="segmen" item={itemSubBukti} aktif={subBukti} onPilih={setSubBukti} idAwal="st-bukti" label="Bagian bukti dan usulan" />
+                <KelompokIsian terkunci={terkunci}>
+                  <TabPanel idAwal="st-bukti" kunci="bukti" aktif={subBukti === 'bukti'}>
+                    <BuktiPanel stId={id} />
+                  </TabPanel>
+                  <TabPanel idAwal="st-bukti" kunci="hotel" aktif={subBukti === 'hotel'}>
+                    <UsulanHotelPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanHotel} />
+                  </TabPanel>
+                  <TabPanel idAwal="st-bukti" kunci="transport" aktif={subBukti === 'transport'}>
+                    <UsulanTransportPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanTransport} />
+                  </TabPanel>
+                  <TabPanel idAwal="st-bukti" kunci="foto" aktif={subBukti === 'foto'}>
+                    <FotoDokumentasiPanel stId={id} />
+                  </TabPanel>
+                </KelompokIsian>
+              </TabPanel>
+              <TabPanel idAwal="st" kunci="laporan" aktif={tab === 'laporan'}>
+                <LaporanEditor stId={id} terkunci={terkunci} />
+              </TabPanel>
+            </>
+          ) : null}
 
-      {modeLaporan ? null : (
-        <BarBawahSt
-          id={id} hasil={hasil} kotor={kotor} menyimpan={simpan.isPending} onSimpan={kirim}
-          terkunci={terkunci}
-          bisaBukaKunci={dikunci && bolehUbah}
-          bisaKunci={bolehUbah}
-          onPerbaiki={perbaikiIsian}
-          onKunci={() => setDialogKunci('kunci')}
-          onBukaKunci={() => setDialogKunci('buka')}
-        />
-      )}
+          <TabPanel idAwal="st" kunci="pelaksana" aktif={tab === 'pelaksana'}>
+            <TabPelaksanaSt
+              pelaksana={st.pelaksana}
+              kunci={kunciPelaksana}
+              hasil={hasil.pelaksana}
+              sbm={sbm}
+              pegawai={daftarPegawai}
+              provinsi={provinsi}
+              provinsiKedudukan={pengaturan.provinsiKedudukan}
+              peta={peta}
+              terkunci={terkunci}
+              aktif={pelaksanaAktif}
+              bagian={bagianPelaksana}
+              onPilih={setPelaksanaAktif}
+              onBagian={setBagianPelaksana}
+              onUbah={ubahPelaksana}
+              onHapus={hapusPelaksana}
+              onTambah={tambahPelaksana}
+              onAutoIsiNoSpd={autoIsiNoSpd}
+            />
+          </TabPanel>
+
+          <div className="mt-6 flex items-center justify-between gap-3">
+            {sebelumnya ? (
+              <Button variant="outline" onClick={() => setTab(sebelumnya.kunci)}>
+                <ArrowLeftIcon /> Kembali
+              </Button>
+            ) : (
+              <span />
+            )}
+            {berikutnya && !modeLaporan ? (
+              <Button onClick={() => setTab(berikutnya.kunci)}>
+                Lanjut ke {berikutnya.label} <ArrowRightIcon />
+              </Button>
+            ) : null}
+          </div>
+        </div>
+
+        {modeLaporan ? null : (
+          <aside className="hidden xl:sticky xl:top-24 xl:block">
+            <RingkasanSt hasil={hasil} status={{ dikunci, bolehUbah, kotor }} onPerbaiki={perbaikiIsian} />
+          </aside>
+        )}
+      </div>
 
       <DialogNoSpd
         buka={dialogSpd}

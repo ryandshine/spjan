@@ -20,22 +20,26 @@ export function sasaranPeringatan(w: Peringatan, nomorPelaksana: number): string
   }
 }
 
-/** Menggulir ke isian, memberinya fokus, dan menyorotnya sebentar; membuka kartu pelaksana bila sedang dilipat. */
-export function lompatKeIsian(sasaranId: string, nomorPelaksana: number): void {
-  const cari = () => document.getElementById(sasaranId)
+/** Bagian pelaksana (sub-tab) yang memuat isian: tarif hotel ada di Penginapan, sisanya di Perjalanan. */
+export type BagianPelaksana = 'perjalanan' | 'penginapan' | 'biaya'
+export function bagianUntukSasaran(sasaranId: string): BagianPelaksana {
+  return sasaranId.endsWith('-tarif') ? 'penginapan' : 'perjalanan'
+}
+
+/** Menggulir ke isian, memberinya fokus, dan menyorotnya sebentar; mencoba sekali lagi bila panelnya baru saja dibuka. */
+export function lompatKeIsian(sasaranId: string): void {
   const sorot = (el: HTMLElement) => {
     el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     el.focus({ preventScroll: true })
     el.classList.add('ring-2', 'ring-warning', 'ring-offset-2')
     window.setTimeout(() => el.classList.remove('ring-2', 'ring-warning', 'ring-offset-2'), 2200)
   }
-  const el = cari()
+  const el = document.getElementById(sasaranId)
   if (el) return sorot(el)
-  document.getElementById(`pel-${nomorPelaksana}-toggle`)?.click()
   window.setTimeout(() => {
-    const lagi = cari()
+    const lagi = document.getElementById(sasaranId)
     if (lagi) sorot(lagi)
-  }, 80)
+  }, 120)
 }
 
 /** Berpindah ke isian yang bermasalah (id elemen, nomor pelaksana mulai dari 1). */

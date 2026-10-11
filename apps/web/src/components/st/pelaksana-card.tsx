@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDownIcon, PlusIcon, Trash2Icon, UserPlusIcon } from 'lucide-react'
+import { PlusIcon, Trash2Icon, UserPlusIcon } from 'lucide-react'
 import {
   STATUS_KODE,
   STATUS_LABEL,
@@ -26,6 +26,7 @@ import {
 import { FormPegawai } from '@/components/pegawai-form'
 import { BiayaBaris, KartuUangHarian } from '@/components/st/biaya-form'
 import { BlokForm } from '@/components/st/blok-form'
+import { KelompokIsian } from '@/components/st/kelompok-isian'
 import { PenginapanEtapeKartu } from '@/components/st/penginapan-kartu'
 import { EtapeForm } from '@/components/st/etape-form'
 import { Badge } from '@/components/ui/badge'
@@ -38,14 +39,17 @@ import { InputTanggal } from '@/components/ui/input-tanggal'
 import { MenuAksi } from '@/components/ui/menu-aksi'
 import { TextareaOtomatis } from '@/components/ui/textarea-otomatis'
 import { Select } from '@/components/ui/select'
+import { TabPanel, Tabs, type TabItem } from '@/components/ui/tabs'
 import { rupiah } from '@/lib/format'
 import { tanggalPanjang } from '@/lib/format'
-import { cn } from '@/lib/utils'
+import type { BagianPelaksana } from '@/lib/periksa'
 import { cakupanGalat, type PetaGalat } from '@/lib/validasi'
 
 export function PelaksanaCard({
   nomor,
-  banyak = false,
+  bagian,
+  onBagian,
+  terkunci = false,
   p,
   hasil,
   sbm,
@@ -57,8 +61,11 @@ export function PelaksanaCard({
   onHapus,
 }: {
   nomor: number
-  /** Ada lebih dari satu pelaksana: tampilkan total per pelaksana (total keseluruhan ada di bar bawah). */
-  banyak?: boolean
+  /** Sub-tab yang sedang dibuka; dipegang pemanggil supaya "perlu dilengkapi" bisa membukanya. */
+  bagian: BagianPelaksana
+  onBagian: (bagian: BagianPelaksana) => void
+  /** Surat tugas terkunci: isian tidak bisa diubah, tetapi semua sub-tab tetap bisa dibuka. */
+  terkunci?: boolean
   p: PelaksanaPayload
   hasil: PelaksanaHasil | undefined
   sbm: Sbm
@@ -72,11 +79,7 @@ export function PelaksanaCard({
 }) {
   const [dialogPegawai, setDialogPegawai] = useState(false)
   const [dialogHapus, setDialogHapus] = useState(false)
-  // Surat tugas dengan banyak pelaksana: hanya yang pertama (atau yang masih kosong) terbuka agar halaman tidak panjang.
-  const [bukaManual, setBuka] = useState(nomor === 1 || !p.nama)
-  // Kartu yang berisi isian bermasalah selalu terbuka supaya kolom merahnya terlihat.
   const adaGalat = !!galat && Object.keys(galat).length > 0
-  const buka = bukaManual || adaGalat
   const id = (k: string) => `pel-${nomor}-${k}`
   const cfg = p.status ? sbm.statusKonfigurasi[p.status] : undefined
   const indeks = indeksBarisTransport(p.biaya)
@@ -228,268 +231,280 @@ export function PelaksanaCard({
   }
 
   const jumlahPeringatan = hasil?.peringatan.length ?? 0
+  const itemBagian: TabItem<BagianPelaksana>[] = [
+    { kunci: 'perjalanan', label: 'Perjalanan', galat: adaGalat },
+    { kunci: 'penginapan', label: 'Penginapan' },
+    { kunci: 'biaya', label: 'Biaya' },
+  ]
   // Kartu yang belum diisi apa pun dihapus langsung; yang sudah berisi minta konfirmasi karena hapusnya tidak bisa dibatalkan.
   const masihKosong = !p.nama && !p.nip && p.biaya.length === 0 && p.etape.every((e) => !e.kota && !e.kegiatan && !e.berangkat)
   const peringatanKode = (kode: string) => hasil?.peringatan.find((w) => w.kode === kode && w.etape === undefined)?.pesan
 
   return (
     <Card>
-      <CardHeader className={cn('flex-row items-center justify-between gap-2', !buka && 'pb-5')}>
-        <button
-          type="button"
-          onClick={() => setBuka(!bukaManual)}
-          aria-expanded={buka}
-          id={id('toggle')}
-          aria-controls={id('isi')}
-          className="flex min-w-0 flex-1 items-start gap-2 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-        >
-          <ChevronDownIcon className={cn('mt-1 size-4 shrink-0 text-muted-foreground transition-transform', !buka && '-rotate-90')} />
-          <CardTitle className="min-w-0 [overflow-wrap:anywhere]">
-            Pelaksana {nomor}
-            {p.nama ? <span className="ml-2 font-normal text-muted-foreground">{p.nama}</span> : null}
-          </CardTitle>
-        </button>
-        {!buka && hasil ? (
-          <div className="flex shrink-0 items-center gap-2">
-            {jumlahPeringatan > 0 ? <Badge variant="warning">{jumlahPeringatan} perlu diperiksa</Badge> : <Badge variant="success">Lengkap</Badge>}
-            <span className="text-sm font-medium tabular-nums">{rupiah(hasil.total)}</span>
-          </div>
-        ) : null}
-        <MenuAksi
-          label={`Atur pelaksana ${nomor}`}
-          item={[{ label: 'Hapus pelaksana', ikon: <Trash2Icon className="size-4" />, bahaya: true, onPilih: () => (masihKosong ? onHapus() : setDialogHapus(true)) }]}
-        />
+      <CardHeader className="flex-row items-center justify-between gap-2">
+        <CardTitle className="min-w-0 [overflow-wrap:anywhere]">
+          Pelaksana {nomor}
+          {p.nama ? <span className="ml-2 font-normal text-muted-foreground">{p.nama}</span> : null}
+        </CardTitle>
+        <div className="flex shrink-0 items-center gap-2">
+          {hasil ? (
+            <>
+              {jumlahPeringatan > 0 ? <Badge variant="warning">{jumlahPeringatan} perlu diperiksa</Badge> : <Badge variant="success">Lengkap</Badge>}
+              <span className="text-sm font-medium tabular-nums" title={hasil.terbilang}>
+                {rupiah(hasil.total)}
+              </span>
+            </>
+          ) : null}
+          {terkunci ? null : (
+            <MenuAksi
+              label={`Atur pelaksana ${nomor}`}
+              item={[{ label: 'Hapus pelaksana', ikon: <Trash2Icon className="size-4" />, bahaya: true, onPilih: () => (masihKosong ? onHapus() : setDialogHapus(true)) }]}
+            />
+          )}
+        </div>
       </CardHeader>
-      {buka ? (
-        <CardContent id={id('isi')} className="grid gap-5">
-          <BlokForm judul="Identitas Pelaksana">
-            <Field label="Pilih dari daftar pegawai" htmlFor={id('pil')}>
-              <div className="flex">
-                <Select
-                  id={id('pil')}
-                  className="relative rounded-r-none focus-visible:z-10"
-                  value={p.pegawaiId ?? ''}
-                  onChange={(e) => {
-                    const dto = pegawai.find((g) => g.id === Number(e.target.value))
-                    if (dto) onUbah((x) => pelaksanaDariPegawai(x, dto))
-                    else onUbah((x) => ({ ...x, pegawaiId: null }))
-                  }}
-                >
-                  <option value="">- ketik manual di bawah -</option>
-                  {pegawai.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.nama}
-                    </option>
-                  ))}
-                </Select>
-                <Button variant="outline" className="-ml-px rounded-l-none" onClick={() => setDialogPegawai(true)}>
-                  <UserPlusIcon /> Pegawai baru
-                </Button>
-              </div>
-            </Field>
-            <div className="grid items-start gap-x-4 gap-y-3 sm:grid-cols-2">
-              <Field label="Nama (dengan gelar)" htmlFor={id('nama')} error={galat?.nama} mode="wajib">
-                <Input id={id('nama')} value={p.nama} onChange={(e) => onUbah((x) => ({ ...x, nama: e.target.value }))} />
-              </Field>
-              <Field label="NIP" htmlFor={id('nip')} error={galat?.nip} warning={peringatanKode('NIP_KOSONG')} mode="wajib">
-                <Input id={id('nip')} inputMode="numeric" value={p.nip} onChange={(e) => onUbah((x) => ({ ...x, nip: e.target.value }))} />
-              </Field>
-              <Field label="Jabatan" htmlFor={id('jab')} error={galat?.jabatan} mode="opsional">
-                <TextareaOtomatis id={id('jab')} value={p.jabatan} onChange={(e) => onUbah((x) => ({ ...x, jabatan: e.target.value }))} />
-              </Field>
-              <Field
-                label="Instansi"
-                htmlFor={id('instansi')}
-                error={galat?.instansi}
-                mode="otomatis"
-                otomatisAktif={!p.instansi || p.instansi === INSTANSI_BAWAAN}
-                onKembaliOtomatis={() => onUbah((x) => ({ ...x, instansi: INSTANSI_BAWAAN }))}
-              >
-                <TextareaOtomatis id={id('instansi')} value={p.instansi ?? ''} onChange={(e) => onUbah((x) => ({ ...x, instansi: e.target.value }))} />
-              </Field>
-              <Field label="Pangkat / golongan" htmlFor={id('pangkat')} error={galat?.pangkatGolongan} mode="opsional" hint="Mis. Penata Muda - III/a atau Ahli Pertama - IX.">
-                <TextareaOtomatis id={id('pangkat')} value={p.pangkatGolongan ?? ''} onChange={(e) => onUbah((x) => ({ ...x, pangkatGolongan: e.target.value }))} />
-              </Field>
-              <Field label="Status (kelompok SBM)" htmlFor={id('status')} error={galat?.status} warning={peringatanKode('STATUS_PEGAWAI_KOSONG')} mode="wajib">
-                <Select
-                  id={id('status')}
-                  value={p.status ?? ''}
-                  onChange={(e) => onUbah((x) => ({ ...x, status: (e.target.value || null) as StatusKode | null }))}
-                >
-                  <option value="">- belum dipilih -</option>
-                  {STATUS_KODE.map((k) => (
-                    <option key={k} value={k}>
-                      {STATUS_LABEL[k]}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="No. SPD" htmlFor={id('spd')} warning={peringatanKode('NO_SPD_KOSONG')} mode="wajib">
-                <Input
-                  id={id('spd')}
-                  placeholder="contoh: 401/SPD/PPS/2026"
-                  value={p.noSpd ?? ''}
-                  onChange={(e) => onUbah((x) => ({ ...x, noSpd: e.target.value || null }))}
-                />
-              </Field>
-              <Field
-                label="Tanggal SPD"
-                htmlFor={id('tgl-spd')}
-                mode="otomatis"
-                otomatisAktif={!p.tanggalSpd}
-                onKembaliOtomatis={() => onUbah((x) => ({ ...x, tanggalSpd: null }))}
-                hint={tanggalPanjang(p.tanggalSpd) || 'Otomatis: sama dengan tanggal surat tugas.'}
-              >
-                <InputTanggal id={id('tgl-spd')} label="Tanggal SPD" nilai={p.tanggalSpd} onUbah={(iso) => onUbah((x) => ({ ...x, tanggalSpd: iso }))} />
-              </Field>
-            </div>
-          </BlokForm>
-
-          <BlokForm judul="Tujuan Perjalanan">
-            {p.etape.map((e, i) => (
-              <EtapeForm
-                key={i}
-                idAwal={`${nomor}-${i + 1}`}
-                nomor={i + 1}
-                etape={e}
-                provinsi={provinsi}
-                sbm={sbm}
-                peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
-                galat={cakupanGalat(galat, `etape.${i}`)}
-                bisaHapus={p.etape.length > 1}
-                onUbah={(patch) => ubahEtape(i, patch)}
-                onHapus={() =>
-                  onUbah((x) => ({
-                    ...x,
-                    etape: x.etape.filter((_, j) => j !== i),
-                    biaya: x.biaya.map((b) => (b.etapeIndex != null && b.etapeIndex >= i ? { ...b, etapeIndex: b.etapeIndex === i ? null : b.etapeIndex - 1 } : b)),
-                  }))
-                }
-              />
-            ))}
-            <div>
-              <Button variant="outline" size="sm" onClick={() => onUbah((x) => ({ ...x, etape: [...x.etape, etapeKosong()] }))}>
-                <PlusIcon /> Tambah tujuan (kota lain)
-              </Button>
-            </div>
-          </BlokForm>
-
-          <BlokForm judul="Transportasi">
-            <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-              <table className="w-full min-w-[56rem] table-fixed border-collapse text-sm">
-                <colgroup>
-                  <col className="min-w-[240px]" />
-                  <col className="w-16" />
-                  <col className="w-36" />
-                  <col className="w-36" />
-                  <col className="min-w-[200px]" />
-                  <col className="w-12" />
-                  <col className="w-12" />
-                </colgroup>
-                <thead className="bg-slate-50 text-xs text-slate-600 dark:bg-slate-900/40 dark:text-slate-400">
-                  <tr className="text-left [&>th]:px-2 [&>th]:py-2 [&>th]:font-medium">
-                    <th scope="col">Komponen Biaya &amp; Provinsi</th>
-                    <th scope="col" className="text-center">
-                      Qty
-                    </th>
-                    <th scope="col">Tarif Satuan (Rp)</th>
-                    <th scope="col" className="text-right">
-                      Subtotal
-                    </th>
-                    <th scope="col">Keterangan / No. Tiket</th>
-                    <th scope="col" className="text-center" title="Tanpa kuitansi resmi (DPR)">
-                      DPR
-                    </th>
-                    <th scope="col">
-                      <span className="sr-only">Aksi</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {p.biaya.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-3 py-4 text-center text-sm text-slate-600 dark:text-slate-400">
-                        Belum ada biaya.
-                      </td>
-                    </tr>
-                  ) : null}
-                  {p.biaya.map((b, i) => (
-                    <BiayaBaris
-                      key={i}
-                      biaya={b}
-                      etapeJumlah={p.etape.length}
-                      etapeLabel={(k) => `Tujuan ${k + 1}${p.etape[k]?.kota ? ` - ${p.etape[k]?.kota}` : ''}`}
-                      provinsi={provinsi}
-                      provinsiKedudukan={provinsiKedudukan}
-                      baris={indeks[i] != null ? hasil?.transport[indeks[i] as number] : null}
-                      sbm={sbm}
-                      onUbah={(patch) => ubahBiaya(i, patch)}
-                      onHapus={() => onUbah((x) => ({ ...x, biaya: x.biaya.filter((_, j) => j !== i) }))}
+      <CardContent id={id('isi')} className="grid gap-5">
+        <Tabs gaya="segmen" item={itemBagian} aktif={bagian} onPilih={onBagian} idAwal={`pel-${nomor}-bagian`} label={`Bagian pelaksana ${nomor}`} />
+        <TabPanel idAwal={`pel-${nomor}-bagian`} kunci="perjalanan" aktif={bagian === 'perjalanan'}>
+          <KelompokIsian terkunci={terkunci}>
+            <div className="grid gap-5">
+              <BlokForm judul="Identitas Pelaksana">
+                <Field label="Pilih dari daftar pegawai" htmlFor={id('pil')}>
+                  <div className="flex">
+                    <Select
+                      id={id('pil')}
+                      className="relative rounded-r-none focus-visible:z-10"
+                      value={p.pegawaiId ?? ''}
+                      onChange={(e) => {
+                        const dto = pegawai.find((g) => g.id === Number(e.target.value))
+                        if (dto) onUbah((x) => pelaksanaDariPegawai(x, dto))
+                        else onUbah((x) => ({ ...x, pegawaiId: null }))
+                      }}
+                    >
+                      <option value="">- ketik manual di bawah -</option>
+                      {pegawai.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.nama}
+                        </option>
+                      ))}
+                    </Select>
+                    <Button variant="outline" className="-ml-px rounded-l-none" onClick={() => setDialogPegawai(true)}>
+                      <UserPlusIcon /> Pegawai baru
+                    </Button>
+                  </div>
+                </Field>
+                <div className="grid items-start gap-x-4 gap-y-3 sm:grid-cols-2">
+                  <Field label="Nama (dengan gelar)" htmlFor={id('nama')} error={galat?.nama} mode="wajib">
+                    <Input id={id('nama')} value={p.nama} onChange={(e) => onUbah((x) => ({ ...x, nama: e.target.value }))} />
+                  </Field>
+                  <Field label="NIP" htmlFor={id('nip')} error={galat?.nip} warning={peringatanKode('NIP_KOSONG')} mode="wajib">
+                    <Input id={id('nip')} inputMode="numeric" value={p.nip} onChange={(e) => onUbah((x) => ({ ...x, nip: e.target.value }))} />
+                  </Field>
+                  <Field label="Jabatan" htmlFor={id('jab')} error={galat?.jabatan} mode="opsional">
+                    <TextareaOtomatis id={id('jab')} value={p.jabatan} onChange={(e) => onUbah((x) => ({ ...x, jabatan: e.target.value }))} />
+                  </Field>
+                  <Field
+                    label="Instansi"
+                    htmlFor={id('instansi')}
+                    error={galat?.instansi}
+                    mode="otomatis"
+                    otomatisAktif={!p.instansi || p.instansi === INSTANSI_BAWAAN}
+                    onKembaliOtomatis={() => onUbah((x) => ({ ...x, instansi: INSTANSI_BAWAAN }))}
+                  >
+                    <TextareaOtomatis id={id('instansi')} value={p.instansi ?? ''} onChange={(e) => onUbah((x) => ({ ...x, instansi: e.target.value }))} />
+                  </Field>
+                  <Field label="Pangkat / golongan" htmlFor={id('pangkat')} error={galat?.pangkatGolongan} mode="opsional" hint="Mis. Penata Muda - III/a atau Ahli Pertama - IX.">
+                    <TextareaOtomatis id={id('pangkat')} value={p.pangkatGolongan ?? ''} onChange={(e) => onUbah((x) => ({ ...x, pangkatGolongan: e.target.value }))} />
+                  </Field>
+                  <Field label="Status (kelompok SBM)" htmlFor={id('status')} error={galat?.status} warning={peringatanKode('STATUS_PEGAWAI_KOSONG')} mode="wajib">
+                    <Select
+                      id={id('status')}
+                      value={p.status ?? ''}
+                      onChange={(e) => onUbah((x) => ({ ...x, status: (e.target.value || null) as StatusKode | null }))}
+                    >
+                      <option value="">- belum dipilih -</option>
+                      {STATUS_KODE.map((k) => (
+                        <option key={k} value={k}>
+                          {STATUS_LABEL[k]}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label="No. SPD" htmlFor={id('spd')} warning={peringatanKode('NO_SPD_KOSONG')} mode="wajib">
+                    <Input
+                      id={id('spd')}
+                      placeholder="contoh: 401/SPD/PPS/2026"
+                      value={p.noSpd ?? ''}
+                      onChange={(e) => onUbah((x) => ({ ...x, noSpd: e.target.value || null }))}
                     />
-                  ))}
-                </tbody>
-              </table>
+                  </Field>
+                  <Field
+                    label="Tanggal SPD"
+                    htmlFor={id('tgl-spd')}
+                    mode="otomatis"
+                    otomatisAktif={!p.tanggalSpd}
+                    onKembaliOtomatis={() => onUbah((x) => ({ ...x, tanggalSpd: null }))}
+                    hint={tanggalPanjang(p.tanggalSpd) || 'Otomatis: sama dengan tanggal surat tugas.'}
+                  >
+                    <InputTanggal id={id('tgl-spd')} label="Tanggal SPD" nilai={p.tanggalSpd} onUbah={(iso) => onUbah((x) => ({ ...x, tanggalSpd: iso }))} />
+                  </Field>
+                </div>
+              </BlokForm>
+
+              <BlokForm judul="Tujuan Perjalanan">
+                {p.etape.map((e, i) => (
+                  <EtapeForm
+                    key={i}
+                    idAwal={`${nomor}-${i + 1}`}
+                    nomor={i + 1}
+                    etape={e}
+                    provinsi={provinsi}
+                    sbm={sbm}
+                    peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
+                    galat={cakupanGalat(galat, `etape.${i}`)}
+                    bisaHapus={p.etape.length > 1}
+                    onUbah={(patch) => ubahEtape(i, patch)}
+                    onHapus={() =>
+                      onUbah((x) => ({
+                        ...x,
+                        etape: x.etape.filter((_, j) => j !== i),
+                        biaya: x.biaya.map((b) => (b.etapeIndex != null && b.etapeIndex >= i ? { ...b, etapeIndex: b.etapeIndex === i ? null : b.etapeIndex - 1 } : b)),
+                      }))
+                    }
+                  />
+                ))}
+                <div>
+                  <Button variant="outline" size="sm" onClick={() => onUbah((x) => ({ ...x, etape: [...x.etape, etapeKosong()] }))}>
+                    <PlusIcon /> Tambah tujuan (kota lain)
+                  </Button>
+                </div>
+              </BlokForm>
+
             </div>
-            <div className="mt-3 flex items-center justify-between">
-              <MenuAksi
-                label="Tambah biaya"
-                teks="Tambah Biaya"
-                item={[
-                  { label: 'Tiket Pergi', onPilih: () => tambahDariMenu('TIKET_PERGI') },
-                  { label: 'Tiket Kembali', onPilih: () => tambahDariMenu('TIKET_KEMBALI') },
-                  { label: 'Taksi Asal (tempat kedudukan - bandara)', onPilih: () => tambahDariMenu('TAKSI_KEDUDUKAN') },
-                  { label: 'Taksi Tujuan (bandara - kota tujuan)', onPilih: () => tambahDariMenu('TAKSI_TERMINAL') },
-                  { label: 'Transport Jakarta - sekitarnya (PP)', onPilih: () => tambahDariMenu('TRANSPORT_JAKARTA_SEKITAR') },
-                  { label: 'Biaya Riil Lainnya', onPilih: () => tambahDariMenu('LAINNYA') },
-                ]}
-              />
-              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                Subtotal Transportasi: <span className="font-mono tabular-nums">{rupiah(hasil?.totalTransport ?? 0)}</span>
-              </p>
+          </KelompokIsian>
+        </TabPanel>
+
+        <TabPanel idAwal={`pel-${nomor}-bagian`} kunci="biaya" aktif={bagian === 'biaya'}>
+          <KelompokIsian terkunci={terkunci}>
+            <div className="grid gap-5">
+              <BlokForm judul="Transportasi">
+                <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                  <table className="w-full min-w-[56rem] table-fixed border-collapse text-sm">
+                    <colgroup>
+                      <col className="min-w-[240px]" />
+                      <col className="w-16" />
+                      <col className="w-36" />
+                      <col className="w-36" />
+                      <col className="min-w-[200px]" />
+                      <col className="w-12" />
+                      <col className="w-12" />
+                    </colgroup>
+                    <thead className="bg-slate-50 text-xs text-slate-600 dark:bg-slate-900/40 dark:text-slate-400">
+                      <tr className="text-left [&>th]:px-2 [&>th]:py-2 [&>th]:font-medium">
+                        <th scope="col">Komponen Biaya &amp; Provinsi</th>
+                        <th scope="col" className="text-center">
+                          Qty
+                        </th>
+                        <th scope="col">Tarif Satuan (Rp)</th>
+                        <th scope="col" className="text-right">
+                          Subtotal
+                        </th>
+                        <th scope="col">Keterangan / No. Tiket</th>
+                        <th scope="col" className="text-center" title="Tanpa kuitansi resmi (DPR)">
+                          DPR
+                        </th>
+                        <th scope="col">
+                          <span className="sr-only">Aksi</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {p.biaya.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-3 py-4 text-center text-sm text-slate-600 dark:text-slate-400">
+                            Belum ada biaya.
+                          </td>
+                        </tr>
+                      ) : null}
+                      {p.biaya.map((b, i) => (
+                        <BiayaBaris
+                          key={i}
+                          biaya={b}
+                          etapeJumlah={p.etape.length}
+                          etapeLabel={(k) => `Tujuan ${k + 1}${p.etape[k]?.kota ? ` - ${p.etape[k]?.kota}` : ''}`}
+                          provinsi={provinsi}
+                          provinsiKedudukan={provinsiKedudukan}
+                          baris={indeks[i] != null ? hasil?.transport[indeks[i] as number] : null}
+                          sbm={sbm}
+                          onUbah={(patch) => ubahBiaya(i, patch)}
+                          onHapus={() => onUbah((x) => ({ ...x, biaya: x.biaya.filter((_, j) => j !== i) }))}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <MenuAksi
+                    label="Tambah biaya"
+                    teks="Tambah Biaya"
+                    item={[
+                      { label: 'Tiket Pergi', onPilih: () => tambahDariMenu('TIKET_PERGI') },
+                      { label: 'Tiket Kembali', onPilih: () => tambahDariMenu('TIKET_KEMBALI') },
+                      { label: 'Taksi Asal (tempat kedudukan - bandara)', onPilih: () => tambahDariMenu('TAKSI_KEDUDUKAN') },
+                      { label: 'Taksi Tujuan (bandara - kota tujuan)', onPilih: () => tambahDariMenu('TAKSI_TERMINAL') },
+                      { label: 'Transport Jakarta - sekitarnya (PP)', onPilih: () => tambahDariMenu('TRANSPORT_JAKARTA_SEKITAR') },
+                      { label: 'Biaya Riil Lainnya', onPilih: () => tambahDariMenu('LAINNYA') },
+                    ]}
+                  />
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    Subtotal Transportasi: <span className="font-mono tabular-nums">{rupiah(hasil?.totalTransport ?? 0)}</span>
+                  </p>
+                </div>
+              </BlokForm>
+
+              {hasil && (hasil.uangHarian.length > 0 || hasil.representasi.length > 0) ? (
+                <BlokForm judul="Uang Harian">
+                  <KartuUangHarian uangHarian={hasil.uangHarian} representasi={hasil.representasi} total={hasil.totalUangHarian + hasil.totalRepresentasi} />
+                </BlokForm>
+              ) : null}
+
             </div>
-          </BlokForm>
+          </KelompokIsian>
+        </TabPanel>
 
-          {hasil && (hasil.uangHarian.length > 0 || hasil.representasi.length > 0) ? (
-            <BlokForm judul="Uang Harian">
-              <KartuUangHarian uangHarian={hasil.uangHarian} representasi={hasil.representasi} total={hasil.totalUangHarian + hasil.totalRepresentasi} />
-            </BlokForm>
-          ) : null}
+        <TabPanel idAwal={`pel-${nomor}-bagian`} kunci="penginapan" aktif={bagian === 'penginapan'}>
+          <KelompokIsian terkunci={terkunci}>
+            <div className="grid gap-5">
+              <BlokForm judul="Penginapan">
+                {p.etape.map((e, i) => (
+                  <PenginapanEtapeKartu
+                    key={i}
+                    idAwal={`${nomor}-${i + 1}`}
+                    nomor={i + 1}
+                    etape={e}
+                    bolehRepresentasi={(cfg?.barisRepresentasi ?? 0) > 0}
+                    batasHotel={batasHotel(e)}
+                    sbm={sbm}
+                    peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
+                    onUbah={(patch) => ubahEtape(i, patch)}
+                  />
+                ))}
+              </BlokForm>
+            </div>
+          </KelompokIsian>
+        </TabPanel>
 
-          <BlokForm judul="Penginapan">
-            {p.etape.map((e, i) => (
-              <PenginapanEtapeKartu
-                key={i}
-                idAwal={`${nomor}-${i + 1}`}
-                nomor={i + 1}
-                etape={e}
-                bolehRepresentasi={(cfg?.barisRepresentasi ?? 0) > 0}
-                batasHotel={batasHotel(e)}
-                sbm={sbm}
-                peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
-                onUbah={(patch) => ubahEtape(i, patch)}
-              />
-            ))}
-          </BlokForm>
-
-          {hasil && (banyak || hasil.catatan.length > 0) ? (
-            <section aria-label="Catatan hitungan pelaksana" className="grid gap-2 rounded-lg bg-muted/40 px-4 py-3">
-              {banyak ? (
-                <p className="flex items-baseline justify-between gap-2 text-sm font-semibold tabular-nums" title={hasil.terbilang}>
-                  <span>Total pelaksana {nomor}</span>
-                  <span>{rupiah(hasil.total)}</span>
-                </p>
-              ) : null}
-              {hasil.catatan.length > 0 ? (
-                <ul className="grid gap-0.5 text-xs leading-snug text-muted-foreground">
-                  {hasil.catatan.map((c, i) => (
-                    <li key={i}>{c}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </section>
-          ) : null}
-        </CardContent>
-      ) : null}
+        {hasil && hasil.catatan.length > 0 ? (
+          <section aria-label="Catatan hitungan pelaksana" className="rounded-lg bg-muted/40 px-4 py-3">
+            <ul className="grid gap-0.5 text-xs leading-snug text-muted-foreground">
+              {hasil.catatan.map((c, i) => (
+                <li key={i}>{c}</li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+      </CardContent>
 
       <Dialog open={dialogHapus} onOpenChange={setDialogHapus}>
         <DialogContent>

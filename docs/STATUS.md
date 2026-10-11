@@ -1,7 +1,7 @@
 # Status SPJAN
 
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
-Terakhir diperbarui: 2026-10-10 (commit terakhir `0e1a71e`).
+Terakhir diperbarui: 2026-10-11 (commit terakhir `dd38a9f`; ada perubahan layout editor ST yang belum di-commit).
 
 ## Tujuan
 
@@ -16,6 +16,18 @@ Arsitektur dan aturan hitung: `docs/superpowers/specs/2026-10-04-spjan-design.md
 - Multi-pengguna: peran admin/operator, konfirmasi password, log audit, tempat sampah.
 - Akun pengguna dibuat dari data pegawai (username = NIP).
 - Tes terakhir lulus: api 143, web 30, shared 119.
+
+## Sedang dikerjakan (belum di-commit)
+
+- Layout baru halaman editor ST (`/st/:id`), berdasarkan desain Figma `zKfnzgtXa9TYsFRrfvj4v3` (4 layar):
+  navigasi langkah di kiri (`langkah-st.tsx`), panel Ringkasan di kanan (`ringkasan-st.tsx`, menggantikan `BarBawahSt` dan `BannerPeriksa` yang dihapus),
+  aksi simpan/dokumen/tandai selesai pindah ke header (`aksi-header-st.tsx`), tombol Kembali/Lanjut di bawah tiap langkah.
+- Langkah Data: dua kartu (Identitas surat, Anggaran) + Pejabat (terlipat). Langkah Pelaksana: daftar pelaksana + satu pelaksana terbuka dengan sub-tab Perjalanan/Penginapan/Biaya
+  (Perjalanan = identitas + tujuan; Biaya = transportasi + uang harian). Langkah Bukti & usulan: sub-tab Bukti/Usulan hotel/Usulan transport/Foto dokumentasi.
+- Pengunciannya dipindah dari satu `<fieldset disabled>` ke `KelompokIsian` per panel, supaya tombol navigasi tetap hidup pada ST terkunci.
+- Beda dengan mockup Figma: mockup memuat isian "Dasar penugasan", "Tujuan & waktu", "Provinsi" di langkah 1 yang tidak ada di model data (tujuan dan tanggal ada per pelaksana di sub-tab Perjalanan).
+  Daftar pelaksana berupa baris di layar < 1536px karena sidebar aplikasi sudah memakai lebar; kolom di layar lebih lebar.
+- Lulus tsc, eslint, build. **Belum dilihat di peramban**; periksa tampilan dan alur (simpan, tandai selesai, buka kunci, "perlu dilengkapi" menuju isian, ST terkunci) sebelum commit.
 
 ## Keputusan dan alasannya
 
