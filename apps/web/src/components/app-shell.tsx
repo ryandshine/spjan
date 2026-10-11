@@ -11,11 +11,11 @@ import { cn } from '@/lib/utils'
 const NAV = [
   { to: '/', label: 'Surat Tugas', end: true },
   { to: '/pegawai', label: 'Pegawai', end: false },
-  { to: '/pengaturan', label: 'Pengaturan', end: false },
   { to: '/sbm', label: 'Tabel SBM', end: false },
 ]
 
 const NAV_ADMIN = [
+  { to: '/pengaturan', label: 'Pengaturan', end: false },
   { to: '/pengguna', label: 'Pengguna', end: false },
   { to: '/sampah', label: 'Tempat Sampah', end: false },
   { to: '/audit', label: 'Log Audit', end: false },

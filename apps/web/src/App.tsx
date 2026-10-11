@@ -45,7 +45,7 @@ export default function App() {
             }
           />
           <Route path="pegawai" element={<PegawaiPage />} />
-          <Route path="pengaturan" element={<PengaturanPage />} />
+          <Route path="pengaturan" element={<WajibAdmin><PengaturanPage /></WajibAdmin>} />
           <Route path="sbm" element={<SbmPage />} />
           <Route path="pengguna" element={<WajibAdmin><PenggunaPage /></WajibAdmin>} />
           <Route path="sampah" element={<WajibAdmin><SampahPage /></WajibAdmin>} />

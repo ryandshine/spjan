@@ -11,7 +11,7 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { pesanGalat } from '@/lib/format'
-import { useMe, usePengaturan, useSbm, useSimpanPengaturan, useVersiSbm } from '@/lib/queries'
+import { usePengaturan, useSbm, useSimpanPengaturan, useVersiSbm } from '@/lib/queries'
 
 type Galat = Partial<Record<keyof PengaturanPayload, string>>
 
@@ -26,7 +26,7 @@ function Bagian({ judul, children }: { judul: string; children: ReactNode }) {
   )
 }
 
-function FormPengaturan({ awal, admin }: { awal: PengaturanPayload; admin: boolean }) {
+function FormPengaturan({ awal }: { awal: PengaturanPayload }) {
   const simpanMut = useSimpanPengaturan()
   const versi = useVersiSbm()
   const sbm = useSbm(versi.data?.[0]?.id)
@@ -78,11 +78,9 @@ function FormPengaturan({ awal, admin }: { awal: PengaturanPayload; admin: boole
         lengket
         title="Pengaturan"
         description="Data satuan kerja, pejabat, dan model pembaca dokumen yang dipakai di semua surat tugas."
-        actions={admin ? tombolSimpan('hidden md:inline-flex') : null}
+        actions={tombolSimpan('hidden md:inline-flex')}
       />
-      {admin ? null : <Alert className="mb-5">Hanya admin yang dapat mengubah pengaturan. Anda bisa melihatnya saja.</Alert>}
-      <fieldset disabled={!admin} className="m-0 min-w-0 border-0 p-0">
-        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
           <form id="form-pengaturan" onSubmit={simpan} className="grid gap-6">
             {galatServer ? <Alert variant="destructive">{galatServer}</Alert> : null}
             <Bagian judul="Satuan kerja">
@@ -128,21 +126,19 @@ function FormPengaturan({ awal, admin }: { awal: PengaturanPayload; admin: boole
                 )}
               </Field>
             </Bagian>
-            {admin ? <div className="md:hidden">{tombolSimpan()}</div> : null}
+            <div className="md:hidden">{tombolSimpan()}</div>
           </form>
-          <div className="xl:sticky xl:top-24">
-            <ModelAiCard />
-          </div>
+        <div className="xl:sticky xl:top-24">
+          <ModelAiCard />
         </div>
-      </fieldset>
+      </div>
     </div>
   )
 }
 
 export default function PengaturanPage() {
   const data = usePengaturan()
-  const me = useMe()
-  if (data.data) return <FormPengaturan awal={data.data} admin={me.data?.peran === 'admin'} />
+  if (data.data) return <FormPengaturan awal={data.data} />
   return (
     <div>
       <PageHeader title="Pengaturan" />
