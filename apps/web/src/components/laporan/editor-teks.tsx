@@ -28,7 +28,6 @@ import type { Dok } from '@spjan/shared'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
 import { api } from '@/lib/api'
 import { pesanGalat } from '@/lib/format'
 import { kompresGambar } from '@/lib/gambar'
@@ -103,7 +102,6 @@ function Toolbar({ editor, stId }: { editor: Editor; stId: number }) {
   const [mengunggah, setMengunggah] = useState(false)
   const c = editor.chain().focus()
   const dalamTabel = editor.isActive('table')
-  const blok = editor.isActive('heading') ? 'heading' : 'paragraph'
 
   function bukaTautan() {
     setTautan((editor.getAttributes('link').href as string | undefined) ?? 'https://')
@@ -151,16 +149,6 @@ function Toolbar({ editor, stId }: { editor: Editor; stId: number }) {
       <div className="flex flex-wrap items-center gap-0.5 p-1.5" role="toolbar" aria-label="Format teks">
         <Tombol label="Urungkan" onClick={() => c.undo().run()} disabled={!editor.can().undo()}><UndoIcon className="size-4" /></Tombol>
         <Tombol label="Ulangi" onClick={() => c.redo().run()} disabled={!editor.can().redo()}><RedoIcon className="size-4" /></Tombol>
-        <Pemisah />
-        <Select
-          className="h-8 w-32"
-          aria-label="Gaya paragraf"
-          value={blok}
-          onChange={(e) => (e.target.value === 'heading' ? c.setHeading({ level: 3 }).run() : c.setParagraph().run())}
-        >
-          <option value="paragraph">Paragraf</option>
-          <option value="heading">Subjudul</option>
-        </Select>
         <Pemisah />
         <Tombol label="Tebal" aktif={editor.isActive('bold')} onClick={() => c.toggleBold().run()}><BoldIcon className="size-4" /></Tombol>
         <Tombol label="Miring" aktif={editor.isActive('italic')} onClick={() => c.toggleItalic().run()}><ItalicIcon className="size-4" /></Tombol>
