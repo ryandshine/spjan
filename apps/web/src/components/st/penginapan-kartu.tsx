@@ -95,6 +95,25 @@ export function PenginapanEtapeKartu({
     if (!aktif) onUbah({ fullboardDates: [] })
   }
 
+  const tanpaUangHarianAktif = (etape.tanpaUangHarianDates ?? []).filter((t) => listHari.includes(t))
+  const jmlTanpaUangHarian = tanpaUangHarianAktif.length
+
+  const [bukaTanpaUangHarianManual, setBukaTanpaUangHarianManual] = useState<boolean | null>(null)
+  const bukaTanpaUangHarian = bukaTanpaUangHarianManual ?? (etape.tanpaUangHarianDates ?? []).length > 0
+
+  const toggleTanpaUangHarian = (tgl: string, checked: boolean) => {
+    const prev = new Set(etape.tanpaUangHarianDates ?? [])
+    if (checked) prev.add(tgl)
+    else prev.delete(tgl)
+    onUbah({ tanpaUangHarianDates: Array.from(prev).sort() })
+  }
+  const pilihSemuaTanpaUangHarian = () => onUbah({ tanpaUangHarianDates: [...listHari].sort() })
+  const kosongkanTanpaUangHarian = () => onUbah({ tanpaUangHarianDates: [] })
+  const handleToggleTanpaUangHarianSection = (aktif: boolean) => {
+    setBukaTanpaUangHarianManual(aktif)
+    if (!aktif) onUbah({ tanpaUangHarianDates: [] })
+  }
+
   const semuaFullboard = bukaFullboard && jmlFullboard > 0 && jmlFullboard === listHari.length
   const defaultMalam = hari ? (semuaFullboard ? 0 : Math.max(hari - 1, 0)) : 0
   const isManualMalam = etape.malamOverride != null
@@ -288,7 +307,7 @@ export function PenginapanEtapeKartu({
 
       <div className="grid gap-3 border-t pt-4">
         <div className="grid gap-3">
-          <h5 className="text-sm font-semibold text-muted-foreground">Opsi Tambahan (Paket Rapat)</h5>
+          <h5 className="text-sm font-semibold text-muted-foreground">Opsi Tambahan (Paket Rapat &amp; Uang Harian)</h5>
 
           {tampilDalamKota ? (
             <div className="grid gap-1">
@@ -422,6 +441,98 @@ export function PenginapanEtapeKartu({
                       <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> Belum ada tanggal yang dipilih. Klik tombol tanggal di atas untuk menandai hari kegiatan rapat.
                     </p>
                   )}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {listHari.length > 0 ? (
+            <div className="grid gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="flex cursor-pointer items-center gap-2.5 text-sm select-none">
+                  <input
+                    type="checkbox"
+                    checked={bukaTanpaUangHarian}
+                    onChange={(e) => handleToggleTanpaUangHarianSection(e.target.checked)}
+                    className="size-4 rounded border-border text-primary focus:ring-primary"
+                  />
+                  <span className="font-semibold text-foreground">
+                    Uang harian (lumpsum) ditanggung pihak lain
+                  </span>
+                </label>
+                {bukaTanpaUangHarian ? (
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      jmlTanpaUangHarian > 0
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                    aria-live="polite"
+                  >
+                    {jmlTanpaUangHarian} dari {listHari.length} hari dinonaktifkan
+                  </span>
+                ) : null}
+              </div>
+
+              {bukaTanpaUangHarian ? (
+                <div className="grid gap-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-medium text-foreground">Pilih tanggal yang uang hariannya dibayarkan pihak lain (Rp0):</p>
+                    <div className="flex items-center gap-3">
+                      <button type="button" className="text-xs text-primary hover:underline" onClick={pilihSemuaTanpaUangHarian}>
+                        Pilih semua
+                      </button>
+                      <button type="button" className="text-xs text-primary hover:underline" onClick={kosongkanTanpaUangHarian}>
+                        Kosongkan
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {listHari.map((tgl) => {
+                      const isDitanggung = tanpaUangHarianAktif.includes(tgl)
+                      return (
+                        <button
+                          key={tgl}
+                          type="button"
+                          aria-pressed={isDitanggung}
+                          onClick={() => toggleTanpaUangHarian(tgl, !isDitanggung)}
+                          className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                            isDitanggung
+                              ? 'border-amber-400 bg-amber-50 text-amber-900 shadow-sm hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-200'
+                              : 'border-input bg-card text-foreground hover:bg-accent'
+                          }`}
+                        >
+                          {isDitanggung ? <CheckIcon className="size-3.5 stroke-[3] text-amber-600 dark:text-amber-400" aria-hidden /> : null}
+                          {labelTanggal(tgl)}
+                          {isDitanggung ? <span className="ml-1 text-[10px] font-normal opacity-80">(Pihak lain)</span> : null}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {jmlTanpaUangHarian > 0 ? (
+                    <div className="grid gap-2">
+                      <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <InfoIcon className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+                        <span>
+                          <strong>{jmlTanpaUangHarian} hari</strong> uang harian ditanggung pihak lain (Rp0, tidak dibebankan ke SPJ).{' '}
+                          {listHari.length - jmlTanpaUangHarian > 0 ? (
+                            <>
+                              Sisa <strong>{listHari.length - jmlTanpaUangHarian} hari</strong> tetap dibayarkan kantor.
+                            </>
+                          ) : (
+                            <>Seluruh uang harian ditiadakan.</>
+                          )}
+                        </span>
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="mt-0.5 flex items-start gap-1.5 text-xs font-medium text-warning-foreground">
+                      <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> Belum ada tanggal yang dipilih. Klik tombol tanggal di atas untuk menandai hari yang ditanggung pihak lain.
+                    </p>
+                  )}
+                  <DasarAturan judul="Uang harian ditanggung pihak lain">
+                    <p>PMK 113/PMK.05/2012: Dalam hal komponen biaya perjalanan dinas (termasuk uang harian) telah ditanggung oleh pihak lain/penyelenggara, biaya tersebut tidak dibebankan lagi pada DIPA pengirim guna menghindari pembayaran ganda (double-funding).</p>
+                  </DasarAturan>
                 </div>
               ) : null}
             </div>

@@ -174,6 +174,7 @@ export function petakanStKeUsulan(
         fullboardDates: [],
         hotel30Persen: false,
         dalamKota8Jam: dalamKota,
+        tanpaUangHarianDates: [],
       };
     });
 

@@ -318,9 +318,15 @@ export function PelaksanaCard({
                 </div>
               </BlokForm>
 
-              {hasil && (hasil.uangHarian.length > 0 || hasil.representasi.length > 0) ? (
+              {hasil && (hasil.uangHarian.length > 0 || hasil.representasi.length > 0 || p.etape.some((e) => (e.tanpaUangHarianDates ?? []).length > 0)) ? (
                 <BlokForm judul="Uang Harian">
-                  <KartuUangHarian uangHarian={hasil.uangHarian} representasi={hasil.representasi} total={hasil.totalUangHarian + hasil.totalRepresentasi} />
+                  <KartuUangHarian
+                    uangHarian={hasil.uangHarian}
+                    representasi={hasil.representasi}
+                    total={hasil.totalUangHarian + hasil.totalRepresentasi}
+                    tanpaUangHarianJumlah={p.etape.reduce((sum, e) => sum + (e.tanpaUangHarianDates ?? []).length, 0)}
+                    onBukaPenginapan={() => onBagian('penginapan')}
+                  />
                 </BlokForm>
               ) : null}
 

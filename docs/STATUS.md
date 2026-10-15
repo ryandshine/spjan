@@ -1,7 +1,7 @@
 # Status SPJAN
 
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
-Terakhir diperbarui: 2026-10-11 (commit terakhir `f6abceb`; navigasi langkah dipindah ke sidebar, belum di-commit).
+Terakhir diperbarui: 2026-10-15 (fitur uang harian ditanggung pihak lain selesai dibuat, belum di-commit).
 
 ## Tujuan
 
@@ -57,6 +57,13 @@ Arsitektur dan aturan hitung: `docs/superpowers/specs/2026-10-04-spjan-design.md
 - Bug: menambah/mengubah biaya "Transport Jakarta ke kota sekitar" (`lib/pelaksana-ubah.ts`) menandai tujuan sebagai `dalamKota8Jam` tanpa memeriksa lama perjalanan, sehingga perjalanan 3 hari pun dihitung dengan tarif dalam kota (Rp150.000, bukan luar kota).
 - Perbaikan: mesin hitung (`hitung.ts`) hanya memakai tarif dalam kota bila perjalanannya sehari; penanda otomatis di UI juga hanya untuk perjalanan sehari; kotak centang dalam kota hanya tampil untuk perjalanan sehari. Kota asal tidak perlu ditanya: asal = kota kedudukan (Pengaturan).
 - Dampak: ST lama yang tersimpan dengan penanda ini dan lebih dari sehari kini terhitung luar kota (total naik).
+
+## Uang harian ditanggung pihak lain (belum di-commit)
+
+- Fitur untuk menonaktifkan uang harian (lumpsum) pada tanggal-tanggal tertentu yang telah dibayarkan oleh pihak lain / panitia (agar tidak terjadi pembayaran ganda sesuai PMK 113/2012).
+- Data model: kolom `tanpa_uang_harian_dates text[]` pada tabel `etape` (migrasi `1791126000020_etape_tanpa_uang_harian.sql`), `tanpaUangHarianDates: string[]` pada `EtapeInput` dan `EtapePayload`.
+- Perhitungan: tanggal dalam `tanpaUangHarianDates` dikeluarkan dari perhitungan lumpsum/uang saku, keterangan tanggal di rincian biaya hanya mencantumkan tanggal yang dibayarkan kantor, dan dicatat di `catatan` pelaksana. Bila seluruh hari dinonaktifkan, uang harian menjadi Rp0.
+- UI: Pemilih tanggal interaktif di kartu Penginapan (Opsi Tambahan) dengan opsi pilih semua/reset, badge jumlah hari pihak lain di `EtapeForm`, serta ringkasan informatif pada kartu Uang Harian di sub-tab Biaya.
 
 ## Keputusan dan alasannya
 

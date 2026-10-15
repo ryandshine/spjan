@@ -33,6 +33,7 @@ export function etapeKosong(): EtapePayload {
     fullboardDates: [],
     hotel30Persen: false,
     dalamKota8Jam: false,
+    tanpaUangHarianDates: [],
   };
 }
 

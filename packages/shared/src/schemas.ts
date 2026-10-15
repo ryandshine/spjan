@@ -22,6 +22,7 @@ export const EtapePayloadSchema = z.object({
   fullboardDates: z.array(tanggalWajib).optional(),
   hotel30Persen: z.boolean().nullish(),
   dalamKota8Jam: z.boolean().nullish(),
+  tanpaUangHarianDates: z.array(tanggalWajib).optional(),
 });
 
 export const BiayaPayloadSchema = z.object({

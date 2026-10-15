@@ -562,6 +562,87 @@ describe("hitungSpj - paket pertemuan / fullboard", () => {
     expect(h.peringatan.some((w) => w.kode === "TARIF_HOTEL_KOSONG")).toBe(false);
   });
 
+  describe("tanpaUangHarianDates (Uang harian ditanggung pihak lain)", () => {
+    it("mengecualikan tanggal yang uang hariannya ditanggung pihak lain dan menyesuaikan tanggal di keterangan", () => {
+      const p: PelaksanaInput = {
+        ...riandi,
+        etape: [
+          {
+            provinsi: "D.I. YOGYAKARTA",
+            kota: "Yogyakarta",
+            kegiatan: "Koordinasi",
+            berangkat: "2026-09-10",
+            pulang: "2026-09-13",
+            tanpaUangHarianDates: ["2026-09-11"],
+            hotelNama: "Hotel Yogya",
+            hotelTarif: 500_000,
+          },
+        ],
+      };
+      const hasil = hitungSpj(spj([p]), SBM_2026);
+      const h = hasil.pelaksana[0]!;
+
+      expect(h.uangHarian).toHaveLength(1);
+      expect(h.uangHarian[0]!).toMatchObject({
+        uraian: "selama :",
+        qty: 3,
+        satuan: "hari",
+        tarif: 420_000,
+        jumlah: 1_260_000,
+        keterangan: "Lumpsum/Prov. D.I. Yogyakarta Tanggal 10 dan 12 s.d. 13 September 2026",
+      });
+      expect(h.totalUangHarian).toBe(1_260_000);
+      expect(h.catatan).toContain("1 hari uang harian tidak dibebankan ke SPJ (ditanggung pihak lain).");
+    });
+
+    it("jika seluruh hari dinonaktifkan uang hariannya, total uang harian Rp0", () => {
+      const p: PelaksanaInput = {
+        ...riandi,
+        etape: [
+          {
+            provinsi: "D.I. YOGYAKARTA",
+            kota: "Yogyakarta",
+            kegiatan: "Kegiatan Disponsori Pihak Lain",
+            berangkat: "2026-09-10",
+            pulang: "2026-09-11",
+            tanpaUangHarianDates: ["2026-09-10", "2026-09-11"],
+            hotelNama: "Hotel Yogya",
+            hotelTarif: 500_000,
+          },
+        ],
+      };
+      const hasil = hitungSpj(spj([p]), SBM_2026);
+      const h = hasil.pelaksana[0]!;
+
+      expect(h.uangHarian).toHaveLength(0);
+      expect(h.totalUangHarian).toBe(0);
+      expect(h.catatan).toContain("2 hari uang harian tidak dibebankan ke SPJ (ditanggung pihak lain).");
+    });
+
+    it("perjalanan dalam kota 1 hari jika dinonaktifkan menghasilkan uang harian Rp0", () => {
+      const p: PelaksanaInput = {
+        ...riandi,
+        etape: [
+          {
+            provinsi: "JAWA BARAT",
+            kota: "Kota Bogor",
+            kegiatan: "Rapat di Bogor",
+            berangkat: "2026-09-10",
+            pulang: "2026-09-10",
+            dalamKota8Jam: true,
+            tanpaUangHarianDates: ["2026-09-10"],
+          },
+        ],
+      };
+      const hasil = hitungSpj(spj([p]), SBM_2026);
+      const h = hasil.pelaksana[0]!;
+
+      expect(h.uangHarian).toHaveLength(0);
+      expect(h.totalUangHarian).toBe(0);
+      expect(h.catatan).toContain("1 hari uang harian tidak dibebankan ke SPJ (ditanggung pihak lain).");
+    });
+  });
+
   describe("bersihkanKegiatanUraian & format uraian SPTB", () => {
     it("menghapus awalan 'Melaksanakan perjalanan dinas dalam rangka' agar tidak ada duplikasi", () => {
       const keg =

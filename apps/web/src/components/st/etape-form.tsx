@@ -50,6 +50,7 @@ export function EtapeForm({
   const sisaPeringatan = peringatan.filter((w) => !['TARIF_HOTEL_KOSONG', 'HOTEL_MELEBIHI_BATAS', 'TANGGAL_SALAH'].includes(w.kode))
   const id = (k: string) => `etape-${idAwal}-${k}`
   const jmlFullboard = (etape.fullboardDates ?? []).length
+  const jmlTanpaUangHarian = (etape.tanpaUangHarianDates ?? []).length
 
   return (
     <div className="grid gap-4 border-t pt-5 first:border-t-0 first:pt-0">
@@ -60,6 +61,7 @@ export function EtapeForm({
             <Badge variant="muted">
               {hari} hari / {malam} malam
               {jmlFullboard > 0 ? ` (${jmlFullboard} hari paket rapat)` : ''}
+              {jmlTanpaUangHarian > 0 ? ` (${jmlTanpaUangHarian} hari pihak lain)` : ''}
             </Badge>
           ) : null}
         </div>

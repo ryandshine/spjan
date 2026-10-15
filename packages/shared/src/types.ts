@@ -95,6 +95,8 @@ export interface EtapeInput {
   hotel30Persen?: boolean | null;
   /** Perjalanan dinas dalam kota / Jabodetabek lebih dari 8 jam (menggunakan tarif uang harian dalam kota) */
   dalamKota8Jam?: boolean | null;
+  /** Daftar tanggal (YYYY-MM-DD) di mana uang harian / lumpsum tidak dibebankan ke SPJ (ditanggung pihak lain / panitia) */
+  tanpaUangHarianDates?: string[];
 }
 
 export interface BiayaInput {

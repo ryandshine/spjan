@@ -1,4 +1,4 @@
-import { RotateCcwIcon, SparklesIcon, Trash2Icon } from 'lucide-react'
+import { CheckIcon, RotateCcwIcon, SparklesIcon, Trash2Icon } from 'lucide-react'
 import {
   JENIS_BIAYA,
   JENIS_LABEL,
@@ -308,26 +308,59 @@ function labelHarian(b: BarisBiaya): string {
 }
 
 /** Kartu ringkas uang harian (dan representasi): hasil hitung otomatis, hanya baca. */
-export function KartuUangHarian({ uangHarian, representasi, total }: { uangHarian: BarisBiaya[]; representasi: BarisBiaya[]; total: number }) {
+export function KartuUangHarian({
+  uangHarian,
+  representasi,
+  total,
+  tanpaUangHarianJumlah,
+  onBukaPenginapan,
+}: {
+  uangHarian: BarisBiaya[]
+  representasi: BarisBiaya[]
+  total: number
+  tanpaUangHarianJumlah?: number
+  onBukaPenginapan?: () => void
+}) {
   const semua = [...uangHarian, ...representasi]
   return (
-    <div className="grid gap-2">
-      <ul className="grid gap-2">
-        {semua.map((b, i) => {
-          const label = labelHarian(b)
-          return (
-            <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-              <span className="font-mono tabular-nums text-foreground">
-                {b.qty ?? 1} {b.satuan ?? 'hari'} x {rupiah(b.tarif ?? 0)} = <span className="font-semibold">{rupiah(b.jumlah)}</span>
-              </span>
-              {label ? (
-                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{label}</span>
-              ) : null}
-              <span className="basis-full text-xs text-muted-foreground">{b.keterangan}</span>
-            </li>
-          )
-        })}
-      </ul>
+    <div className="grid gap-2.5">
+      {tanpaUangHarianJumlah && tanpaUangHarianJumlah > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300/80 bg-amber-50/70 p-2 text-xs text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200">
+          <span className="flex items-center gap-1.5 font-medium">
+            <CheckIcon className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+            <span>
+              {semua.length === 0
+                ? `Seluruh uang harian (${tanpaUangHarianJumlah} hari) ditanggung pihak lain (Rp0).`
+                : `${tanpaUangHarianJumlah} hari uang harian ditanggung pihak lain (Rp0).`}
+            </span>
+          </span>
+          {onBukaPenginapan ? (
+            <button type="button" onClick={onBukaPenginapan} className="font-semibold text-primary hover:underline">
+              {semua.length === 0 ? 'Atur tanggal' : 'Ubah tanggal'}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {semua.length > 0 ? (
+        <ul className="grid gap-2">
+          {semua.map((b, i) => {
+            const label = labelHarian(b)
+            return (
+              <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                <span className="font-mono tabular-nums text-foreground">
+                  {b.qty ?? 1} {b.satuan ?? 'hari'} x {rupiah(b.tarif ?? 0)} = <span className="font-semibold">{rupiah(b.jumlah)}</span>
+                </span>
+                {label ? (
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{label}</span>
+                ) : null}
+                <span className="basis-full text-xs text-muted-foreground">{b.keterangan}</span>
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
+
       <p className="flex items-center justify-between border-t pt-2 text-sm font-semibold">
         <span>Subtotal</span>
         <span className="font-mono tabular-nums">{rupiah(total)}</span>
