@@ -104,6 +104,26 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
   const lamaHari = data.lamaHari || hitungLamaHariSt(data.tanggalMulai, data.tanggalSelesai);
   const rentangTanggal = formatRentangWaktuSt(data.tanggalMulai, data.tanggalSelesai);
 
+  // 0. Font Kop Surat (P0, P1, P2): Menggunakan font Figtree
+  for (const idx of [0, 1, 2]) {
+    const pKop = body.childNodes[idx] as Element | undefined;
+    if (pKop) {
+      const runs = pKop.getElementsByTagName("w:r");
+      for (let rIdx = 0; rIdx < runs.length; rIdx++) {
+        const r = runs[rIdx];
+        if (!r) continue;
+        const rPr = r.getElementsByTagName("w:rPr")[0];
+        if (rPr) {
+          const rFonts = rPr.getElementsByTagName("w:rFonts")[0];
+          if (rFonts) {
+            rFonts.setAttribute("w:ascii", "Figtree");
+            rFonts.setAttribute("w:hAnsi", "Figtree");
+          }
+        }
+      }
+    }
+  }
+
   // 1. Nomor Surat (P7 di body)
   const p7 = body.childNodes[7] as Element | undefined;
   if (p7) {
@@ -363,6 +383,14 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
 
   const newXml = new XMLSerializer().serializeToString(doc);
   zip.file("word/document.xml", newXml);
+
+  const fontXml = await zip.file("word/fontTable.xml")?.async("text");
+  if (fontXml && !fontXml.includes('w:name="Figtree"')) {
+    const fontEntry =
+      '<w:font w:name="Figtree"><w:panose1 w:val="020B0604020202020204"/><w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font></w:fonts>';
+    const updatedFontXml = fontXml.replace("</w:fonts>", fontEntry);
+    zip.file("word/fontTable.xml", updatedFontXml);
+  }
 
   const generatedBuffer = await zip.generateAsync({ type: "nodebuffer" });
   return generatedBuffer;

@@ -129,5 +129,8 @@ describe("generateNaskahStDocx", () => {
     // 4. Font Bookman Old Style pada isi naskah
     expect(docXml).toContain('w:ascii="Bookman Old Style"');
     expect(docXml).toContain('w:sz w:val="22"');
+
+    // 5. Font Figtree pada Kop Surat
+    expect(docXml).toContain('w:ascii="Figtree"');
   });
 });

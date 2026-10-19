@@ -700,14 +700,17 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                 alt="Logo Kementerian Kehutanan"
                 className="w-20 h-20 object-contain shrink-0"
               />
-              <div className="flex-1 text-center font-serif">
+              <div
+                className="flex-1 text-center"
+                style={{ fontFamily: "'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
+              >
                 <p className="font-bold text-[14px] tracking-wide leading-tight uppercase">
                   KEMENTERIAN KEHUTANAN
                 </p>
                 <p className="font-bold text-[13px] tracking-wide leading-tight uppercase mt-0.5">
                   DIREKTORAT JENDERAL PERHUTANAN SOSIAL
                 </p>
-                <p className="font-bold text-[15px] tracking-wide leading-tight uppercase mt-0.5">
+                <p className="font-extrabold text-[15px] tracking-wide leading-tight uppercase mt-0.5">
                   DIREKTORAT PENGENDALIAN PERHUTANAN SOSIAL
                 </p>
               </div>
