@@ -130,8 +130,8 @@ describe("generateNaskahStDocx", () => {
     expect(docXml).toContain('w:ascii="Bookman Old Style"');
     expect(docXml).toContain('w:sz w:val="22"');
 
-    // 5. Font Cambria pada Kop Surat (ST.265)
-    expect(docXml).toContain('w:ascii="Cambria"');
+    // 5. Font Figtree pada Kop Surat
+    expect(docXml).toContain('w:ascii="Figtree"');
   });
   it("membangun badan surat dengan tabel label dan butir bernomor yang rapi", async () => {
     const buffer = await generateNaskahStDocx({
@@ -183,8 +183,7 @@ describe("generateNaskahStDocx", () => {
     expect(xml).toMatch(/<w:pgMar [^>]*w:top="567"[^>]*w:right="1134"[^>]*w:bottom="1418"[^>]*w:left="1009"/);
     expect(xml).toContain('<a:ext cx="1009650" cy="1009650"/>'); // logo 2,80 cm
     expect(xml).toContain('<a:ext cx="7127875" cy="57150"/>'); // garis ganda 19,8 cm
-    expect(xml).toContain('w:ascii="Cambria"');
-    expect(xml).not.toContain("Figtree");
+    expect(xml).toContain('w:ascii="Figtree"'); // kop (Permenhut 1/2025 Pasal 56)
     expect(xml).toContain('w:ascii="Bookman Old Style"');
     expect(teks).toContain("KEMENTERIAN KEHUTANAN");
     expect(teks).toContain("DIREKTORAT PENGENDALIAN PERHUTANAN SOSIAL");

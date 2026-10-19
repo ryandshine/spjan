@@ -32,8 +32,8 @@ const GANTUNG_BUTIR = 340; // 0,6 cm: lebar nomor "1." / "a." sebelum teks
 const INDENT_TTD = 4536; // 8 cm dari margin kiri: blok tanda tangan mulai di x = 9,78 cm
 const INDENT_KOP = 1706; // teks kop mulai di kanan logo (logo berakhir di x = 4,79 cm)
 const INDENT_KOP_KANAN = -188; // teks kop boleh melewati margin kanan 0,33 cm, seperti CONTOH SPT
-const TINGGI_BARIS_KOP = 328; // 16,4 pt: baris kop 14 pt (0,58 cm)
-const TINGGI_BARIS_KOP_3 = 376; // 18,8 pt: baris kop 16 pt (0,66 cm)
+const TINGGI_BARIS_KOP = 328; // 16,4 pt: baris kop 14 pt (0,58 cm); lebar Figtree Bold 15 pt baris ketiga = 13,2 cm dari ruang 14,5 cm
+const TINGGI_BARIS_KOP_3 = 376; // 18,8 pt: baris kop ketiga 15 pt (0,66 cm)
 const SATU_BARIS = 258; // satu baris kosong Bookman 11 pt (0,455 cm)
 const JARAK_KE_JUDUL = 771; // kop selesai di y = 2,82 cm, "SURAT TUGAS" mulai di y = 4,18 cm
 const JARAK_RUANG_TTD = 774; // tiga baris untuk tanda tangan elektronik / basah
@@ -54,13 +54,13 @@ function runXml(teks: string, tebal = false): string {
   return `<w:r>${rPrXml(tebal)}<w:t xml:space="preserve">${esc(teks)}</w:t></w:r>`;
 }
 
-/** Baris kop: Cambria tebal (ST.265), rata tengah di sebelah kanan logo. */
+/** Baris kop: Figtree tebal (Permenhut 1/2025 Pasal 56 ayat 3), rata tengah di sebelah kanan logo. */
 function kopParagrafXml(teks: string, ukuranPt: number, tinggiBaris: number, rapat = 0): string {
   const ukuran = ukuranPt * 2;
   return (
     `<w:p><w:pPr><w:keepNext/><w:spacing w:before="0" w:after="0" w:line="${tinggiBaris}" w:lineRule="exact"/>` +
     `<w:ind w:left="${INDENT_KOP}" w:right="${INDENT_KOP_KANAN}"/><w:jc w:val="center"/></w:pPr>` +
-    '<w:r><w:rPr><w:rFonts w:ascii="Cambria" w:hAnsi="Cambria" w:cs="Cambria"/><w:b/>' +
+    '<w:r><w:rPr><w:rFonts w:ascii="Figtree" w:hAnsi="Figtree" w:cs="Figtree"/><w:b/>' +
     (rapat ? `<w:spacing w:val="${rapat}"/>` : "") +
     `<w:sz w:val="${ukuran}"/><w:szCs w:val="${ukuran}"/><w:lang w:val="id-ID"/></w:rPr>` +
     `<w:t xml:space="preserve">${esc(teks)}</w:t></w:r></w:p>`
@@ -225,7 +225,7 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
   const [pKop1, pKop2, pKop3] = [
     kopParagrafXml("KEMENTERIAN KEHUTANAN", 14, TINGGI_BARIS_KOP),
     kopParagrafXml("DIREKTORAT JENDERAL PERHUTANAN SOSIAL", 14, TINGGI_BARIS_KOP),
-    kopParagrafXml("DIREKTORAT PENGENDALIAN PERHUTANAN SOSIAL", 16, TINGGI_BARIS_KOP_3, -10),
+    kopParagrafXml("DIREKTORAT PENGENDALIAN PERHUTANAN SOSIAL", 15, TINGGI_BARIS_KOP_3),
   ].map((x) => fragmenKeNode(doc, x)[0] as Element);
   pKop1!.insertBefore(logo, pKop1!.getElementsByTagName("w:r")[0] ?? null);
   const pGaris = fragmenKeNode(
@@ -324,6 +324,14 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
 
   const newXml = new XMLSerializer().serializeToString(doc);
   zip.file("word/document.xml", newXml);
+
+  // Daftarkan Figtree agar Word tahu famili cadangannya (sans-serif) bila font belum terpasang.
+  const fontXml = await zip.file("word/fontTable.xml")?.async("text");
+  if (fontXml && !fontXml.includes('w:name="Figtree"')) {
+    const entri =
+      '<w:font w:name="Figtree"><w:panose1 w:val="00000000000000000000"/><w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font></w:fonts>';
+    zip.file("word/fontTable.xml", fontXml.replace("</w:fonts>", entri));
+  }
 
   const generatedBuffer = await zip.generateAsync({ type: "nodebuffer" });
   return generatedBuffer;
