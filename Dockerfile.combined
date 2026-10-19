@@ -23,6 +23,8 @@ COPY packages/shared/package.json packages/shared/
 RUN npm ci --omit=dev -w api -w @spjan/shared && npm cache clean --force
 COPY --from=builder /app/packages/shared/dist packages/shared/dist
 COPY --from=builder /app/apps/api/dist apps/api/dist
+# Template naskah dinas DOCX
+COPY --from=builder /app/apps/api/assets apps/api/assets
 # Migrasi berjalan otomatis saat boot (migrate.ts membaca ../migrations relatif ke dist/).
 COPY --from=builder /app/apps/api/migrations apps/api/migrations
 # poppler-utils: pdftotext/pdftoppm untuk membaca PDF pada ekstraksi dokumen.

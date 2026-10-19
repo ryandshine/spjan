@@ -688,129 +688,192 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
             </Button>
           </div>
 
+          {/* Lembar Naskah Dinas Resmi (Persis CONTOH SPT.docx) */}
           <div
-            className="rounded-xl border border-border bg-card p-6 shadow-md text-foreground leading-relaxed text-xs overflow-x-auto min-h-[600px] select-text"
-            style={{ fontFamily: "'Bookman Old Style', 'Bookman', 'URW Bookman L', 'Palatino Linotype', serif" }}
+            className="bg-white text-neutral-900 shadow-xl border border-neutral-300 p-6 sm:p-8 text-[12px] leading-relaxed select-text overflow-x-auto"
+            style={{ fontFamily: "'Bookman Old Style', 'Bookman', 'URW Bookman L', 'Palatino Linotype', Georgia, serif" }}
           >
-            {/* Kop Resmi Kementerian Kehutanan */}
-            <div className="text-center border-b-2 border-foreground pb-3 mb-4 space-y-0.5">
-              <p className="font-bold text-sm tracking-wide">KEMENTERIAN KEHUTANAN</p>
-              <p className="font-bold text-xs tracking-wider">DIREKTORAT JENDERAL PERHUTANAN SOSIAL</p>
-              <p className="font-bold text-xs tracking-wider">DIREKTORAT PENGENDALIAN PERHUTANAN SOSIAL</p>
+            {/* Kop Resmi Kementerian Kehutanan dengan Logo */}
+            <div className="flex items-center gap-4 pb-2">
+              <img
+                src="/logo-kemenhut.png"
+                alt="Logo Kementerian Kehutanan"
+                className="w-20 h-20 object-contain shrink-0"
+              />
+              <div className="flex-1 text-center font-serif">
+                <p className="font-bold text-[14px] tracking-wide leading-tight uppercase">
+                  KEMENTERIAN KEHUTANAN
+                </p>
+                <p className="font-bold text-[13px] tracking-wide leading-tight uppercase mt-0.5">
+                  DIREKTORAT JENDERAL PERHUTANAN SOSIAL
+                </p>
+                <p className="font-bold text-[15px] tracking-wide leading-tight uppercase mt-0.5">
+                  DIREKTORAT PENGENDALIAN PERHUTANAN SOSIAL
+                </p>
+              </div>
             </div>
 
-            {/* Judul & Nomor */}
+            {/* Garis Ganda Pemisah Kop (Garis tebal atas, garis tipis bawah) */}
+            <div className="space-y-[2px] mb-4">
+              <div className="h-[2.5px] bg-black" />
+              <div className="h-[0.75px] bg-black" />
+            </div>
+
+            {/* Judul & Nomor Naskah */}
             <div className="text-center my-4">
-              <p className="font-bold text-sm tracking-widest underline">SURAT TUGAS</p>
-              <p className="text-xs mt-0.5">
+              <p className="font-bold tracking-widest text-[13px]">SURAT TUGAS</p>
+              <p className="text-[12px] mt-0.5">
                 Nomor:{' '}
                 {form.modeNomor === 'srikandi'
                   ? '${nomor_naskah}'
-                  : form.nomor || 'ST. ___ / PPS / ___ / 2026'}
+                  : form.nomor || '${nomor_naskah}'}
               </p>
             </div>
 
-            {/* Pemberi Tugas */}
-            <div className="text-center font-bold text-xs mb-3 tracking-wide">
+            {/* Jabatan Pemberi Tugas */}
+            <div className="text-center font-bold text-[12px] tracking-[0.12em] mb-4 uppercase">
               DIREKTUR PENGENDALIAN PERHUTANAN SOSIAL,
             </div>
 
-            {/* Tabel Menimbang */}
-            <div className="grid grid-cols-12 gap-2 my-2 text-[11px] leading-snug">
-              <div className="col-span-3 font-medium">Menimbang :</div>
-              <div className="col-span-9 space-y-1">
-                <p>
-                  a. bahwa dalam rangka {form.maksudTugas || '...'}, diperlukan untuk menugaskan personil;
-                </p>
-                <p>b. bahwa sehubungan dengan poin a perlu diterbitkan Surat Tugas.</p>
+            {/* Bagian Tabel Isi (Menimbang, Dasar, Memberi Tugas, Kepada, Untuk) */}
+            <div className="space-y-2.5 text-[11.5px] leading-relaxed text-justify">
+              {/* Menimbang */}
+              <div className="flex gap-2">
+                <div className="w-24 shrink-0 flex justify-between font-normal">
+                  <span>Menimbang</span>
+                  <span>:</span>
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex gap-2">
+                    <span className="shrink-0">a.</span>
+                    <span>
+                      bahwa dalam rangka {form.maksudTugas || '...'}, diperlukan untuk menugaskan personil;
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="shrink-0">b.</span>
+                    <span>bahwa sehubungan dengan poin a perlu diterbitkan Surat Tugas.</span>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Tabel Dasar */}
-            <div className="grid grid-cols-12 gap-2 my-2 text-[11px] leading-snug">
-              <div className="col-span-3 font-medium">Dasar :</div>
-              <div className="col-span-9 space-y-1">
-                <ol className="list-decimal list-inside space-y-1">
+              {/* Dasar */}
+              <div className="flex gap-2">
+                <div className="w-24 shrink-0 flex justify-between font-normal">
+                  <span>Dasar</span>
+                  <span>:</span>
+                </div>
+                <div className="flex-1 space-y-1">
                   {form.dasarHukum.map((d, i) => (
-                    <li key={i}>{d}</li>
+                    <div key={i} className="flex gap-2">
+                      <span className="shrink-0">{i + 1}.</span>
+                      <span>{d}</span>
+                    </div>
                   ))}
-                  {form.dasarSpesifik ? <li>{form.dasarSpesifik}</li> : null}
-                </ol>
+                  {form.dasarSpesifik ? (
+                    <div className="flex gap-2">
+                      <span className="shrink-0">{form.dasarHukum.length + 1}.</span>
+                      <span>{form.dasarSpesifik}</span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* MEMBERI TUGAS, */}
+              <div className="text-center font-bold tracking-widest text-[12px] py-2">
+                MEMBERI TUGAS,
+              </div>
+
+              {/* Kepada */}
+              <div className="flex gap-2">
+                <div className="w-24 shrink-0 flex justify-between font-normal">
+                  <span>Kepada</span>
+                  <span>:</span>
+                </div>
+                <div className="flex-1 space-y-1">
+                  {form.pelaksana.length === 0 ? (
+                    <p className="italic text-neutral-400">(Belum ada pelaksana yang dipilih)</p>
+                  ) : (
+                    form.pelaksana.map((p, i) => (
+                      <div key={i} className="flex gap-2">
+                        <span className="shrink-0">{i + 1}.</span>
+                        <span>
+                          {p.nama}
+                          {p.jabatan ? ` / ${p.jabatan}` : ''}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Untuk */}
+              <div className="flex gap-2">
+                <div className="w-24 shrink-0 flex justify-between font-normal">
+                  <span>Untuk</span>
+                  <span>:</span>
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex gap-2">
+                    <span className="shrink-0">1.</span>
+                    <span>
+                      Melaksanakan perjalanan dinas dalam rangka {form.maksudTugas || '...'} di{' '}
+                      {form.lokasiTugas || '...'};
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="shrink-0">2.</span>
+                    <span>
+                      Yang bersangkutan melaksanakan perintah tugas selama{' '}
+                      <strong>{formatHariDenganTerbilang(lamaHari)} hari</strong> pada tanggal{' '}
+                      <strong>{rentangTanggalTeks}</strong>;
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="shrink-0">3.</span>
+                    <span>
+                      Selambat-lambatnya {formatHariDenganTerbilang(form.pelaporanHari || 5)} hari setelah
+                      melaksanakan tugas, membuat laporan tertulis kepada Direktur PPS;
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="shrink-0">4.</span>
+                    <span>Biaya dibebankan kepada {form.pembebananAnggaran.endsWith('.') ? form.pembebananAnggaran : form.pembebananAnggaran + '.'}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Memberi Tugas */}
-            <div className="text-center font-bold text-xs my-3 tracking-wide">MEMBERI TUGAS,</div>
-
-            {/* Kepada */}
-            <div className="grid grid-cols-12 gap-2 my-2 text-[11px] leading-snug">
-              <div className="col-span-3 font-medium">Kepada :</div>
-              <div className="col-span-9 space-y-1">
-                {form.pelaksana.length === 0 ? (
-                  <p className="italic text-muted-foreground">(Belum ada pelaksana yang dipilih)</p>
-                ) : (
-                  <ol className="list-decimal list-inside space-y-1">
-                    {form.pelaksana.map((p, i) => (
-                      <li key={i}>
-                        <span className="font-semibold">{p.nama}</span>
-                        {p.jabatan ? ` / ${p.jabatan}` : ''}
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </div>
-            </div>
-
-            {/* Untuk */}
-            <div className="grid grid-cols-12 gap-2 my-2 text-[11px] leading-snug">
-              <div className="col-span-3 font-medium">Untuk :</div>
-              <div className="col-span-9 space-y-1">
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>
-                    Melaksanakan perjalanan dinas dalam rangka {form.maksudTugas || '...'} di{' '}
-                    {form.lokasiTugas || '...'};
-                  </li>
-                  <li>
-                    Yang bersangkutan melaksanakan perintah tugas selama{' '}
-                    <strong>{formatHariDenganTerbilang(lamaHari)} hari</strong> pada tanggal{' '}
-                    <strong>{rentangTanggalTeks}</strong>;
-                  </li>
-                  <li>
-                    Selambat-lambatnya {formatHariDenganTerbilang(form.pelaporanHari || 5)} hari setelah
-                    melaksanakan tugas, membuat laporan tertulis kepada Direktur PPS;
-                  </li>
-                  <li>Biaya dibebankan kepada {form.pembebananAnggaran}</li>
-                </ol>
-              </div>
-            </div>
-
-            {/* Tanda Tangan */}
-            <div className="mt-6 flex justify-end text-[11px]">
-              <div className="w-56 text-left space-y-1">
+            {/* Blok Tanda Tangan Resmi */}
+            <div className="mt-6 flex justify-end text-[11.5px]">
+              <div className="w-64 text-left space-y-0.5">
                 <p>
                   {form.tempatNaskah || 'Jakarta'},{' '}
                   {form.modeNomor === 'manual' && form.tanggal
                     ? tanggalIndonesia(form.tanggal)
                     : '${tanggal_naskah}'}
                 </p>
-                <p className="font-medium">{form.penandatanganJabatan || 'Direktur,'}</p>
-                <div className="h-16 flex items-center py-2 text-muted-foreground font-mono text-[10px]">
+                <p>{form.penandatanganJabatan || 'Direktur,'}</p>
+                <div className="h-16 flex items-center text-neutral-400 font-mono text-[11px]">
                   {'${ttd_pengirim}'}
                 </div>
-                <p className="font-bold underline">{form.penandatanganNama || 'Dr. Marcus Octavianus Susatyo, S.Hut., M.P.'}</p>
+                <p className="font-semibold">{form.penandatanganNama || 'Dr. Marcus Octavianus Susatyo, S.Hut., M.P.'}</p>
                 <p>NIP. {form.penandatanganNip || '196810191998031001'}</p>
               </div>
             </div>
 
             {/* Tembusan */}
             {form.tembusan.length > 0 ? (
-              <div className="mt-4 pt-3 border-t text-[11px] space-y-0.5">
-                <p className="font-semibold">Tembusan:</p>
-                <ol className="list-decimal list-inside pl-1 text-muted-foreground">
+              <div className="mt-5 pt-2 text-[11.5px] space-y-0.5">
+                <p className="font-normal">Tembusan:</p>
+                <div className="space-y-0.5">
                   {form.tembusan.map((t, i) => (
-                    <li key={i}>{t}</li>
+                    <div key={i} className="flex gap-2">
+                      <span className="shrink-0">{i + 1}.</span>
+                      <span>{t}</span>
+                    </div>
                   ))}
-                </ol>
+                </div>
               </div>
             ) : null}
           </div>
