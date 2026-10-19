@@ -133,4 +133,53 @@ describe("generateNaskahStDocx", () => {
     // 5. Font Figtree pada Kop Surat
     expect(docXml).toContain('w:ascii="Figtree"');
   });
+  it("membangun badan surat dengan tabel label dan butir bernomor yang rapi", async () => {
+    const buffer = await generateNaskahStDocx({
+      nomor: "${nomor_naskah}",
+      modeNomor: "srikandi",
+      tanggal: null,
+      tempatNaskah: "Jakarta",
+      maksudTugas: "Rapat Koordinasi",
+      lokasiTugas: "Bogor",
+      tanggalMulai: "2026-10-14",
+      tanggalSelesai: "2026-10-14",
+      lamaHari: 1,
+      dasarHukum: ["Dasar satu;", "Dasar dua."],
+      dasarSpesifik: "Undangan tiga",
+      pelaporanHari: 5,
+      pembebananAnggaran: "DIPA 2026",
+      penandatanganJabatan: "Direktur",
+      penandatanganNama: "Nama Pejabat",
+      penandatanganNip: "196810191998031001",
+      tembusan: ["Satu.", "Dua"],
+      pelaksana: [
+        { nama: "Budi", nip: "1", jabatan: "/ Analis" },
+        { nama: "Sari", nip: "2", jabatan: "" },
+      ],
+    });
+    const zip = await JSZip.loadAsync(buffer);
+    const xml = (await zip.file("word/document.xml")?.async("text")) ?? "";
+    const teks = xml.replace(/<w:tab\/>/g, "\t").replace(/<[^>]+>/g, "");
+
+    // dua tabel label dengan lebar kolom tetap, tanpa label berpadding spasi
+    expect(xml.match(/<w:tblLayout w:type="fixed"/g)).toHaveLength(2);
+    for (const label of ["Menimbang", "Dasar", "Kepada", "Untuk"]) {
+      expect(teks).toContain(label);
+      expect(teks).not.toMatch(new RegExp(`${label} {2,}:`));
+    }
+    // butir memakai tab (bukan spasi) dan tanda baca dirapikan
+    expect(teks).toContain("a.\tbahwa dalam rangka Rapat Koordinasi, diperlukan untuk menugaskan personil;");
+    expect(teks).toContain("2.\tDasar dua;");
+    expect(teks).toContain("3.\tUndangan tiga.");
+    expect(teks).toContain("1.\tBudi / Analis");
+    expect(teks).toContain("2.\tSari");
+    expect(teks).toContain("1.\tSatu;");
+    expect(teks).toContain("2.\tDua.");
+    expect(teks).toContain("Direktur,");
+    expect(teks).toContain("NIP. 196810191998031001");
+    expect(teks).toContain("${tanggal_naskah}");
+    expect(teks).toContain("${ttd_pengirim}");
+    // tidak ada lagi paragraf kosong sebagai jarak
+    expect(xml).not.toMatch(/<w:p>(?:<w:pPr>.*?<\/w:pPr>)?<\/w:p>/);
+  });
 });

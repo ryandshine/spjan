@@ -15,6 +15,8 @@ Terakhir diperbarui: 2026-10-19 (fitur pembuat naskah Surat Tugas ST/SPT selesai
   - `st-naskah-editor.tsx`: editor 2-kolom dengan live preview lembar naskah dinas resmi A4, pemilihan cepat pelaksana dari master data Pegawai SPJAN, pengaturan urutan tim, pembebanan anggaran, dan tembusan.
 - Tes lulus: api 158 tests, shared 129 tests; lint & build bersih di semua workspace.
 
+- Perapian format DOCX (2026-10-20, belum di-commit): `generator.ts` kini mempertahankan hanya kop + garis dari template dan membangun ulang badan surat (tabel label|titik dua|isi lebar tetap, butir bernomor dengan tab dan indentasi gantung, blok tanda tangan tanpa paragraf kosong/spasi pengisi, tanda baca dasar/tembusan diseragamkan, pelaksana ditulis "Nama / Jabatan"). 2 pelaksana muat 1 halaman; makin banyak pelaksana, blok tanda tangan + tembusan pindah utuh ke halaman 2. Diperiksa lewat render LibreOffice, belum di Word. Berkas `Surat-Tugas-_nomor_naskah_ (3).docx` di root adalah keluaran lama (margin kiri 1701), bukan hasil generator sekarang.
+
 
 ## Tujuan
 
