@@ -104,55 +104,52 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
   const lamaHari = data.lamaHari || hitungLamaHariSt(data.tanggalMulai, data.tanggalSelesai);
   const rentangTanggal = formatRentangWaktuSt(data.tanggalMulai, data.tanggalSelesai);
 
-  // Standar Kop Kementerian & Naskah Dinas (Simetris Sumbu Halaman x = 10.5 cm):
-  // Margin Kiri: 2.0 cm (1134 dxa)
-  // Margin Kanan: 2.0 cm (1134 dxa)
-  // Margin Atas: 1.5 cm (850 dxa)
-  // Margin Bawah: 2.5 cm (1418 dxa)
+  // Standar Kop Kementerian & Naskah Dinas Sesuai Dokumen Resmi (ST.265 / CONTOH SPT):
+  // Margin Halaman Word: Kiri 2.54 cm (1440 dxa), Kanan 2.54 cm (1440 dxa), Atas 1.0 cm (567 dxa), Bawah 0.635 cm (360 dxa)
+  // Posisi Garis Pembatas: Lebar penuh 19.8 cm (561.25 pt / Graphic 3)
+  // Margin Efektif Tabel (dengan tblInd="-540"): 1.59 cm (kiri) dan 2.0 cm (kanan), total lebar tabel 17.4 cm
   const pgMar = doc.getElementsByTagName("w:pgMar")[0];
   if (pgMar) {
-    pgMar.setAttribute("w:top", "850");
-    pgMar.setAttribute("w:right", "1134");
-    pgMar.setAttribute("w:bottom", "1418");
-    pgMar.setAttribute("w:left", "1134");
+    pgMar.setAttribute("w:top", "567");
+    pgMar.setAttribute("w:right", "1440");
+    pgMar.setAttribute("w:bottom", "360");
+    pgMar.setAttribute("w:left", "1440");
   }
 
-  // 0. Font Kop Surat (P0, P1, P2): Menggunakan font Figtree, simetris tengah tanpa indentasi sepihak
-  const kopSizes = ["27", "25", "25"]; // P0: 13.5pt, P1: 12.5pt, P2: 12.5pt
+  // 0. Font Kop Surat (P0, P1, P2): Menggunakan font Figtree standar Kementerian Kehutanan
+  // Mempertahankan struktur indentasi asli template CONTOH SPT agar posisi kop persis sejajar seperti ST.265.pdf
+  const kopSizes = ["28", "28", "30"]; // P0: 14pt, P1: 14pt, P2: 15pt (single-line no wrap)
   for (let idx = 0; idx <= 2; idx++) {
     const pKop = body.childNodes[idx] as Element | undefined;
     if (pKop) {
-      const pPr = pKop.getElementsByTagName("w:pPr")[0];
-      if (pPr) {
-        const ind = pPr.getElementsByTagName("w:ind")[0];
-        if (ind) pPr.removeChild(ind);
-        let jc = pPr.getElementsByTagName("w:jc")[0];
-        if (!jc) {
-          jc = doc.createElement("w:jc");
-          pPr.appendChild(jc);
-        }
-        jc.setAttribute("w:val", "center");
-      }
       const runs = pKop.getElementsByTagName("w:r");
       for (let rIdx = 0; rIdx < runs.length; rIdx++) {
         const r = runs[rIdx];
         if (!r) continue;
+        if (r.getElementsByTagName("w:drawing").length > 0) continue;
         const rPr = r.getElementsByTagName("w:rPr")[0];
         if (rPr) {
-          const rFonts = rPr.getElementsByTagName("w:rFonts")[0];
-          if (rFonts) {
-            rFonts.setAttribute("w:ascii", "Figtree");
-            rFonts.setAttribute("w:hAnsi", "Figtree");
-            rFonts.setAttribute("w:cs", "Figtree");
+          let rFonts = rPr.getElementsByTagName("w:rFonts")[0];
+          if (!rFonts) {
+            rFonts = doc.createElement("w:rFonts");
+            rPr.appendChild(rFonts);
           }
-          const sz = rPr.getElementsByTagName("w:sz")[0];
-          if (sz && kopSizes[idx]) {
-            sz.setAttribute("w:val", kopSizes[idx]!);
+          rFonts.setAttribute("w:ascii", "Figtree");
+          rFonts.setAttribute("w:hAnsi", "Figtree");
+          rFonts.setAttribute("w:cs", "Arial");
+
+          let sz = rPr.getElementsByTagName("w:sz")[0];
+          if (!sz) {
+            sz = doc.createElement("w:sz");
+            rPr.appendChild(sz);
           }
-          const szCs = rPr.getElementsByTagName("w:szCs")[0];
-          if (szCs && kopSizes[idx]) {
-            szCs.setAttribute("w:val", kopSizes[idx]!);
+          sz.setAttribute("w:val", kopSizes[idx]!);
+          let szCs = rPr.getElementsByTagName("w:szCs")[0];
+          if (!szCs) {
+            szCs = doc.createElement("w:szCs");
+            rPr.appendChild(szCs);
           }
+          szCs.setAttribute("w:val", kopSizes[idx]!);
         }
       }
     }
