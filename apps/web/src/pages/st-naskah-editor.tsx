@@ -679,7 +679,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                 Pratinjau Naskah Dinas (Live Preview)
               </span>
               <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                Standar Tata Naskah Dinas Kementerian (Kop ST.265 / CONTOH SPT)
+                Standar Tata Naskah Dinas Kementerian (Kop Simetris Tengah & Margin 2cm)
               </span>
             </div>
             <Button
@@ -693,36 +693,38 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
             </Button>
           </div>
 
-          {/* Lembar Naskah Dinas Resmi (Standar Dokumen Resmi ST.265 / CONTOH SPT) */}
+          {/* Lembar Naskah Dinas Resmi (Standar Tata Naskah Dinas Simetris) */}
           <div
-            className="bg-white text-neutral-900 shadow-xl border border-neutral-300 p-6 sm:pt-[0.8cm] sm:pb-[1.5cm] sm:pl-[1.6cm] sm:pr-[2.0cm] text-[11.5pt] leading-relaxed select-text overflow-x-auto"
+            className="bg-white text-neutral-900 shadow-xl border border-neutral-300 p-6 sm:pt-[1.5cm] sm:pb-[2.5cm] sm:pl-[2.0cm] sm:pr-[2.0cm] text-[11.5pt] leading-relaxed select-text overflow-x-auto"
             style={{ fontFamily: "'Bookman Old Style', 'Bookman', 'URW Bookman L', 'Palatino Linotype', Georgia, serif" }}
           >
-            {/* Kop Resmi Kementerian Kehutanan (Sesuai Komposisi Margin ST.265 / CONTOH SPT) */}
-            <div className="flex items-center gap-3 sm:pl-[0.4cm] pb-2">
+            {/* Kop Resmi Kementerian Kehutanan (Center Murni sejajar Judul & Nomor) */}
+            <div className="flex items-center justify-between pb-2">
               <img
                 src="/logo-kemenhut.png"
                 alt="Logo Kementerian Kehutanan"
                 className="w-[2.4cm] h-[2.4cm] object-contain shrink-0"
               />
               <div
-                className="flex-1 text-center"
+                className="flex-1 text-center px-2"
                 style={{ fontFamily: "'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
               >
-                <p className="font-bold text-[14pt] tracking-wide leading-tight uppercase text-neutral-950">
+                <p className="font-bold text-[13.5pt] tracking-wide leading-tight uppercase text-neutral-950">
                   KEMENTERIAN KEHUTANAN
                 </p>
-                <p className="font-bold text-[13.5pt] tracking-wide leading-tight uppercase mt-1 text-neutral-900">
+                <p className="font-bold text-[12.5pt] tracking-wide leading-tight uppercase mt-1 text-neutral-900">
                   DIREKTORAT JENDERAL PERHUTANAN SOSIAL
                 </p>
-                <p className="font-bold text-[14.5pt] tracking-wide leading-tight uppercase mt-1 text-neutral-900 whitespace-nowrap">
+                <p className="font-bold text-[12.5pt] tracking-wide leading-tight uppercase mt-1 text-neutral-900 whitespace-nowrap">
                   DIREKTORAT PENGENDALIAN PERHUTANAN SOSIAL
                 </p>
               </div>
+              {/* Penyeimbang visual agar teks kop tepat berada di titik tengah kertas (simetris sumbu tengah x = 10.5cm) */}
+              <div className="w-[2.4cm] shrink-0 hidden sm:block" aria-hidden="true" />
             </div>
 
-            {/* Garis Ganda Pemisah Kop (Lebar penuh 19.8cm persis ST.265) */}
-            <div className="space-y-[1.5px] mt-2 mb-5 -mx-4 sm:-mx-[0.6cm]">
+            {/* Garis Ganda Pemisah Kop (Simetris Sama Jarak Kiri dan Kanan) */}
+            <div className="space-y-[1.5px] mt-2 mb-5">
               <div className="h-[2.5px] bg-black" />
               <div className="h-[0.75px] bg-black" />
             </div>

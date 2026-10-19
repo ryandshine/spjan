@@ -104,24 +104,34 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
   const lamaHari = data.lamaHari || hitungLamaHariSt(data.tanggalMulai, data.tanggalSelesai);
   const rentangTanggal = formatRentangWaktuSt(data.tanggalMulai, data.tanggalSelesai);
 
-  // Standar Kop Kementerian & Naskah Dinas Sesuai Dokumen Resmi (ST.265 / CONTOH SPT):
-  // Margin Halaman Word: Kiri 2.54 cm (1440 dxa), Kanan 2.54 cm (1440 dxa), Atas 1.0 cm (567 dxa), Bawah 0.635 cm (360 dxa)
-  // Posisi Garis Pembatas: Lebar penuh 19.8 cm (561.25 pt / Graphic 3)
-  // Margin Efektif Tabel (dengan tblInd="-540"): 1.59 cm (kiri) dan 2.0 cm (kanan), total lebar tabel 17.4 cm
+  // Standar Kop Kementerian & Tata Naskah Dinas Resmi (PermenPANRB / Permen LHK):
+  // Margin Simetris: Kiri 2.0 cm (1134 dxa), Kanan 2.0 cm (1134 dxa), Atas 1.5 cm (850 dxa), Bawah 2.5 cm (1418 dxa)
+  // Posisi Garis Pembatas: Lebar 17.0 cm membentang simetris sama jaraknya dari kiri dan kanan kertas (2.0 cm)
   const pgMar = doc.getElementsByTagName("w:pgMar")[0];
   if (pgMar) {
-    pgMar.setAttribute("w:top", "567");
-    pgMar.setAttribute("w:right", "1440");
-    pgMar.setAttribute("w:bottom", "360");
-    pgMar.setAttribute("w:left", "1440");
+    pgMar.setAttribute("w:top", "850");
+    pgMar.setAttribute("w:right", "1134");
+    pgMar.setAttribute("w:bottom", "1418");
+    pgMar.setAttribute("w:left", "1134");
   }
 
-  // 0. Font Kop Surat (P0, P1, P2): Menggunakan font Figtree standar Kementerian Kehutanan
-  // Mempertahankan struktur indentasi asli template CONTOH SPT agar posisi kop persis sejajar seperti ST.265.pdf
-  const kopSizes = ["28", "28", "30"]; // P0: 14pt, P1: 14pt, P2: 15pt (single-line no wrap)
+  // 0. Font Kop Surat (P0, P1, P2): Menggunakan font Figtree, posisi Center murni (simetris sumbu tengah kertas x = 10.5 cm)
+  const kopSizes = ["27", "25", "25"]; // P0: 13.5pt, P1: 12.5pt, P2: 12.5pt Figtree Bold
   for (let idx = 0; idx <= 2; idx++) {
     const pKop = body.childNodes[idx] as Element | undefined;
     if (pKop) {
+      const pPr = pKop.getElementsByTagName("w:pPr")[0];
+      if (pPr) {
+        // Hapus indentasi manual agar teks benar-benar di titik tengah (center) kertas
+        const ind = pPr.getElementsByTagName("w:ind")[0];
+        if (ind) pPr.removeChild(ind);
+        let jc = pPr.getElementsByTagName("w:jc")[0];
+        if (!jc) {
+          jc = doc.createElement("w:jc");
+          pPr.appendChild(jc);
+        }
+        jc.setAttribute("w:val", "center");
+      }
       const runs = pKop.getElementsByTagName("w:r");
       for (let rIdx = 0; rIdx < runs.length; rIdx++) {
         const r = runs[rIdx];
