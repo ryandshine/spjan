@@ -112,9 +112,9 @@ describe("generateNaskahStDocx", () => {
     const docXml = await zip.file("word/document.xml")?.async("text");
     expect(docXml).toBeDefined();
 
-    // 1. Margin A4 dan Line Pitch sesuai Standar Kop Kementerian (Simetris: Kiri 2cm, Kanan 2cm, Atas 1.5cm, Bawah 2.5cm)
+    // 1. Margin A4 mengikuti ST.265 / CONTOH SPT (kiri 1,78 cm, kanan 2 cm, atas 1 cm, bawah 2,5 cm)
     expect(docXml).toContain('w:w="11906" w:h="16838"');
-    expect(docXml).toContain('w:top="850" w:right="1134" w:bottom="1418" w:left="1134"');
+    expect(docXml).toContain('w:top="567" w:right="1134" w:bottom="1418" w:left="1009"');
     expect(docXml).toContain('w:linePitch="360"');
 
     // 2. Pemberi tugas (P9) tidak terdistorsi menjadi DIREKTUR,
@@ -130,8 +130,8 @@ describe("generateNaskahStDocx", () => {
     expect(docXml).toContain('w:ascii="Bookman Old Style"');
     expect(docXml).toContain('w:sz w:val="22"');
 
-    // 5. Font Figtree pada Kop Surat
-    expect(docXml).toContain('w:ascii="Figtree"');
+    // 5. Font Cambria pada Kop Surat (ST.265)
+    expect(docXml).toContain('w:ascii="Cambria"');
   });
   it("membangun badan surat dengan tabel label dan butir bernomor yang rapi", async () => {
     const buffer = await generateNaskahStDocx({
@@ -179,6 +179,15 @@ describe("generateNaskahStDocx", () => {
     expect(teks).toContain("NIP. 196810191998031001");
     expect(teks).toContain("${tanggal_naskah}");
     expect(teks).toContain("${ttd_pengirim}");
+    // geometri halaman dan kop mengikuti ST.265 / CONTOH SPT
+    expect(xml).toMatch(/<w:pgMar [^>]*w:top="567"[^>]*w:right="1134"[^>]*w:bottom="1418"[^>]*w:left="1009"/);
+    expect(xml).toContain('<a:ext cx="1009650" cy="1009650"/>'); // logo 2,80 cm
+    expect(xml).toContain('<a:ext cx="7127875" cy="57150"/>'); // garis ganda 19,8 cm
+    expect(xml).toContain('w:ascii="Cambria"');
+    expect(xml).not.toContain("Figtree");
+    expect(xml).toContain('w:ascii="Bookman Old Style"');
+    expect(teks).toContain("KEMENTERIAN KEHUTANAN");
+    expect(teks).toContain("DIREKTORAT PENGENDALIAN PERHUTANAN SOSIAL");
     // tidak ada lagi paragraf kosong sebagai jarak
     expect(xml).not.toMatch(/<w:p>(?:<w:pPr>.*?<\/w:pPr>)?<\/w:p>/);
   });

@@ -13,18 +13,30 @@ import {
 } from "@spjan/shared";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Master template docx: assets/template-spt.docx (persis 100% dengan CONTOH SPT.docx)
+// Master template docx: assets/template-spt.docx (salinan CONTOH SPT.docx; hanya logo dan garis kop yang dipakai)
 const TEMPLATE_PATH = path.resolve(__dirname, "../../assets/template-spt.docx");
 
 const W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 
-// Lebar area teks A4 dengan margin kiri/kanan 2 cm: 11906 - 2 x 1134 dxa.
-const LEBAR_TEKS = 9638;
-const KOL_LABEL = 1418; // 2,5 cm
-const KOL_TITIK_DUA = 284; // 0,5 cm
+// Geometri mengikuti ST.265 / CONTOH SPT (satuan dxa: 1 cm = 567).
+// Halaman A4 11906 dxa; margin kiri 1,78 cm, kanan 2,0 cm, atas 1,0 cm, bawah 2,5 cm.
+const MARGIN_ATAS = 567;
+const MARGIN_KANAN = 1134;
+const MARGIN_BAWAH = 1418;
+const MARGIN_KIRI = 1009;
+const LEBAR_TEKS = 11906 - MARGIN_KIRI - MARGIN_KANAN; // 9763
+const KOL_LABEL = 1417; // label "Menimbang" dst: 2,5 cm (titik dua jatuh di x = 4,28 cm)
+const KOL_TITIK_DUA = 397; // 0,7 cm (isi mulai di x = 4,98 cm)
 const KOL_ISI = LEBAR_TEKS - KOL_LABEL - KOL_TITIK_DUA;
-const GANTUNG_BUTIR = 425; // 0,75 cm: lebar nomor "1." / "a." sebelum teks
-const INDENT_TTD = 4536; // 8 cm dari margin kiri
+const GANTUNG_BUTIR = 340; // 0,6 cm: lebar nomor "1." / "a." sebelum teks
+const INDENT_TTD = 4536; // 8 cm dari margin kiri: blok tanda tangan mulai di x = 9,78 cm
+const INDENT_KOP = 1706; // teks kop mulai di kanan logo (logo berakhir di x = 4,79 cm)
+const INDENT_KOP_KANAN = -188; // teks kop boleh melewati margin kanan 0,33 cm, seperti CONTOH SPT
+const TINGGI_BARIS_KOP = 328; // 16,4 pt: baris kop 14 pt (0,58 cm)
+const TINGGI_BARIS_KOP_3 = 376; // 18,8 pt: baris kop 16 pt (0,66 cm)
+const SATU_BARIS = 258; // satu baris kosong Bookman 11 pt (0,455 cm)
+const JARAK_KE_JUDUL = 771; // kop selesai di y = 2,82 cm, "SURAT TUGAS" mulai di y = 4,18 cm
+const JARAK_RUANG_TTD = 774; // tiga baris untuk tanda tangan elektronik / basah
 
 function esc(teks: string): string {
   return teks.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -40,6 +52,19 @@ function rPrXml(tebal: boolean): string {
 
 function runXml(teks: string, tebal = false): string {
   return `<w:r>${rPrXml(tebal)}<w:t xml:space="preserve">${esc(teks)}</w:t></w:r>`;
+}
+
+/** Baris kop: Cambria tebal (ST.265), rata tengah di sebelah kanan logo. */
+function kopParagrafXml(teks: string, ukuranPt: number, tinggiBaris: number, rapat = 0): string {
+  const ukuran = ukuranPt * 2;
+  return (
+    `<w:p><w:pPr><w:keepNext/><w:spacing w:before="0" w:after="0" w:line="${tinggiBaris}" w:lineRule="exact"/>` +
+    `<w:ind w:left="${INDENT_KOP}" w:right="${INDENT_KOP_KANAN}"/><w:jc w:val="center"/></w:pPr>` +
+    '<w:r><w:rPr><w:rFonts w:ascii="Cambria" w:hAnsi="Cambria" w:cs="Cambria"/><w:b/>' +
+    (rapat ? `<w:spacing w:val="${rapat}"/>` : "") +
+    `<w:sz w:val="${ukuran}"/><w:szCs w:val="${ukuran}"/><w:lang w:val="id-ID"/></w:rPr>` +
+    `<w:t xml:space="preserve">${esc(teks)}</w:t></w:r></w:p>`
+  );
 }
 
 function tabXml(): string {
@@ -63,7 +88,7 @@ function paragrafXml(isi: string, o: OpsiParagraf = {}): string {
   return (
     "<w:p><w:pPr>" +
     (o.tahanBersama ? "<w:keepNext/><w:keepLines/>" : "<w:keepLines/>") +
-    `<w:spacing w:before="${o.sebelum ?? 0}" w:after="${o.sesudah ?? 0}" w:line="240" w:lineRule="auto"/>` +
+    `<w:spacing w:before="${o.sebelum ?? 0}" w:after="${o.sesudah ?? 0}" w:line="${SATU_BARIS}" w:lineRule="exact"/>` +
     ind +
     `<w:jc w:val="${o.jc ?? "left"}"/>` +
     "</w:pPr>" +
@@ -85,14 +110,14 @@ function daftarXml(
   butir: string[],
   gaya: "angka" | "huruf",
   jc: "left" | "both",
-  sesudahTerakhir = 100,
+  sesudahTerakhir = 0,
 ): string {
   return butir
     .map((teks, i) => {
       const nomor = gaya === "huruf" ? `${String.fromCharCode(97 + i)}.` : `${i + 1}.`;
       return butirXml(nomor, teks, {
         jc,
-        sesudah: i === butir.length - 1 ? sesudahTerakhir : 20,
+        sesudah: i === butir.length - 1 ? sesudahTerakhir : 0,
       });
     })
     .join("");
@@ -163,76 +188,53 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
   const lamaHari = data.lamaHari || hitungLamaHariSt(data.tanggalMulai, data.tanggalSelesai);
   const rentangTanggal = formatRentangWaktuSt(data.tanggalMulai, data.tanggalSelesai);
 
-  // Standar Kop Kementerian & Tata Naskah Dinas Resmi (PermenPANRB / Permen LHK):
-  // Margin Simetris: Kiri 2.0 cm (1134 dxa), Kanan 2.0 cm (1134 dxa), Atas 1.5 cm (850 dxa), Bawah 2.5 cm (1418 dxa)
-  // Posisi Garis Pembatas: Lebar 17.0 cm membentang simetris sama jaraknya dari kiri dan kanan kertas (2.0 cm)
+  // Margin halaman mengikuti ST.265 / CONTOH SPT.
   const pgMar = doc.getElementsByTagName("w:pgMar")[0];
   if (pgMar) {
-    pgMar.setAttribute("w:top", "850");
-    pgMar.setAttribute("w:right", "1134");
-    pgMar.setAttribute("w:bottom", "1418");
-    pgMar.setAttribute("w:left", "1134");
+    pgMar.setAttribute("w:top", String(MARGIN_ATAS));
+    pgMar.setAttribute("w:right", String(MARGIN_KANAN));
+    pgMar.setAttribute("w:bottom", String(MARGIN_BAWAH));
+    pgMar.setAttribute("w:left", String(MARGIN_KIRI));
   }
 
-  // 0. Font Kop Surat (P0, P1, P2): Menggunakan font Figtree, posisi Center murni (simetris sumbu tengah kertas x = 10.5 cm)
-  const kopSizes = ["28", "26", "25"]; // P0: 14pt, P1: 13pt, P2: 12.5pt Figtree Bold
-  for (let idx = 0; idx <= 2; idx++) {
-    const pKop = body.childNodes[idx] as Element | undefined;
-    if (pKop) {
-      const pPr = pKop.getElementsByTagName("w:pPr")[0];
-      if (pPr) {
-        // Hapus indentasi manual agar teks benar-benar di titik tengah (center) kertas
-        const ind = pPr.getElementsByTagName("w:ind")[0];
-        if (ind) pPr.removeChild(ind);
-        let jc = pPr.getElementsByTagName("w:jc")[0];
-        if (!jc) {
-          jc = doc.createElement("w:jc");
-          pPr.appendChild(jc);
-        }
-        jc.setAttribute("w:val", "center");
-      }
-      const runs = pKop.getElementsByTagName("w:r");
-      for (let rIdx = 0; rIdx < runs.length; rIdx++) {
-        const r = runs[rIdx];
-        if (!r) continue;
-        if (r.getElementsByTagName("w:drawing").length > 0) continue;
-        const rPr = r.getElementsByTagName("w:rPr")[0];
-        if (rPr) {
-          let rFonts = rPr.getElementsByTagName("w:rFonts")[0];
-          if (!rFonts) {
-            rFonts = doc.createElement("w:rFonts");
-            rPr.appendChild(rFonts);
-          }
-          rFonts.setAttribute("w:ascii", "Figtree");
-          rFonts.setAttribute("w:hAnsi", "Figtree");
-          rFonts.setAttribute("w:cs", "Arial");
-
-          let sz = rPr.getElementsByTagName("w:sz")[0];
-          if (!sz) {
-            sz = doc.createElement("w:sz");
-            rPr.appendChild(sz);
-          }
-          sz.setAttribute("w:val", kopSizes[idx]!);
-          let szCs = rPr.getElementsByTagName("w:szCs")[0];
-          if (!szCs) {
-            szCs = doc.createElement("w:szCs");
-            rPr.appendChild(szCs);
-          }
-          szCs.setAttribute("w:val", kopSizes[idx]!);
-        }
-      }
+  // Ambil dua objek gambar kop dari template apa adanya: logo (2,80 cm di x = 1,99 cm) dan garis ganda
+  // (selebar 19,8 cm di y = 3,71 cm). Semua paragraf lain dibangun ulang.
+  const semuaParagraf = Array.from(body.childNodes).filter((n) => n.nodeName === "w:p") as Element[];
+  const paragrafLogo = semuaParagraf.find((p) => p.getElementsByTagName("wp:anchor").length > 0);
+  const paragrafGaris = semuaParagraf.find((p) => p.getElementsByTagName("mc:AlternateContent").length > 0);
+  const runLogo = paragrafLogo?.getElementsByTagName("w:r")[0];
+  const runGaris = paragrafGaris?.getElementsByTagName("w:r")[0];
+  if (!runLogo || !runGaris) {
+    throw new Error("Logo atau garis kop tidak ditemukan pada template");
+  }
+  const logo = runLogo.cloneNode(true) as Element;
+  const garis = runGaris.cloneNode(true) as Element;
+  // Garis hanya objek mengambang: tinggi barisnya dibuat 1 pt agar tidak menambah jarak vertikal.
+  for (const rPr of Array.from(garis.getElementsByTagName("w:rPr"))) {
+    for (const tag of ["w:sz", "w:szCs"]) {
+      const el = rPr.getElementsByTagName(tag)[0];
+      if (el) el.setAttribute("w:val", "2");
     }
   }
 
-  // Kop (logo, tiga baris instansi, garis pembatas) = 5 elemen pertama template dan dipertahankan.
-  // Seluruh badan surat di bawahnya dibangun ulang: tabel label bertitik dua, indentasi gantung
-  // sungguhan, dan blok tanda tangan tanpa paragraf kosong atau spasi pengisi.
   const sectPr = body.getElementsByTagName("w:sectPr")[0];
-  const KOP_ELEMEN = 5;
-  while (body.childNodes.length > KOP_ELEMEN) {
-    const node = body.childNodes[KOP_ELEMEN];
-    if (!node || node === sectPr) break;
-    body.removeChild(node);
+  while (body.firstChild && body.firstChild !== sectPr) {
+    body.removeChild(body.firstChild);
+  }
+
+  const [pKop1, pKop2, pKop3] = [
+    kopParagrafXml("KEMENTERIAN KEHUTANAN", 14, TINGGI_BARIS_KOP),
+    kopParagrafXml("DIREKTORAT JENDERAL PERHUTANAN SOSIAL", 14, TINGGI_BARIS_KOP),
+    kopParagrafXml("DIREKTORAT PENGENDALIAN PERHUTANAN SOSIAL", 16, TINGGI_BARIS_KOP_3, -10),
+  ].map((x) => fragmenKeNode(doc, x)[0] as Element);
+  pKop1!.insertBefore(logo, pKop1!.getElementsByTagName("w:r")[0] ?? null);
+  const pGaris = fragmenKeNode(
+    doc,
+    '<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="20" w:lineRule="exact"/></w:pPr></w:p>',
+  )[0] as Element;
+  pGaris.appendChild(garis);
+  for (const node of [pKop1!, pKop2!, pKop3!, pGaris]) {
+    body.insertBefore(node, sectPr ?? null);
   }
 
   const nomorTeks =
@@ -273,40 +275,42 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
   const tembusan = rapikanPenutup(data.tembusan || []);
 
   const xml = [
-    paragrafXml(runXml("SURAT TUGAS", true), { jc: "center", sebelum: 240, tahanBersama: true }),
-    paragrafXml(runXml(`Nomor: ${nomorTeks}`), { jc: "center", sesudah: 160, tahanBersama: true }),
+    paragrafXml(runXml("SURAT TUGAS", true), { jc: "center", sebelum: JARAK_KE_JUDUL, tahanBersama: true }),
+    paragrafXml(runXml(`Nomor: ${nomorTeks}`), { jc: "center", tahanBersama: true }),
     paragrafXml(runXml("DIREKTUR PENGENDALIAN PERHUTANAN SOSIAL,", true), {
       jc: "center",
-      sesudah: 80,
+      sebelum: SATU_BARIS,
       tahanBersama: true,
     }),
     tabelLabelXml([
       { label: "Menimbang", isi: daftarXml(menimbang, "huruf", "both") },
       { label: "Dasar", isi: daftarXml(dasar, "angka", "both") },
     ]),
-    paragrafXml(runXml("MEMBERI TUGAS,"), { jc: "center", sebelum: 40, sesudah: 100, tahanBersama: true }),
+    paragrafXml(runXml("MEMBERI TUGAS,"), { jc: "center", sebelum: 100, sesudah: 110, tahanBersama: true }),
     tabelLabelXml([
       { label: "Kepada", isi: daftarXml(kepada, "angka", "left") },
       { label: "Untuk", isi: daftarXml(untuk, "angka", "both", 0) },
     ]),
     // Blok tanda tangan: satu kesatuan (keepNext) bersama tembusan agar tidak terpisah antarhalaman.
-    paragrafXml(runXml(tanggalTeks), { kiri: INDENT_TTD, sebelum: 200, tahanBersama: true }),
+    paragrafXml(runXml(tanggalTeks), { kiri: INDENT_TTD, sebelum: SATU_BARIS, tahanBersama: true }),
     paragrafXml(runXml(jabatanTtd), { kiri: INDENT_TTD, tahanBersama: true }),
     paragrafXml(runXml("${ttd_pengirim}"), {
       kiri: INDENT_TTD,
-      sebelum: 480,
-      sesudah: 480,
+      sebelum: JARAK_RUANG_TTD,
       tahanBersama: true,
     }),
-    paragrafXml(runXml(data.penandatanganNama || ""), { kiri: INDENT_TTD, tahanBersama: true }),
+    paragrafXml(runXml(data.penandatanganNama || ""), {
+      kiri: INDENT_TTD,
+      sebelum: JARAK_RUANG_TTD,
+      tahanBersama: true,
+    }),
     paragrafXml(runXml(data.penandatanganNip ? `NIP. ${data.penandatanganNip}` : ""), {
       kiri: INDENT_TTD,
-      sesudah: 200,
       tahanBersama: tembusan.length > 0,
     }),
     ...(tembusan.length > 0
       ? [
-          paragrafXml(runXml("Tembusan:"), { tahanBersama: true }),
+          paragrafXml(runXml("Tembusan:"), { sebelum: SATU_BARIS, tahanBersama: true }),
           ...tembusan.map((t, i) =>
             butirXml(`${i + 1}.`, t, { tahanBersama: i < tembusan.length - 1 }),
           ),
@@ -320,14 +324,6 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
 
   const newXml = new XMLSerializer().serializeToString(doc);
   zip.file("word/document.xml", newXml);
-
-  const fontXml = await zip.file("word/fontTable.xml")?.async("text");
-  if (fontXml && !fontXml.includes('w:name="Figtree"')) {
-    const fontEntry =
-      '<w:font w:name="Figtree"><w:panose1 w:val="020B0604020202020204"/><w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font></w:fonts>';
-    const updatedFontXml = fontXml.replace("</w:fonts>", fontEntry);
-    zip.file("word/fontTable.xml", updatedFontXml);
-  }
 
   const generatedBuffer = await zip.generateAsync({ type: "nodebuffer" });
   return generatedBuffer;
