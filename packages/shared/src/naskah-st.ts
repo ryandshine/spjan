@@ -66,8 +66,8 @@ export function buatNaskahStAwal(opts?: {
     pelaporanHari: 5,
     pembebananAnggaran: PEMBEBANAN_DIPA_BAWAAN(tahun),
     penandatanganJabatan: opts?.pjJabatan || "Direktur,",
-    penandatanganNama: opts?.pjNama || "",
-    penandatanganNip: opts?.pjNip || "",
+    penandatanganNama: opts?.pjNama || "Dr. Marcus Octavianus Susatyo, S.Hut., M.P.",
+    penandatanganNip: opts?.pjNip || "196810191998031001",
     tembusan: [...TEMBUSAN_BAWAAN_ST],
     pelaksana: [],
   };

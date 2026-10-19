@@ -688,7 +688,10 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
             </Button>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-6 shadow-md text-foreground font-serif leading-relaxed text-xs overflow-x-auto min-h-[600px] select-text">
+          <div
+            className="rounded-xl border border-border bg-card p-6 shadow-md text-foreground leading-relaxed text-xs overflow-x-auto min-h-[600px] select-text"
+            style={{ fontFamily: "'Bookman Old Style', 'Bookman', 'URW Bookman L', 'Palatino Linotype', serif" }}
+          >
             {/* Kop Resmi Kementerian Kehutanan */}
             <div className="text-center border-b-2 border-foreground pb-3 mb-4 space-y-0.5">
               <p className="font-bold text-sm tracking-wide">KEMENTERIAN KEHUTANAN</p>
@@ -708,8 +711,8 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
             </div>
 
             {/* Pemberi Tugas */}
-            <div className="text-center font-bold text-xs mb-3">
-              {(form.penandatanganJabatan || 'DIREKTUR PENGENDALIAN PERHUTANAN SOSIAL').toUpperCase()}
+            <div className="text-center font-bold text-xs mb-3 tracking-wide">
+              DIREKTUR PENGENDALIAN PERHUTANAN SOSIAL,
             </div>
 
             {/* Tabel Menimbang */}
@@ -794,8 +797,8 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                 <div className="h-16 flex items-center py-2 text-muted-foreground font-mono text-[10px]">
                   {'${ttd_pengirim}'}
                 </div>
-                <p className="font-bold underline">{form.penandatanganNama || 'Nama Pejabat'}</p>
-                {form.penandatanganNip ? <p>NIP. {form.penandatanganNip}</p> : null}
+                <p className="font-bold underline">{form.penandatanganNama || 'Dr. Marcus Octavianus Susatyo, S.Hut., M.P.'}</p>
+                <p>NIP. {form.penandatanganNip || '196810191998031001'}</p>
               </div>
             </div>
 
