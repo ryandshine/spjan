@@ -112,9 +112,9 @@ describe("generateNaskahStDocx", () => {
     const docXml = await zip.file("word/document.xml")?.async("text");
     expect(docXml).toBeDefined();
 
-    // 1. Margin A4 dan Line Pitch sesuai Standar TND (Kiri 3cm, Kanan 2cm, Atas 2cm, Bawah 2.5cm)
+    // 1. Margin A4 dan Line Pitch sesuai Standar Kop Kementerian (Simetris: Kiri 2cm, Kanan 2cm, Atas 1.5cm, Bawah 2.5cm)
     expect(docXml).toContain('w:w="11906" w:h="16838"');
-    expect(docXml).toContain('w:top="1134" w:right="1134" w:bottom="1418" w:left="1701"');
+    expect(docXml).toContain('w:top="850" w:right="1134" w:bottom="1418" w:left="1134"');
     expect(docXml).toContain('w:linePitch="360"');
 
     // 2. Pemberi tugas (P9) tidak terdistorsi menjadi DIREKTUR,
