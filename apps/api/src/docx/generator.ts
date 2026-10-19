@@ -104,8 +104,22 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
   const lamaHari = data.lamaHari || hitungLamaHariSt(data.tanggalMulai, data.tanggalSelesai);
   const rentangTanggal = formatRentangWaktuSt(data.tanggalMulai, data.tanggalSelesai);
 
-  // 0. Font Kop Surat (P0, P1, P2): Menggunakan font Figtree
-  for (const idx of [0, 1, 2]) {
+  // Enforce Standar Tata Naskah Dinas Margins (PermenPANRB & PermenLHK P.63/2015):
+  // Margin Kiri: 3.0 cm (1701 dxa)
+  // Margin Kanan: 2.0 cm (1134 dxa)
+  // Margin Atas: 2.0 cm (1134 dxa)
+  // Margin Bawah: 2.5 cm (1418 dxa)
+  const pgMar = doc.getElementsByTagName("w:pgMar")[0];
+  if (pgMar) {
+    pgMar.setAttribute("w:top", "1134");
+    pgMar.setAttribute("w:right", "1134");
+    pgMar.setAttribute("w:bottom", "1418");
+    pgMar.setAttribute("w:left", "1701");
+  }
+
+  // 0. Font Kop Surat (P0, P1, P2): Menggunakan font Figtree & ukuran standar TND tanpa wrap
+  const kopSizes = ["27", "25", "25"]; // P0: 13.5pt, P1: 12.5pt, P2: 12.5pt
+  for (let idx = 0; idx <= 2; idx++) {
     const pKop = body.childNodes[idx] as Element | undefined;
     if (pKop) {
       const runs = pKop.getElementsByTagName("w:r");
@@ -118,6 +132,15 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
           if (rFonts) {
             rFonts.setAttribute("w:ascii", "Figtree");
             rFonts.setAttribute("w:hAnsi", "Figtree");
+            rFonts.setAttribute("w:cs", "Figtree");
+          }
+          const sz = rPr.getElementsByTagName("w:sz")[0];
+          if (sz && kopSizes[idx]) {
+            sz.setAttribute("w:val", kopSizes[idx]!);
+          }
+          const szCs = rPr.getElementsByTagName("w:szCs")[0];
+          if (szCs && kopSizes[idx]) {
+            szCs.setAttribute("w:val", kopSizes[idx]!);
           }
         }
       }

@@ -674,9 +674,14 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
         {/* Kolom Kanan: Pratinjau Lembar Surat Resmi (A4 Standard Live Preview) */}
         <div className="space-y-3 lg:col-span-5 lg:sticky lg:top-4">
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Pratinjau Naskah Dinas (Live Preview)
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Pratinjau Naskah Dinas (Live Preview)
+              </span>
+              <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                Standar TND (Kiri 3cm, Kanan 2cm, Atas 2cm, Bawah 2.5cm)
+              </span>
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -688,44 +693,44 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
             </Button>
           </div>
 
-          {/* Lembar Naskah Dinas Resmi (Persis CONTOH SPT.docx) */}
+          {/* Lembar Naskah Dinas Resmi (Standar Tata Naskah Dinas A4) */}
           <div
-            className="bg-white text-neutral-900 shadow-xl border border-neutral-300 p-6 sm:p-8 text-[12px] leading-relaxed select-text overflow-x-auto"
+            className="bg-white text-neutral-900 shadow-xl border border-neutral-300 p-6 sm:pt-[2.0cm] sm:pb-[2.5cm] sm:pl-[3.0cm] sm:pr-[2.0cm] text-[11.5pt] leading-relaxed select-text overflow-x-auto"
             style={{ fontFamily: "'Bookman Old Style', 'Bookman', 'URW Bookman L', 'Palatino Linotype', Georgia, serif" }}
           >
-            {/* Kop Resmi Kementerian Kehutanan dengan Logo */}
+            {/* Kop Resmi Kementerian Kehutanan (Standar Tata Naskah Dinas) */}
             <div className="flex items-center gap-4 pb-2">
               <img
                 src="/logo-kemenhut.png"
                 alt="Logo Kementerian Kehutanan"
-                className="w-20 h-20 object-contain shrink-0"
+                className="w-[2.4cm] h-[2.4cm] object-contain shrink-0"
               />
               <div
                 className="flex-1 text-center"
                 style={{ fontFamily: "'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
               >
-                <p className="font-bold text-[14px] tracking-wide leading-tight uppercase">
+                <p className="font-bold text-[13.5pt] tracking-wide leading-tight uppercase text-neutral-950">
                   KEMENTERIAN KEHUTANAN
                 </p>
-                <p className="font-bold text-[13px] tracking-wide leading-tight uppercase mt-0.5">
+                <p className="font-bold text-[12.5pt] tracking-wide leading-tight uppercase mt-1 text-neutral-900">
                   DIREKTORAT JENDERAL PERHUTANAN SOSIAL
                 </p>
-                <p className="font-extrabold text-[15px] tracking-wide leading-tight uppercase mt-0.5">
+                <p className="font-bold text-[12.5pt] tracking-wide leading-tight uppercase mt-1 text-neutral-900">
                   DIREKTORAT PENGENDALIAN PERHUTANAN SOSIAL
                 </p>
               </div>
             </div>
 
             {/* Garis Ganda Pemisah Kop (Garis tebal atas, garis tipis bawah) */}
-            <div className="space-y-[2px] mb-4">
-              <div className="h-[2.5px] bg-black" />
+            <div className="space-y-[1.5px] mt-2 mb-6">
+              <div className="h-[2px] bg-black" />
               <div className="h-[0.75px] bg-black" />
             </div>
 
-            {/* Judul & Nomor Naskah */}
-            <div className="text-center my-4">
-              <p className="font-bold tracking-widest text-[13px]">SURAT TUGAS</p>
-              <p className="text-[12px] mt-0.5">
+            {/* Judul & Nomor Naskah (Jarak 2 spasi dari garis kop sesuai ketentuan TND) */}
+            <div className="text-center mb-5">
+              <p className="font-bold tracking-widest text-[12pt] uppercase">SURAT TUGAS</p>
+              <p className="text-[11pt] mt-0.5">
                 Nomor:{' '}
                 {form.modeNomor === 'srikandi'
                   ? '${nomor_naskah}'
@@ -733,8 +738,8 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
               </p>
             </div>
 
-            {/* Jabatan Pemberi Tugas */}
-            <div className="text-center font-bold text-[12px] tracking-[0.12em] mb-4 uppercase">
+            {/* Jabatan Pemberi Tugas (2 spasi di bawah nomor naskah) */}
+            <div className="text-center font-bold text-[11pt] tracking-[0.1em] mb-5 uppercase">
               DIREKTUR PENGENDALIAN PERHUTANAN SOSIAL,
             </div>
 
