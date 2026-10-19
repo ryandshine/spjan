@@ -703,16 +703,16 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
               <img
                 src="/logo-kemenhut.png"
                 alt="Logo Kementerian Kehutanan"
-                className="w-[2.4cm] h-[2.4cm] object-contain shrink-0"
+                className="w-[2.65cm] h-[2.65cm] object-contain shrink-0"
               />
               <div
                 className="flex-1 text-center px-2"
                 style={{ fontFamily: "'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
               >
-                <p className="font-bold text-[13.5pt] tracking-wide leading-tight uppercase text-neutral-950">
+                <p className="font-bold text-[14pt] tracking-wide leading-tight uppercase text-neutral-950">
                   KEMENTERIAN KEHUTANAN
                 </p>
-                <p className="font-bold text-[12.5pt] tracking-wide leading-tight uppercase mt-1 text-neutral-900">
+                <p className="font-bold text-[13pt] tracking-wide leading-tight uppercase mt-1 text-neutral-900">
                   DIREKTORAT JENDERAL PERHUTANAN SOSIAL
                 </p>
                 <p className="font-bold text-[12.5pt] tracking-wide leading-tight uppercase mt-1 text-neutral-900 whitespace-nowrap">
@@ -720,7 +720,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                 </p>
               </div>
               {/* Penyeimbang visual agar teks kop tepat berada di titik tengah kertas (simetris sumbu tengah x = 10.5cm) */}
-              <div className="w-[2.4cm] shrink-0 hidden sm:block" aria-hidden="true" />
+              <div className="w-[2.65cm] shrink-0 hidden sm:block" aria-hidden="true" />
             </div>
 
             {/* Garis Ganda Pemisah Kop (Simetris Sama Jarak Kiri dan Kanan) */}

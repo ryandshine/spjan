@@ -116,7 +116,7 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
   }
 
   // 0. Font Kop Surat (P0, P1, P2): Menggunakan font Figtree, posisi Center murni (simetris sumbu tengah kertas x = 10.5 cm)
-  const kopSizes = ["27", "25", "25"]; // P0: 13.5pt, P1: 12.5pt, P2: 12.5pt Figtree Bold
+  const kopSizes = ["28", "26", "25"]; // P0: 14pt, P1: 13pt, P2: 12.5pt Figtree Bold
   for (let idx = 0; idx <= 2; idx++) {
     const pKop = body.childNodes[idx] as Element | undefined;
     if (pKop) {
