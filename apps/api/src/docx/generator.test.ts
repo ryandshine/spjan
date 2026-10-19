@@ -182,7 +182,10 @@ describe("generateNaskahStDocx", () => {
     // geometri halaman dan kop mengikuti ST.265 / CONTOH SPT
     expect(xml).toMatch(/<w:pgMar [^>]*w:top="567"[^>]*w:right="1134"[^>]*w:bottom="1418"[^>]*w:left="1009"/);
     expect(xml).toContain('<a:ext cx="1009650" cy="1009650"/>'); // logo 2,80 cm
-    expect(xml).toContain('<a:ext cx="7127875" cy="57150"/>'); // garis ganda 19,8 cm
+    // garis ganda simetris: 0,99 cm dari kiri dan kanan kertas (356235 + 6847840 + 356235 = lebar A4)
+    expect(xml).toContain('<wp:posOffset>356235</wp:posOffset>');
+    expect(xml).toContain('<a:ext cx="6847840" cy="57150"/>');
+    expect(xml).not.toContain("7127875");
     expect(xml).toContain('w:ascii="Figtree"'); // kop (Permenhut 1/2025 Pasal 56)
     expect(xml).toContain('w:ascii="Bookman Old Style"');
     expect(teks).toContain("KEMENTERIAN KEHUTANAN");

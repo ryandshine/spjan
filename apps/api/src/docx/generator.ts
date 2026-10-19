@@ -20,6 +20,12 @@ const W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 
 // Geometri mengikuti ST.265 / CONTOH SPT (satuan dxa: 1 cm = 567).
 // Halaman A4 11906 dxa; margin kiri 1,78 cm, kanan 2,0 cm, atas 1,0 cm, bawah 2,5 cm.
+// Garis ganda kop: simetris terhadap lebar kertas. Jarak ke tepi kiri/kanan 0,99 cm (356235 EMU),
+// sama dengan posisi kiri pada CONTOH SPT; template aslinya berhenti 0,21 cm dari tepi kanan.
+const EMU_PER_DXA = 635;
+const GARIS_JARAK_TEPI_EMU = 356235;
+const GARIS_LEBAR_ASLI_EMU = 7127875;
+const GARIS_LEBAR_EMU = 11906 * EMU_PER_DXA - 2 * GARIS_JARAK_TEPI_EMU;
 const MARGIN_ATAS = 567;
 const MARGIN_KANAN = 1134;
 const MARGIN_BAWAH = 1418;
@@ -179,7 +185,14 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
     throw new Error("word/document.xml tidak ditemukan pada template");
   }
 
-  const doc = new DOMParser().parseFromString(docXml, "text/xml");
+  // Lebarkan/ciutkan garis di semua representasinya (DrawingML, path, dan fallback VML dalam pt).
+  const lebarGarisPt = (GARIS_LEBAR_EMU / 12700).toFixed(2);
+  const docXmlSimetris = docXml
+    .split(String(GARIS_LEBAR_ASLI_EMU))
+    .join(String(GARIS_LEBAR_EMU))
+    .replace("width:561.25pt", `width:${lebarGarisPt}pt`);
+
+  const doc = new DOMParser().parseFromString(docXmlSimetris, "text/xml");
   const body = doc.getElementsByTagName("w:body")[0];
   if (!body) {
     throw new Error("w:body tidak ditemukan pada document.xml");
