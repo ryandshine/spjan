@@ -1,5 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { BuatPenggunaPayload, GantiPasswordPayload, JenisBerkas, UbahPenggunaPayload, LaporanIsi, ModelAiPayload, PegawaiPayload, PengaturanPayload, StatusKode, StatusKonfigurasi, SuratTugasPayload, UpdateUsulanBerkasPayload } from '@spjan/shared'
+import type {
+  BuatPenggunaPayload,
+  GantiPasswordPayload,
+  JenisBerkas,
+  UbahPenggunaPayload,
+  LaporanIsi,
+  ModelAiPayload,
+  NaskahStPayload,
+  PegawaiPayload,
+  PengaturanPayload,
+  StatusKode,
+  StatusKonfigurasi,
+  SuratTugasPayload,
+  UpdateUsulanBerkasPayload,
+} from '@spjan/shared'
 
 import { api, ApiError } from '@/lib/api'
 
@@ -14,7 +28,10 @@ export const keys = {
   st: (id: number) => ['st', id] as const,
   hasil: (id: number) => ['st', id, 'hasil'] as const,
   laporan: (id: number) => ['st', id, 'laporan'] as const,
+  naskahStList: ['naskah-st', 'list'] as const,
+  naskahSt: (id: number) => ['naskah-st', id] as const,
 }
+
 
 export function useMe() {
   return useQuery({
@@ -341,3 +358,49 @@ export function useSampahMutations() {
     hapusPermanenBerkas: useMutation({ mutationFn: (v: { id: number; password: string }) => api.sampah.hapusPermanenBerkas(v.id, v.password), onSuccess: refresh }),
   }
 }
+
+export function useDaftarNaskahSt() {
+  return useQuery({ queryKey: keys.naskahStList, queryFn: api.naskahSt.list })
+}
+
+export function useNaskahSt(id: number | undefined) {
+  return useQuery({
+    queryKey: id ? keys.naskahSt(id) : ['naskah-st', 0],
+    queryFn: () => (id ? api.naskahSt.get(id) : Promise.reject(new Error('ID tidak valid'))),
+    enabled: typeof id === 'number' && id > 0,
+  })
+}
+
+export function useSimpanNaskahSt(id: number | undefined) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: NaskahStPayload) =>
+      id ? api.naskahSt.update(id, payload) : api.naskahSt.create(payload),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: keys.naskahStList })
+      qc.setQueryData(keys.naskahSt(data.id), data)
+    },
+  })
+}
+
+export function useHapusNaskahSt() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.naskahSt.remove(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.naskahStList })
+    },
+  })
+}
+
+export function useBuatSpjDariNaskah() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.naskahSt.buatSpj(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.stList })
+      qc.invalidateQueries({ queryKey: keys.naskahStList })
+    },
+  })
+}
+

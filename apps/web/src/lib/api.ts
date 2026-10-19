@@ -13,7 +13,11 @@ import type {
   LaporanIsi,
   ModelAiDto,
   ModelAiPayload,
+  NaskahStDto,
+  NaskahStPayload,
+  NaskahStRingkasDto,
   PegawaiDto,
+
   PegawaiPayload,
   PengaturanPayload,
   SbmDetailDto,
@@ -167,4 +171,14 @@ export const api = {
       simpan: (id: number, isi: LaporanIsi) => request<LaporanDto>('PUT', `/api/surat-tugas/${id}/laporan`, isi),
     },
   },
+
+  naskahSt: {
+    list: () => request<NaskahStRingkasDto[]>('GET', '/api/naskah-st'),
+    get: (id: number) => request<NaskahStDto>('GET', `/api/naskah-st/${id}`),
+    create: (p: NaskahStPayload) => request<NaskahStDto>('POST', '/api/naskah-st', p),
+    update: (id: number, p: NaskahStPayload) => request<NaskahStDto>('PUT', `/api/naskah-st/${id}`, p),
+    remove: (id: number) => request<void>('DELETE', `/api/naskah-st/${id}`),
+    buatSpj: (id: number) => request<{ spjId: number }>('POST', `/api/naskah-st/${id}/buat-spj`),
+  },
 }
+

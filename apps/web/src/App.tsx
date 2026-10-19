@@ -15,7 +15,10 @@ import SampahPage from '@/pages/sampah'
 import SbmPage from '@/pages/sbm'
 import StEditorPage from '@/pages/st-editor'
 import SuratTugasListPage from '@/pages/st-list'
+import NaskahStListPage from '@/pages/st-naskah-list'
+import NaskahStEditorPage from '@/pages/st-naskah-editor'
 import { NotFoundPage } from '@/pages/placeholder'
+
 
 // Dokumen memuat @react-pdf/renderer (besar), jadi dimuat saat dibutuhkan.
 const DokumenPage = lazy(() => import('@/pages/dokumen'))
@@ -33,7 +36,11 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route index element={<SuratTugasListPage />} />
+          <Route path="st-naskah" element={<NaskahStListPage />} />
+          <Route path="st-naskah/baru" element={<NaskahStEditorPage />} />
+          <Route path="st-naskah/:id" element={<NaskahStEditorPage />} />
           <Route path="st/baru" element={<StEditorPage />} />
+
           <Route path="st/buat-dari-st" element={<BuatDariStPage />} />
           <Route path="st/:id" element={<StEditorPage />} />
           <Route

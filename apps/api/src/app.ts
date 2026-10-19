@@ -21,6 +21,8 @@ import { pengaturanRoutes } from "./routes/pengaturan.js";
 import { sbmRoutes } from "./routes/sbm.js";
 import { laporanRoutes } from "./routes/laporan.js";
 import { suratTugasRoutes } from "./routes/surat-tugas.js";
+import { naskahStRoutes } from "./routes/naskah-st.js";
+
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -87,7 +89,9 @@ export async function buildApp(db: Db, opts: { logger?: boolean; store?: BerkasS
   await app.register(pegawaiRoutes, { prefix: "/api/pegawai", db });
   await app.register(sbmRoutes, { prefix: "/api/sbm", db });
   await app.register(suratTugasRoutes, { prefix: "/api/surat-tugas", db, store });
+  await app.register(naskahStRoutes, { prefix: "/api/naskah-st", db });
   await app.register(laporanRoutes, { prefix: "/api/surat-tugas", db });
+
   await app.register(berkasRoutes, { prefix: "/api/berkas", db, store });
   await app.register(modelAiRoutes, { prefix: "/api/model-ai", db, klien });
   return app;

@@ -1,7 +1,20 @@
 # Status SPJAN
 
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
-Terakhir diperbarui: 2026-10-15 (fitur uang harian ditanggung pihak lain selesai dibuat, belum di-commit).
+Terakhir diperbarui: 2026-10-19 (fitur pembuat naskah Surat Tugas ST/SPT selesai dibuat, belum di-commit).
+
+## Fitur Pembuat Naskah Surat Tugas (ST / SPT) (belum di-commit)
+
+- Fitur menu baru **"Buat Surat Tugas"** di sidebar (`/st-naskah`) untuk drafting naskah penugasan resmi sebelum perjalanan dinas dilaksanakan, serta pembaruan label menu lama `/` menjadi **"SPJ Perjalanan Dinas"** untuk memperjelas batas peran administrasi.
+- Dokumen acuan: `CONTOH SPT.docx` dijadikan master template di `apps/api/assets/template-spt.docx`.
+- Mesin pembangkit DOCX (`apps/api/src/docx/generator.ts` via JSZip & DOMParser @xmldom/xmldom): menghasilkan berkas Word presisi dengan kop resmi logo Kementerian Kehutanan, tipografi Bookman Old Style 11pt, margin A4 dinas, tabel borderless konsideran Menimbang & Dasar, penomoran otomatis pelaksana & diktum Untuk, serta variabel SRIKANDI `${nomor_naskah}`, `${tanggal_naskah}`, `${ttd_pengirim}`.
+- Model data & skema: tabel `naskah_st` dan `naskah_st_pelaksana` (migrasi `1791126000021_naskah_st.sql`), tipe dan skema Zod di `@spjan/shared`, helper `naskah-st.ts` (hitung hari, terbilang hari, rentang tanggal, nilai bawaan DIPA & dasar hukum).
+- Endpoint API `/api/naskah-st`: CRUD, GET `/:id/docx`, POST `/preview-docx`, dan integrasi 1-klik `POST /:id/buat-spj` yang otomatis membuat entri SPJ lengkap dengan nomor, tanggal, maksud kegiatan, lokasi, dan daftar pelaksana.
+- Antarmuka pengguna:
+  - `st-naskah-list.tsx`: daftar surat tugas dengan badge Srikandi/Manual, jumlah personil, tombol unduh DOCX, dan tombol cepat "Buat SPJ".
+  - `st-naskah-editor.tsx`: editor 2-kolom dengan live preview lembar naskah dinas resmi A4, pemilihan cepat pelaksana dari master data Pegawai SPJAN, pengaturan urutan tim, pembebanan anggaran, dan tembusan.
+- Tes lulus: api 158 tests, shared 129 tests; lint & build bersih di semua workspace.
+
 
 ## Tujuan
 

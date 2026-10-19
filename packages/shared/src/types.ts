@@ -202,3 +202,59 @@ export interface SpjHasil {
   teksTanggalSt: string;
   teksTanggalSpj: string;
 }
+
+export type ModeNomorSt = "srikandi" | "manual";
+
+export interface NaskahStPelaksanaItem {
+  id?: number;
+  pegawaiId?: number | null;
+  nama: string;
+  nip: string;
+  jabatan: string;
+}
+
+export interface NaskahStDto {
+  id: number;
+  nomor: string;
+  modeNomor: ModeNomorSt;
+  tanggal: string | null;
+  tempatNaskah: string;
+  maksudTugas: string;
+  lokasiTugas: string;
+  tanggalMulai: string;
+  tanggalSelesai: string;
+  lamaHari: number;
+  dasarHukum: string[];
+  dasarSpesifik: string;
+  pelaporanHari: number;
+  pembebananAnggaran: string;
+  penandatanganJabatan: string;
+  penandatanganNama: string;
+  penandatanganNip: string;
+  tembusan: string[];
+  spjId: number | null;
+  dibuatOleh: number | null;
+  dibuatOlehNama?: string | null;
+  pelaksana: NaskahStPelaksanaItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NaskahStRingkasDto {
+  id: number;
+  nomor: string;
+  modeNomor: ModeNomorSt;
+  tanggal: string | null;
+  maksudTugas: string;
+  lokasiTugas: string;
+  tanggalMulai: string;
+  tanggalSelesai: string;
+  lamaHari: number;
+  jumlahPelaksana: number;
+  spjId: number | null;
+  dibuatOleh: number | null;
+  dibuatOlehNama?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+

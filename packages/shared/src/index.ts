@@ -13,3 +13,5 @@ export * from "./transport-ekstraksi.js";
 export * from "./laporan.js";
 export * from "./laporan-susun.js";
 export * from "./laporan-dokumen.js";
+export * from "./naskah-st.js";
+

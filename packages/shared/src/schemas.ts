@@ -288,3 +288,38 @@ export function toSpjInput(st: SuratTugasPayload, pengaturan: Pick<PengaturanPay
     })),
   };
 }
+
+export const ModeNomorStSchema = z.enum(["srikandi", "manual"]);
+
+export const NaskahStPelaksanaPayloadSchema = z.object({
+  id: z.number().int().positive().optional(),
+  pegawaiId: z.number().int().positive().nullish(),
+  nama: teks(200).min(1, "Nama pelaksana wajib diisi"),
+  nip: teks(40).default(""),
+  jabatan: teks(200).default(""),
+});
+
+export const NaskahStPayloadSchema = z.object({
+  nomor: teks(200).default("${nomor_naskah}"),
+  modeNomor: ModeNomorStSchema.default("srikandi"),
+  tanggal: tanggalOpsional.nullish(),
+  tempatNaskah: teks(100).default("Jakarta"),
+  maksudTugas: teks(2000).min(1, "Maksud penugasan wajib diisi"),
+  lokasiTugas: teks(500).min(1, "Lokasi / tempat penugasan wajib diisi"),
+  tanggalMulai: tanggalWajib,
+  tanggalSelesai: tanggalWajib,
+  lamaHari: z.number().int().min(1).max(365).optional(),
+  dasarHukum: z.array(teks(500)).default([]),
+  dasarSpesifik: teks(2000).default(""),
+  pelaporanHari: z.number().int().min(1).max(30).default(5),
+  pembebananAnggaran: teks(500).min(1, "Pembebanan anggaran wajib diisi"),
+  penandatanganJabatan: teks(200).default("Direktur,"),
+  penandatanganNama: teks(200).min(1, "Nama penandatangan wajib diisi"),
+  penandatanganNip: teks(60).default(""),
+  tembusan: z.array(teks(300)).default([]),
+  pelaksana: z.array(NaskahStPelaksanaPayloadSchema).min(1, "Minimal harus ada 1 pelaksana"),
+});
+
+export type NaskahStPayload = z.infer<typeof NaskahStPayloadSchema>;
+export type NaskahStPelaksanaPayload = z.infer<typeof NaskahStPelaksanaPayloadSchema>;
+

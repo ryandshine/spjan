@@ -92,8 +92,10 @@ export default function SuratTugasListPage() {
   return (
     <div>
       <PageHeader
-        title="Surat Tugas"
+        title="SPJ Perjalanan Dinas"
+        description="Penyusunan berkas pertanggungjawaban keuangan perjalanan dinas (SPTB, SPD, Kuitansi, Rincian, dan Laporan)."
         actions={
+
           <div className="flex items-center gap-2">
             <Link to="/st/buat-dari-st" className={buttonVariants({ variant: 'outline' })}>
               <FileUpIcon className="size-4" /> Buat dari ST
