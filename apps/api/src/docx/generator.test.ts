@@ -227,6 +227,40 @@ describe("generateNaskahStDocx", () => {
     };
     const hitung = (xml: string, kecil: string) => xml.split(kecil).length - 1;
 
+    it("ada jarak satu baris antara 'Kepada' dan 'Untuk' (daftar badan surat maupun lampiran)", async () => {
+      const jarakSesudah = (xml: string, teks: string) =>
+        new RegExp(`<w:spacing w:before="0" w:after="(\\d+)"[^>]*/>(?:(?!</w:p>).)*${teks}`, "s").exec(xml)?.[1];
+      expect(jarakSesudah(await buat(3), "Pelaksana Nomor3 / Jabatan Nomor3")).toBe("258");
+      expect(jarakSesudah(await buat(4), "DAFTAR TERLAMPIR")).toBe("258");
+    });
+
+    it("ada jarak satu baris antara 'Menimbang' dan 'Dasar'", async () => {
+      const xml = await buat(3);
+      const jarak = new RegExp(`<w:spacing w:before="0" w:after="(\\d+)"[^>]*/>(?:(?!</w:p>).)*perlu diterbitkan Surat Tugas`, "s").exec(xml)?.[1];
+      expect(jarak).toBe("258");
+    });
+
+    it("isi panjang: jarak mengecil agar tanda tangan dan tembusan tetap di halaman 1", async () => {
+      const dasarPanjang = Array.from({ length: 6 }, (_, i) => `Dasar hukum ke-${i + 1} tentang pedoman pelaksanaan anggaran pendapatan dan belanja negara tahun anggaran 2026`);
+      const buffer = await generateNaskahStDocx({
+        nomor: "${nomor_naskah}", modeNomor: "srikandi", tanggal: null, tempatNaskah: "Jakarta",
+        maksudTugas: "Koordinasi Pemantauan Persetujuan Pengelolaan Perhutanan Sosial dan Menghadiri Kegiatan Sekolah Lapang Perhutanan Sosial",
+        lokasiTugas: "Provinsi Jawa Barat", tanggalMulai: "2026-08-14", tanggalSelesai: "2026-08-15", lamaHari: 2,
+        dasarHukum: dasarPanjang, dasarSpesifik: "", pelaporanHari: 5, pembebananAnggaran: "DIPA 2026",
+        penandatanganJabatan: "Direktur,", penandatanganNama: "Dr. Marcus Octavianus Susatyo, S.Hut., M.P.",
+        penandatanganNip: "196810191998031001", tembusan: ["Satu", "Dua", "Tiga", "Empat"], pelaksana: pelaksana(3),
+      });
+      const xml = (await (await JSZip.loadAsync(buffer)).file("word/document.xml")?.async("text")) ?? "";
+      const sebelumTtd = new RegExp('<w:spacing w:before="(\\d+)"[^>]*/>(?:(?!</w:p>).)*\\$\\{ttd_pengirim\\}', "s").exec(xml)?.[1];
+      expect(sebelumTtd).toBe("516");
+    });
+
+    it("isi ringan: ruang tanda tangan tetap lega", async () => {
+      const xml = await buat(3);
+      const sebelumTtd = new RegExp('<w:spacing w:before="(\\d+)"[^>]*/>(?:(?!</w:p>).)*\\$\\{ttd_pengirim\\}', "s").exec(xml)?.[1];
+      expect(sebelumTtd).toBe("774");
+    });
+
     it("3 pelaksana tetap di badan surat tanpa lampiran", async () => {
       const xml = await buat(3);
       expect(xml).not.toContain("DAFTAR TERLAMPIR");

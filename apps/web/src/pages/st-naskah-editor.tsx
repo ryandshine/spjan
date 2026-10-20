@@ -755,8 +755,8 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
 
             {/* Bagian Tabel Isi (Menimbang, Dasar, Memberi Tugas, Kepada, Untuk) */}
             <div className="space-y-2.5 text-[11.5px] leading-relaxed text-justify">
-              {/* Menimbang */}
-              <div className="flex gap-2">
+              {/* Menimbang (jarak ke "Dasar" seperti di DOCX) */}
+              <div className="flex gap-2 mb-3">
                 <div className="w-24 shrink-0 flex justify-between font-normal">
                   <span>Menimbang</span>
                   <span>:</span>
@@ -802,8 +802,8 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                 MEMBERI TUGAS,
               </div>
 
-              {/* Kepada */}
-              <div className="flex gap-2">
+              {/* Kepada (jarak ke "Untuk" seperti di DOCX) */}
+              <div className="flex gap-2 mb-3">
                 <div className="w-24 shrink-0 flex justify-between font-normal">
                   <span>Kepada</span>
                   <span>:</span>

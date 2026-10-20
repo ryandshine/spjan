@@ -12,6 +12,7 @@ import {
   type NaskahStDto,
   type NaskahStPayload,
 } from "@spjan/shared";
+import { JARAK_NORMAL, SATU_BARIS, pilihJarak, type JarakHalaman } from "./tata-letak.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Master template docx: assets/template-spt.docx (salinan CONTOH SPT.docx; hanya logo dan garis kop yang dipakai)
@@ -41,9 +42,7 @@ const INDENT_KOP = 1706; // teks kop mulai di kanan logo (logo berakhir di x = 4
 const INDENT_KOP_KANAN = -188; // teks kop boleh melewati margin kanan 0,33 cm, seperti CONTOH SPT
 const TINGGI_BARIS_KOP = 328; // 16,4 pt: baris kop 14 pt (0,58 cm); lebar Figtree Bold 15 pt baris ketiga = 13,2 cm dari ruang 14,5 cm
 const TINGGI_BARIS_KOP_3 = 376; // 18,8 pt: baris kop ketiga 15 pt (0,66 cm)
-const SATU_BARIS = 258; // satu baris kosong Bookman 11 pt (0,455 cm)
 const JARAK_KE_JUDUL = 771; // kop selesai di y = 2,82 cm, "SURAT TUGAS" mulai di y = 4,18 cm
-const JARAK_RUANG_TTD = 774; // tiga baris untuk tanda tangan elektronik / basah
 
 function esc(teks: string): string {
   return teks.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -356,19 +355,27 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
     `Biaya dibebankan kepada ${pembebanan}`,
   ];
   const tembusan = rapikanPenutup(data.tembusan || []);
+  // Jarak halaman 1 mengecil bertahap bila isi panjang, supaya tanda tangan dan tembusan tidak pindah halaman.
+  const jarak = pilihJarak({
+    menimbang,
+    dasar,
+    kepada: lampiran ? ["DAFTAR TERLAMPIR"] : kepada,
+    untuk,
+    tembusan,
+  });
 
   // Tanda tangan Direktur: baris tanggal (hanya di halaman 1) + jabatan, ruang TTE, nama, NIP.
-  const tandaTanganXml = (denganTanggal: boolean, tahanKeBawah: boolean): string[] => [
+  const tandaTanganXml = (denganTanggal: boolean, tahanKeBawah: boolean, j: JarakHalaman): string[] => [
     ...(denganTanggal
-      ? [paragrafXml(runXml(tanggalTeks), { kiri: INDENT_TTD, sebelum: SATU_BARIS, tahanBersama: true })]
+      ? [paragrafXml(runXml(tanggalTeks), { kiri: INDENT_TTD, sebelum: j.sebelumTtd, tahanBersama: true })]
       : []),
     paragrafXml(runXml(jabatanTtd), {
       kiri: INDENT_TTD,
       sebelum: denganTanggal ? 0 : SATU_BARIS,
       tahanBersama: true,
     }),
-    paragrafXml(runXml("${ttd_pengirim}"), { kiri: INDENT_TTD, sebelum: JARAK_RUANG_TTD, tahanBersama: true }),
-    paragrafXml(runXml(data.penandatanganNama || ""), { kiri: INDENT_TTD, sebelum: JARAK_RUANG_TTD, tahanBersama: true }),
+    paragrafXml(runXml("${ttd_pengirim}"), { kiri: INDENT_TTD, sebelum: j.ruangTtd, tahanBersama: true }),
+    paragrafXml(runXml(data.penandatanganNama || ""), { kiri: INDENT_TTD, sebelum: j.ruangTtd, tahanBersama: true }),
     paragrafXml(runXml(data.penandatanganNip ? `NIP. ${data.penandatanganNip}` : ""), {
       kiri: INDENT_TTD,
       tahanBersama: tahanKeBawah,
@@ -397,7 +404,7 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
           tahanBersama: true,
         }),
         tabelPelaksanaXml(data.pelaksana || []),
-        ...tandaTanganXml(false, false),
+        ...tandaTanganXml(false, false, JARAK_NORMAL), // halaman 2 lapang: jarak normal
       ]
     : [];
 
@@ -410,22 +417,25 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
       tahanBersama: true,
     }),
     tabelLabelXml([
-      { label: "Menimbang", isi: daftarXml(menimbang, "huruf", "both") },
+      { label: "Menimbang", isi: daftarXml(menimbang, "huruf", "both", jarak.antarBlok) },
       { label: "Dasar", isi: daftarXml(dasar, "angka", "both") },
     ]),
     paragrafXml(runXml("MEMBERI TUGAS,"), { jc: "center", sebelum: 100, sesudah: 110, tahanBersama: true }),
     tabelLabelXml([
       {
         label: "Kepada",
-        isi: lampiran ? paragrafXml(runXml("DAFTAR TERLAMPIR")) : daftarXml(kepada, "angka", "left"),
+        // Jarak sebelum "Untuk" agar dua blok tidak menempel (satu baris, mengecil bila halaman penuh).
+        isi: lampiran
+          ? paragrafXml(runXml("DAFTAR TERLAMPIR"), { sesudah: jarak.antarBlok })
+          : daftarXml(kepada, "angka", "left", jarak.antarBlok),
       },
       { label: "Untuk", isi: daftarXml(untuk, "angka", "both", 0) },
     ]),
     // Blok tanda tangan: satu kesatuan (keepNext) bersama tembusan agar tidak terpisah antarhalaman.
-    ...tandaTanganXml(true, tembusan.length > 0),
+    ...tandaTanganXml(true, tembusan.length > 0, jarak),
     ...(tembusan.length > 0
       ? [
-          paragrafXml(runXml("Tembusan:"), { sebelum: SATU_BARIS, tahanBersama: true }),
+          paragrafXml(runXml("Tembusan:"), { sebelum: jarak.sebelumTtd, tahanBersama: true }),
           ...tembusan.map((t, i) =>
             butirXml(`${i + 1}.`, t, { tahanBersama: i < tembusan.length - 1 }),
           ),
