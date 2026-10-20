@@ -393,6 +393,10 @@ export function useHapusNaskahSt() {
   })
 }
 
+export function useEkstrakUndangan() {
+  return useMutation({ mutationFn: (file: File) => api.naskahSt.ekstrakUndangan(file) })
+}
+
 export function useBuatSpjDariNaskah() {
   const qc = useQueryClient()
   return useMutation({

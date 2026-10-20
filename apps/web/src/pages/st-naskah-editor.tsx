@@ -23,6 +23,7 @@ import {
   type NaskahStPelaksanaPayload,
 } from '@spjan/shared'
 
+import { IsiDariUndangan } from '@/components/st/isi-dari-undangan'
 import { PageHeader } from '@/components/page-header'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -289,6 +290,11 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
         {/* Kolom Kiri: Form Editor */}
         <div className="space-y-6 lg:col-span-7">
+          <IsiDariUndangan
+            naskah={form}
+            onTerapkan={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
+          />
+
           {/* 1. Format Naskah & Nomor */}
           <Card>
             <CardHeader className="pb-3">

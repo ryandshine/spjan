@@ -1,4 +1,5 @@
 import type {
+  HasilEkstraksiUndangan,
   BerkasDto,
   BukaKunciPayload,
   BuatPenggunaPayload,
@@ -179,6 +180,19 @@ export const api = {
     update: (id: number, p: NaskahStPayload) => request<NaskahStDto>('PUT', `/api/naskah-st/${id}`, p),
     remove: (id: number) => request<void>('DELETE', `/api/naskah-st/${id}`),
     buatSpj: (id: number) => request<{ spjId: number }>('POST', `/api/naskah-st/${id}/buat-spj`),
+    ekstrakUndangan: async (file: File): Promise<{ model: string; hasil: HasilEkstraksiUndangan }> => {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch('/api/naskah-st/ekstrak-undangan', { method: 'POST', credentials: 'same-origin', body: form })
+      const data: unknown = await res.json().catch(() => null)
+      if (!res.ok) {
+        const d = (data ?? {}) as { error?: string; pesan?: string; rincian?: unknown }
+        const galatGerbang = [502, 503, 504].includes(res.status)
+        const cadangan = galatGerbang ? 'Server tidak merespons. Coba lagi beberapa saat lagi.' : res.statusText
+        throw new ApiError(res.status, d.error ?? 'GALAT', d.pesan ?? cadangan, d.rincian)
+      }
+      return data as { model: string; hasil: HasilEkstraksiUndangan }
+    },
   },
 }
 

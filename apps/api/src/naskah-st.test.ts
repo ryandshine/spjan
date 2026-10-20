@@ -2,13 +2,17 @@ import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { closePool } from "./db.js";
-import { bersihkanData, loginCookie, siapkanApp } from "./test-support/helpers.js";
+import { AiGalat } from "./ai/klien.js";
+import type { PermintaanAi } from "./ai/klien.js";
+import { pool } from "./db.js";
+import { bersihkanData, bodyMultipart, klienPalsu, loginCookie, PNG_1X1, siapkanApp } from "./test-support/helpers.js";
 
 let app: FastifyInstance;
 let cookie: string;
+let balasAi: (p: PermintaanAi) => string = () => "{}";
 
 beforeAll(async () => {
-  app = await siapkanApp();
+  app = await siapkanApp({ klien: klienPalsu((p) => balasAi(p)) });
   cookie = await loginCookie(app);
 });
 
@@ -123,5 +127,71 @@ describe("naskah surat tugas api", () => {
 
     const getRes = await call("GET", `/api/naskah-st/${id}`);
     expect(getRes.statusCode).toBe(404);
+  });
+});
+
+describe("POST /api/naskah-st/ekstrak-undangan", () => {
+  const JSON_UNDANGAN = JSON.stringify({
+    maksudTugas: "Rapat Koordinasi", lokasiTugas: "Bandung", tanggalMulai: "2026-11-02", tanggalSelesai: "2026-11-04",
+    nomorUndangan: "123/ABC/2026", tanggalUndangan: "2026-10-15", penyelenggara: "Dinas Kehutanan",
+  });
+  const unggah = (nama: string, isi: Buffer, withCookie = true) => {
+    const { payload, headers } = bodyMultipart(nama, isi);
+    return app.inject({ method: "POST", url: "/api/naskah-st/ekstrak-undangan", headers: { ...(withCookie ? { cookie } : {}), ...headers }, payload });
+  };
+  const aturModelGambar = () => pool.query("update model_ai set model_gambar = 'm-gambar' where id = 1");
+
+  it("mengembalikan hasil ekstraksi dan mencatat audit tanpa isi berkas", async () => {
+    await aturModelGambar();
+    balasAi = () => JSON_UNDANGAN;
+    const res = await unggah("undangan.png", PNG_1X1);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ model: "m-gambar", hasil: { lokasiTugas: "Bandung", nomorUndangan: "123/ABC/2026" } });
+    const { rows } = await pool.query("select detail from log_audit where aksi = 'st.ekstrak_undangan'");
+    expect(rows).toHaveLength(1);
+    expect(JSON.stringify(rows[0].detail)).not.toContain("Bandung");
+  });
+
+  it("menolak tanpa login (401)", async () => {
+    expect((await unggah("u.png", PNG_1X1, false)).statusCode).toBe(401);
+  });
+
+  it("menolak permintaan tanpa berkas (400 BERKAS_KOSONG)", async () => {
+    const res = await app.inject({
+      method: "POST", url: "/api/naskah-st/ekstrak-undangan",
+      headers: { cookie, "content-type": "multipart/form-data; boundary=x" }, payload: "--x--\r\n",
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe("BERKAS_KOSONG");
+  });
+
+  it("menolak tipe berkas yang bukan PDF/gambar berdasarkan isi (400)", async () => {
+    const res = await unggah("undangan.pdf", Buffer.from("ini teks biasa, bukan pdf"));
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe("TIPE_BERKAS_TIDAK_DIDUKUNG");
+  });
+
+  it("model gambar belum diatur memberi 409 MODEL_BELUM_DIATUR", async () => {
+    const res = await unggah("undangan.png", PNG_1X1);
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error).toBe("MODEL_BELUM_DIATUR");
+  });
+
+  it("balasan AI tidak valid memberi 422 HASIL_TIDAK_VALID", async () => {
+    await aturModelGambar();
+    balasAi = () => "bukan json";
+    const res = await unggah("undangan.png", PNG_1X1);
+    expect(res.statusCode).toBe(422);
+    expect(res.json().error).toBe("HASIL_TIDAK_VALID");
+  });
+
+  it("galat tak terduga dari klien AI memberi 502 tanpa membocorkan detail", async () => {
+    await aturModelGambar();
+    balasAi = () => {
+      throw new AiGalat("WAKTU_HABIS", "Model tidak merespons.");
+    };
+    const res = await unggah("undangan.png", PNG_1X1);
+    expect(res.statusCode).toBe(502);
+    expect(res.json().error).toBe("WAKTU_HABIS");
   });
 });

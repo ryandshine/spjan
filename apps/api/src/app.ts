@@ -89,7 +89,7 @@ export async function buildApp(db: Db, opts: { logger?: boolean; store?: BerkasS
   await app.register(pegawaiRoutes, { prefix: "/api/pegawai", db });
   await app.register(sbmRoutes, { prefix: "/api/sbm", db });
   await app.register(suratTugasRoutes, { prefix: "/api/surat-tugas", db, store });
-  await app.register(naskahStRoutes, { prefix: "/api/naskah-st", db });
+  await app.register(naskahStRoutes, { prefix: "/api/naskah-st", db, klien });
   await app.register(laporanRoutes, { prefix: "/api/surat-tugas", db });
 
   await app.register(berkasRoutes, { prefix: "/api/berkas", db, store });

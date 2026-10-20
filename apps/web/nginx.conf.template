@@ -16,6 +16,20 @@ server {
     add_header Referrer-Policy strict-origin-when-cross-origin always;
     add_header X-Frame-Options SAMEORIGIN always;
 
+    # Ekstraksi surat undangan memanggil model AI secara sinkron (bisa beberapa menit), jadi timeout dinaikkan hanya untuk rute ini.
+    location = /api/naskah-st/ekstrak-undangan {
+        set $upstream ${API_UPSTREAM};
+        proxy_pass $upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 12m;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+
     location /api/ {
         set $upstream ${API_UPSTREAM};
         proxy_pass $upstream;

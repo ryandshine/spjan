@@ -1,7 +1,17 @@
 # Status SPJAN
 
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
-Terakhir diperbarui: 2026-10-19 (fitur pembuat naskah Surat Tugas ST/SPT selesai dibuat, belum di-commit).
+Terakhir diperbarui: 2026-10-20 (fitur "isi naskah ST dari surat undangan" selesai dibuat, belum di-commit).
+
+## Isi naskah ST dari surat undangan (belum di-commit)
+
+- Di editor `/st-naskah`, kartu "Isi dari surat undangan" menerima PDF/JPG/PNG/WEBP (seret-lepas atau pilih berkas, maks 10 MB). AI membaca dokumen dan mengusulkan maksud tugas, lokasi, tanggal mulai/selesai, dan dasar spesifik ("Undangan {penyelenggara} Nomor {nomor} tanggal {tanggal}"). Pelaksana tidak diisi AI.
+- Alur: `POST /api/naskah-st/ekstrak-undangan` (multipart, sinkron; berkas **tidak disimpan**) → `{ model, hasil }`. Usulan dihitung di web oleh fungsi murni `usulanDariUndangan`/`terapkanUsulan` (`packages/shared/src/undangan-ekstraksi.ts`). Panel usulan memberi kotak centang per field; hanya field kosong/bawaan yang tercentang awal, field yang sudah Anda isi harus dicentang sendiri. Panel hilang setelah Terapkan/Batal.
+- Backend: `ekstraksi/undangan.ts` (pola `ekstrakTiket`: teks → `modelTeks`, gambar/scan → `modelGambar` halaman pertama, retry sekali). Galat AI dipetakan: model belum diatur 409, berkas tak terbaca/hasil tak valid 422, lainnya 502. Aksi `st.ekstrak_undangan` dicatat di audit tanpa isi berkas. `@fastify/multipart` didaftarkan di plugin `naskahStRoutes` sendiri (terenkapsulasi per plugin).
+- Deploy: `apps/web/nginx.conf.template` punya location khusus `= /api/naskah-st/ekstrak-undangan` dengan `proxy_read_timeout`/`proxy_send_timeout` 300 dtk (panggilan AI sinkron bisa >60 dtk, batas bawaan nginx). Rute `/api/` lain tetap bawaan. Ini jalur AI sinkron pertama di permintaan pengguna; bila memakai proxy lain di depan (Traefik), pastikan timeout-nya tidak lebih pendek.
+- Spec/rencana: `docs/superpowers/specs/2026-10-20-isi-st-dari-undangan-design.md`, `docs/superpowers/plans/2026-10-20-isi-st-dari-undangan.md`.
+- Tes lulus: api 168, web 39, shared 141; build dan lint bersih. **Belum dilihat di peramban.**
+- Risiko/utang: mutu bergantung pada model AI yang diatur admin (scan buram bisa meleset); undangan scan multi-halaman hanya halaman pertama; belum ada pembaca .docx; drop berkas tipe tak didukung baru ditolak server; `tanggalUndangan` tak divalidasi kalender sebelum diformat.
 
 ## Fitur Pembuat Naskah Surat Tugas (ST / SPT) (belum di-commit)
 

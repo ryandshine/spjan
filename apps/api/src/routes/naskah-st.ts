@@ -1,11 +1,17 @@
 import type { FastifyInstance } from "fastify";
-import { NaskahStPayloadSchema, type SuratTugasPayload } from "@spjan/shared";
+import multipart from "@fastify/multipart";
+import { BATAS_BERKAS, NaskahStPayloadSchema, type SuratTugasPayload } from "@spjan/shared";
 import { z } from "zod";
 
+import { AiGalat, type KlienAi } from "../ai/klien.js";
+import { deteksiMime } from "../berkas/deteksi.js";
 import type { Db } from "../db.js";
+import { bacaIsi } from "../ekstraksi/baca-berkas.js";
+import { ekstrakUndangan } from "../ekstraksi/undangan.js";
 import { notFound, HttpError } from "../errors.js";
 import { penggunaAktif } from "../izin.js";
 import { catatAudit } from "../repositories/audit.js";
+import { konfigurasiAi } from "../repositories/model-ai.js";
 import { getPengaturan } from "../repositories/pengaturan.js";
 import { getPegawai } from "../repositories/pegawai.js";
 import { versiAktifTerbaru } from "../repositories/sbm.js";
@@ -24,7 +30,46 @@ import { generateNaskahStDocx } from "../docx/generator.js";
 
 const IdParamsSchema = z.object({ id: z.coerce.number().int().positive() });
 
-export async function naskahStRoutes(app: FastifyInstance, opts: { db: Db }): Promise<void> {
+export async function naskahStRoutes(app: FastifyInstance, opts: { db: Db; klien: KlienAi }): Promise<void> {
+  // multipart terenkapsulasi per plugin: daftarkan sendiri (berkasRoutes tidak berlaku di sini).
+  await app.register(multipart, { limits: { fileSize: BATAS_BERKAS.maksUkuranMb * 1024 * 1024, files: 1, fields: 0 } });
+
+  // 0. Ekstraksi surat undangan -> usulan isian. Berkas dibaca sekali dan tidak disimpan.
+  app.post("/ekstrak-undangan", async (req) => {
+    const user = penggunaAktif(req);
+    const file = await req.file();
+    if (!file) throw new HttpError(400, "BERKAS_KOSONG", "Tidak ada berkas pada permintaan.");
+    let data: Buffer;
+    try {
+      data = await file.toBuffer();
+    } catch (error) {
+      if ((error as { code?: string }).code === "FST_REQ_FILE_TOO_LARGE") {
+        throw new HttpError(413, "BERKAS_TERLALU_BESAR", `Berkas melebihi ${BATAS_BERKAS.maksUkuranMb} MB.`);
+      }
+      throw error;
+    }
+    const mime = deteksiMime(data);
+    if (!mime) {
+      throw new HttpError(400, "TIPE_BERKAS_TIDAK_DIDUKUNG", "Hanya berkas PDF, JPG, PNG, atau WEBP yang didukung.");
+    }
+    try {
+      const isi = await bacaIsi(mime, data);
+      const { model, hasil } = await ekstrakUndangan(opts.klien, await konfigurasiAi(opts.db), isi);
+      await catatAudit(opts.db, user, {
+        aksi: "st.ekstrak_undangan",
+        entitas: "naskah_st",
+        detail: { mime, ukuran: data.length, model },
+      });
+      return { model, hasil };
+    } catch (error) {
+      if (error instanceof AiGalat) {
+        const status = error.kode === "MODEL_BELUM_DIATUR" ? 409 : error.kode === "BERKAS_TIDAK_TERBACA" || error.kode === "HASIL_TIDAK_VALID" ? 422 : 502;
+        throw new HttpError(status, error.kode, error.message);
+      }
+      throw error;
+    }
+  });
+
   // 1. Daftar naskah ST
   app.get("/", async (req) => {
     return listNaskahSt(opts.db, penggunaAktif(req));
