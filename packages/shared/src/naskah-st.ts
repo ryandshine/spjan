@@ -17,6 +17,13 @@ export const TEMBUSAN_BAWAAN_ST: readonly string[] = [
 export const PEMBEBANAN_DIPA_BAWAAN = (tahun: number = new Date().getFullYear()): string =>
   `Anggaran DIPA Kantor Pusat Direktorat Jenderal Perhutanan Sosial Tahun Anggaran ${tahun}.`;
 
+/** Lebih dari ini, daftar pelaksana pindah ke lampiran (halaman 2) dan "Kepada" hanya memuat "DAFTAR TERLAMPIR". */
+export const AMBANG_LAMPIRAN_PELAKSANA = 3;
+
+export function pakaiLampiranPelaksana(jumlahPelaksana: number): boolean {
+  return jumlahPelaksana > AMBANG_LAMPIRAN_PELAKSANA;
+}
+
 export function hitungLamaHariSt(tanggalMulai: string, tanggalSelesai: string): number {
   const a = parseTanggal(tanggalMulai);
   const b = parseTanggal(tanggalSelesai);

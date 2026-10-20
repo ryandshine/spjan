@@ -193,4 +193,89 @@ describe("generateNaskahStDocx", () => {
     // tidak ada lagi paragraf kosong sebagai jarak
     expect(xml).not.toMatch(/<w:p>(?:<w:pPr>.*?<\/w:pPr>)?<\/w:p>/);
   });
+
+  describe("daftar pelaksana sebagai lampiran (lebih dari 3 pelaksana)", () => {
+    const pelaksana = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        nama: `Pelaksana Nomor${i + 1}`,
+        nip: i === 3 ? "" : `19800101200501100${i + 1}`,
+        jabatan: `Jabatan Nomor${i + 1}`,
+      }));
+    const buat = async (n: number, modeNomor: "srikandi" | "manual" = "srikandi") => {
+      const buffer = await generateNaskahStDocx({
+        nomor: modeNomor === "manual" ? "ST.55/PPS/2026" : "${nomor_naskah}",
+        modeNomor,
+        tanggal: modeNomor === "manual" ? "2026-10-14" : null,
+        tempatNaskah: "Jakarta",
+        maksudTugas: "Rapat Koordinasi",
+        lokasiTugas: "Kota Bogor",
+        tanggalMulai: "2026-10-14",
+        tanggalSelesai: "2026-10-15",
+        lamaHari: 2,
+        dasarHukum: ["Dasar hukum 1"],
+        dasarSpesifik: "",
+        pelaporanHari: 5,
+        pembebananAnggaran: "DIPA 2026",
+        penandatanganJabatan: "Direktur,",
+        penandatanganNama: "Dr. Marcus Octavianus Susatyo, S.Hut., M.P.",
+        penandatanganNip: "196810191998031001",
+        tembusan: ["Sekretaris Ditjen PS", "Yang Bersangkutan"],
+        pelaksana: pelaksana(n),
+      });
+      const zip = await JSZip.loadAsync(buffer);
+      return (await zip.file("word/document.xml")?.async("text")) ?? "";
+    };
+    const hitung = (xml: string, kecil: string) => xml.split(kecil).length - 1;
+
+    it("3 pelaksana tetap di badan surat tanpa lampiran", async () => {
+      const xml = await buat(3);
+      expect(xml).not.toContain("DAFTAR TERLAMPIR");
+      expect(xml).not.toContain("Lampiran Surat Tugas");
+      expect(xml).toContain("Pelaksana Nomor3 / Jabatan Nomor3");
+    });
+
+    it("4 pelaksana: 'Kepada' berisi DAFTAR TERLAMPIR dan nama pindah ke lampiran", async () => {
+      const xml = await buat(4);
+      expect(xml).toContain("DAFTAR TERLAMPIR");
+      expect(xml).toContain("Lampiran Surat Tugas");
+      expect(xml).toContain("DAFTAR PELAKSANA TUGAS");
+      expect(xml).not.toContain("Pelaksana Nomor1 / Jabatan Nomor1");
+      for (let i = 1; i <= 4; i++) {
+        expect(xml).toContain(`Pelaksana Nomor${i}`);
+        expect(xml).toContain(`Jabatan Nomor${i}`);
+      }
+      expect(xml).toContain("NIP. 198001012005011001");
+      expect(xml).toContain("NIP. -");
+    });
+
+    it("lampiran dimulai di halaman baru dengan nomor halaman otomatis dan baris judul tabel berulang", async () => {
+      const xml = await buat(4);
+      expect(xml).toMatch(/w:pageBreakBefore|w:br w:type="page"/);
+      expect(xml).toContain("PAGE");
+      expect(xml).toContain("<w:tblHeader/>");
+      expect(xml).toContain("NAMA/NIP");
+    });
+
+    it("tanda tangan Direktur diulang di lampiran, tembusan hanya sekali", async () => {
+      const xml = await buat(4);
+      expect(hitung(xml, "Dr. Marcus Octavianus Susatyo, S.Hut., M.P.")).toBe(2);
+      expect(hitung(xml, "${ttd_pengirim}")).toBe(2);
+      expect(hitung(xml, "Tembusan:")).toBe(1);
+    });
+
+    it("baris terakhir tabel ditahan bersama tanda tangan agar tanda tangan tidak terdampar sendirian", async () => {
+      const xml = await buat(4);
+      const paragrafDengan = (nama: string) =>
+        new RegExp(`<w:p><w:pPr>(<w:keepNext/>)?(?:(?!</w:p>).)*${nama}`, "s").exec(xml);
+      expect(paragrafDengan("Pelaksana Nomor4")?.[1]).toBe("<w:keepNext/>");
+      expect(paragrafDengan("Pelaksana Nomor3")?.[1]).toBeUndefined();
+    });
+
+    it("tanggal lampiran mengikuti mode nomor (SRIKANDI memakai variabel, manual memakai tanggal)", async () => {
+      expect(hitung(await buat(4, "srikandi"), "${tanggal_naskah}")).toBe(2);
+      const manual = await buat(4, "manual");
+      expect(hitung(manual, "14 Oktober 2026")).toBeGreaterThanOrEqual(2);
+      expect(hitung(manual, "ST.55/PPS/2026")).toBe(2);
+    });
+  });
 });

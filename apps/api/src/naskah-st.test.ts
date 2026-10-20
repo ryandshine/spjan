@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import JSZip from "jszip";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { closePool } from "./db.js";
@@ -193,5 +194,44 @@ describe("POST /api/naskah-st/ekstrak-undangan", () => {
     const res = await unggah("undangan.png", PNG_1X1);
     expect(res.statusCode).toBe(502);
     expect(res.json().error).toBe("WAKTU_HABIS");
+  });
+});
+
+describe("unduh DOCX dengan lebih dari 3 pelaksana (lewat rute)", () => {
+  const empatOrang = [1, 2, 3, 4].map((n) => ({ nama: `Orang Ke${n}`, nip: `19800101200501100${n}`, jabatan: `Jabatan ${n}` }));
+  const payload = {
+    nomor: "${nomor_naskah}", modeNomor: "srikandi" as const, tanggal: null, tempatNaskah: "Jakarta",
+    maksudTugas: "Rapat Koordinasi", lokasiTugas: "Bandung", tanggalMulai: "2026-10-20", tanggalSelesai: "2026-10-21",
+    lamaHari: 2, dasarHukum: ["Dasar 1"], dasarSpesifik: "", pelaporanHari: 5, pembebananAnggaran: "DIPA 2026",
+    penandatanganJabatan: "Direktur,", penandatanganNama: "Dr. Marcus Octavianus Susatyo, S.Hut., M.P.",
+    penandatanganNip: "196810191998031001", tembusan: ["Yang Bersangkutan"], pelaksana: empatOrang,
+  };
+  const xmlDari = async (buf: Buffer) => (await (await JSZip.loadAsync(buf)).file("word/document.xml")?.async("text")) ?? "";
+
+  it("naskah tersimpan dengan 4 pelaksana: DOCX memuat lampiran di halaman baru", async () => {
+    const dibuat = await call("POST", "/api/naskah-st", payload);
+    expect(dibuat.statusCode).toBe(201);
+    const res = await app.inject({ method: "GET", url: `/api/naskah-st/${dibuat.json().id}/docx`, headers: { cookie } });
+    expect(res.statusCode).toBe(200);
+    const xml = await xmlDari(res.rawPayload);
+    expect(xml).toContain("DAFTAR TERLAMPIR");
+    expect(xml).toContain("w:pageBreakBefore");
+    expect(xml).toContain("Orang Ke4");
+  });
+
+  it("pratinjau-docx dengan 4 pelaksana juga memuat lampiran", async () => {
+    const res = await app.inject({ method: "POST", url: "/api/naskah-st/preview-docx", headers: { cookie }, payload });
+    expect(res.statusCode).toBe(200);
+    expect(await xmlDari(res.rawPayload)).toContain("DAFTAR TERLAMPIR");
+  });
+
+  it("3 pelaksana tetap di badan surat", async () => {
+    const res = await app.inject({
+      method: "POST", url: "/api/naskah-st/preview-docx", headers: { cookie },
+      payload: { ...payload, pelaksana: empatOrang.slice(0, 3) },
+    });
+    const xml = await xmlDari(res.rawPayload);
+    expect(xml).not.toContain("DAFTAR TERLAMPIR");
+    expect(xml).toContain("Orang Ke3 / Jabatan 3");
   });
 });

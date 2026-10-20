@@ -18,6 +18,7 @@ import {
   formatHariDenganTerbilang,
   formatRentangWaktuSt,
   hitungLamaHariSt,
+  pakaiLampiranPelaksana,
   tanggalIndonesia,
   type NaskahStPayload,
   type NaskahStPelaksanaPayload,
@@ -248,6 +249,10 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
 
   const rentangTanggalTeks = formatRentangWaktuSt(form.tanggalMulai, form.tanggalSelesai)
   const lamaHari = form.lamaHari || hitungLamaHariSt(form.tanggalMulai, form.tanggalSelesai)
+  const lampiran = pakaiLampiranPelaksana(form.pelaksana.length)
+  const nomorPratinjau = form.modeNomor === 'srikandi' ? '${nomor_naskah}' : form.nomor || '${nomor_naskah}'
+  const tanggalPratinjau =
+    form.modeNomor === 'manual' && form.tanggal ? tanggalIndonesia(form.tanggal) : '${tanggal_naskah}'
 
   return (
     <div className="space-y-6">
@@ -739,10 +744,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
             <div className="text-center mb-5">
               <p className="font-bold tracking-widest text-[12pt] uppercase">SURAT TUGAS</p>
               <p className="text-[11pt] mt-0.5">
-                Nomor:{' '}
-                {form.modeNomor === 'srikandi'
-                  ? '${nomor_naskah}'
-                  : form.nomor || '${nomor_naskah}'}
+                Nomor: {nomorPratinjau}
               </p>
             </div>
 
@@ -809,6 +811,8 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                 <div className="flex-1 space-y-1">
                   {form.pelaksana.length === 0 ? (
                     <p className="italic text-neutral-400">(Belum ada pelaksana yang dipilih)</p>
+                  ) : lampiran ? (
+                    <p>DAFTAR TERLAMPIR</p>
                   ) : (
                     form.pelaksana.map((p, i) => (
                       <div key={i} className="flex gap-2">
@@ -864,10 +868,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
             <div className="mt-6 flex justify-end text-[11.5px]">
               <div className="w-64 text-left space-y-0.5">
                 <p>
-                  {form.tempatNaskah || 'Jakarta'},{' '}
-                  {form.modeNomor === 'manual' && form.tanggal
-                    ? tanggalIndonesia(form.tanggal)
-                    : '${tanggal_naskah}'}
+                  {form.tempatNaskah || 'Jakarta'}, {tanggalPratinjau}
                 </p>
                 <p>{form.penandatanganJabatan || 'Direktur,'}</p>
                 <div className="h-16 flex items-center text-neutral-400 font-mono text-[11px]">
@@ -893,6 +894,55 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
               </div>
             ) : null}
           </div>
+
+          {/* Lampiran: daftar pelaksana pindah ke halaman 2 bila pelaksana lebih dari 3 */}
+          {lampiran ? (
+            <div
+              className="bg-white text-neutral-900 shadow-xl border border-neutral-300 p-6 sm:pt-[1.5cm] sm:pb-[2.5cm] sm:pl-[2.0cm] sm:pr-[2.0cm] text-[11.5px] leading-relaxed select-text overflow-x-auto"
+              style={{ fontFamily: "'Bookman Old Style', 'Bookman', 'URW Bookman L', 'Palatino Linotype', Georgia, serif" }}
+            >
+              <p className="text-center">-2-</p>
+              <div className="mt-3 ml-auto w-64 space-y-0">
+                <p>Lampiran Surat Tugas</p>
+                <p>Nomor &nbsp;&nbsp;&nbsp;: {nomorPratinjau}</p>
+                <p>Tanggal : {tanggalPratinjau}</p>
+              </div>
+              <p className="mt-4 mb-3 text-center font-bold">DAFTAR PELAKSANA TUGAS</p>
+              <table className="w-full border-collapse text-[11px]">
+                <thead>
+                  <tr>
+                    <th className="w-10 border border-neutral-800 px-2 py-1">NO</th>
+                    <th className="border border-neutral-800 px-2 py-1">NAMA/NIP</th>
+                    <th className="border border-neutral-800 px-2 py-1">JABATAN</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {form.pelaksana.map((p, i) => (
+                    <tr key={i}>
+                      <td className="border border-neutral-800 px-2 py-1 text-center align-top">{i + 1}.</td>
+                      <td className="border border-neutral-800 px-2 py-1 align-top">
+                        <p>{p.nama}</p>
+                        <p>NIP. {p.nip?.trim() || '-'}</p>
+                      </td>
+                      <td className="border border-neutral-800 px-2 py-1 align-top">
+                        {(p.jabatan || '').trim().replace(/^\/\s*/, '')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-4 flex justify-end">
+                <div className="w-64 text-left space-y-0.5">
+                  <p>{form.penandatanganJabatan || 'Direktur,'}</p>
+                  <div className="h-16 flex items-center text-neutral-400 font-mono text-[11px]">
+                    {'${ttd_pengirim}'}
+                  </div>
+                  <p className="font-semibold">{form.penandatanganNama || 'Dr. Marcus Octavianus Susatyo, S.Hut., M.P.'}</p>
+                  <p>NIP. {form.penandatanganNip || '196810191998031001'}</p>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

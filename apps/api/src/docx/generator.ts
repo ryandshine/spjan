@@ -7,6 +7,7 @@ import {
   formatHariDenganTerbilang,
   formatRentangWaktuSt,
   hitungLamaHariSt,
+  pakaiLampiranPelaksana,
   tanggalIndonesia,
   type NaskahStDto,
   type NaskahStPayload,
@@ -84,6 +85,10 @@ interface OpsiParagraf {
   sebelum?: number;
   sesudah?: number;
   tahanBersama?: boolean;
+  /** Mulai di halaman baru (tanpa paragraf kosong sebagai pemisah). */
+  halamanBaru?: boolean;
+  /** Satu tab stop kiri, diukur dari margin kiri halaman (bukan dari indentasi). */
+  tabKiri?: number;
 }
 
 function paragrafXml(isi: string, o: OpsiParagraf = {}): string {
@@ -94,6 +99,8 @@ function paragrafXml(isi: string, o: OpsiParagraf = {}): string {
   return (
     "<w:p><w:pPr>" +
     (o.tahanBersama ? "<w:keepNext/><w:keepLines/>" : "<w:keepLines/>") +
+    (o.halamanBaru ? "<w:pageBreakBefore/>" : "") +
+    (o.tabKiri ? `<w:tabs><w:tab w:val="left" w:pos="${o.tabKiri}"/></w:tabs>` : "") +
     `<w:spacing w:before="${o.sebelum ?? 0}" w:after="${o.sesudah ?? 0}" w:line="${SATU_BARIS}" w:lineRule="exact"/>` +
     ind +
     `<w:jc w:val="${o.jc ?? "left"}"/>` +
@@ -161,6 +168,68 @@ function tabelLabelXml(baris: Array<{ label: string; isi: string }>): string {
 function rapikanPenutup(daftar: string[]): string[] {
   const bersih = daftar.map((t) => t.trim().replace(/[;.]+$/, "")).filter(Boolean);
   return bersih.map((t, i) => (i === bersih.length - 1 ? `${t}.` : `${t};`));
+}
+
+/** Nomor halaman otomatis "-N-" (field PAGE), supaya benar walau halaman 1 meluber. */
+function nomorHalamanXml(): string {
+  const rpr = rPrXml(false);
+  return (
+    runXml("-") +
+    `<w:r>${rpr}<w:fldChar w:fldCharType="begin"/></w:r>` +
+    `<w:r>${rpr}<w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>` +
+    `<w:r>${rpr}<w:fldChar w:fldCharType="separate"/></w:r>` +
+    `<w:r>${rpr}<w:t>2</w:t></w:r>` +
+    `<w:r>${rpr}<w:fldChar w:fldCharType="end"/></w:r>` +
+    runXml("-")
+  );
+}
+
+const GARIS_TABEL = '<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="000000"/>';
+
+/** Tabel lampiran NO | NAMA/NIP | JABATAN: baris judul berulang di tiap halaman, baris tidak terpotong. */
+function tabelPelaksanaXml(pelaksana: Array<{ nama: string; nip?: string | null; jabatan?: string | null }>): string {
+  const kolNo = 600;
+  const kolNama = 4900;
+  const kolJabatan = LEBAR_TEKS - kolNo - kolNama;
+  const baris = (isi: [string, string, string], judul: boolean) =>
+    `<w:tr><w:trPr><w:cantSplit/>${judul ? "<w:tblHeader/>" : ""}</w:trPr>` +
+    selXml(kolNo, isi[0]) +
+    selXml(kolNama, isi[1]) +
+    selXml(kolJabatan, isi[2]) +
+    "</w:tr>";
+  // Baris terakhir ditahan bersama blok tanda tangan di bawahnya (tanda tangan tidak boleh sendirian di satu halaman).
+  const para = (teks: string, tebal: boolean, jc: "left" | "center", tahan = false) =>
+    paragrafXml(runXml(teks, tebal), { jc, tahanBersama: tahan });
+  const judul = baris(
+    [para("NO", true, "center"), para("NAMA/NIP", true, "center"), para("JABATAN", true, "center")],
+    true,
+  );
+  const isi = pelaksana
+    .map((pel, i) => {
+      const nip = (pel.nip || "").trim();
+      const terakhir = i === pelaksana.length - 1;
+      return baris(
+        [
+          para(`${i + 1}.`, false, "center", terakhir),
+          para(pel.nama, false, "left", terakhir) + para(`NIP. ${nip || "-"}`, false, "left", terakhir),
+          para((pel.jabatan || "").trim().replace(/^\/\s*/, ""), false, "left", terakhir),
+        ],
+        false,
+      );
+    })
+    .join("");
+  return (
+    "<w:tbl><w:tblPr>" +
+    `<w:tblW w:w="${LEBAR_TEKS}" w:type="dxa"/><w:tblInd w:w="0" w:type="dxa"/>` +
+    `<w:tblBorders>${GARIS_TABEL}</w:tblBorders>` +
+    '<w:tblLayout w:type="fixed"/>' +
+    '<w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="85" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="85" w:type="dxa"/></w:tblCellMar>' +
+    "</w:tblPr>" +
+    `<w:tblGrid><w:gridCol w:w="${kolNo}"/><w:gridCol w:w="${kolNama}"/><w:gridCol w:w="${kolJabatan}"/></w:tblGrid>` +
+    judul +
+    isi +
+    "</w:tbl>"
+  );
 }
 
 function fragmenKeNode(doc: Document, xml: string): Node[] {
@@ -279,6 +348,7 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
     const jab = (pel.jabatan || "").trim().replace(/^\/\s*/, "");
     return jab ? `${pel.nama} / ${jab}` : pel.nama;
   });
+  const lampiran = pakaiLampiranPelaksana((data.pelaksana || []).length);
   const untuk = [
     `Melaksanakan perjalanan dinas dalam rangka ${maksud} di ${lokasi};`,
     `Yang bersangkutan melaksanakan perintah tugas selama ${formatHariDenganTerbilang(lamaHari)} hari pada tanggal ${rentangTanggal};`,
@@ -286,6 +356,50 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
     `Biaya dibebankan kepada ${pembebanan}`,
   ];
   const tembusan = rapikanPenutup(data.tembusan || []);
+
+  // Tanda tangan Direktur: baris tanggal (hanya di halaman 1) + jabatan, ruang TTE, nama, NIP.
+  const tandaTanganXml = (denganTanggal: boolean, tahanKeBawah: boolean): string[] => [
+    ...(denganTanggal
+      ? [paragrafXml(runXml(tanggalTeks), { kiri: INDENT_TTD, sebelum: SATU_BARIS, tahanBersama: true })]
+      : []),
+    paragrafXml(runXml(jabatanTtd), {
+      kiri: INDENT_TTD,
+      sebelum: denganTanggal ? 0 : SATU_BARIS,
+      tahanBersama: true,
+    }),
+    paragrafXml(runXml("${ttd_pengirim}"), { kiri: INDENT_TTD, sebelum: JARAK_RUANG_TTD, tahanBersama: true }),
+    paragrafXml(runXml(data.penandatanganNama || ""), { kiri: INDENT_TTD, sebelum: JARAK_RUANG_TTD, tahanBersama: true }),
+    paragrafXml(runXml(data.penandatanganNip ? `NIP. ${data.penandatanganNip}` : ""), {
+      kiri: INDENT_TTD,
+      tahanBersama: tahanKeBawah,
+    }),
+  ];
+
+  const tanggalLampiran =
+    data.modeNomor === "manual" && data.tanggal ? tanggalIndonesia(data.tanggal) : "${tanggal_naskah}";
+  const tabLampiran = INDENT_TTD + 1134; // 2 cm dari awal blok, sejajar untuk "Nomor" dan "Tanggal"
+  const barisLampiran = (label: string, nilai: string) =>
+    paragrafXml(runXml(label) + tabXml() + runXml(`: ${nilai}`), {
+      kiri: INDENT_TTD,
+      tabKiri: tabLampiran,
+      tahanBersama: true,
+    });
+  const halamanLampiran = lampiran
+    ? [
+        paragrafXml(nomorHalamanXml(), { jc: "center", halamanBaru: true, tahanBersama: true }),
+        paragrafXml(runXml("Lampiran Surat Tugas"), { kiri: INDENT_TTD, sebelum: SATU_BARIS, tahanBersama: true }),
+        barisLampiran("Nomor", nomorTeks),
+        barisLampiran("Tanggal", tanggalLampiran),
+        paragrafXml(runXml("DAFTAR PELAKSANA TUGAS", true), {
+          jc: "center",
+          sebelum: SATU_BARIS,
+          sesudah: SATU_BARIS,
+          tahanBersama: true,
+        }),
+        tabelPelaksanaXml(data.pelaksana || []),
+        ...tandaTanganXml(false, false),
+      ]
+    : [];
 
   const xml = [
     paragrafXml(runXml("SURAT TUGAS", true), { jc: "center", sebelum: JARAK_KE_JUDUL, tahanBersama: true }),
@@ -301,26 +415,14 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
     ]),
     paragrafXml(runXml("MEMBERI TUGAS,"), { jc: "center", sebelum: 100, sesudah: 110, tahanBersama: true }),
     tabelLabelXml([
-      { label: "Kepada", isi: daftarXml(kepada, "angka", "left") },
+      {
+        label: "Kepada",
+        isi: lampiran ? paragrafXml(runXml("DAFTAR TERLAMPIR")) : daftarXml(kepada, "angka", "left"),
+      },
       { label: "Untuk", isi: daftarXml(untuk, "angka", "both", 0) },
     ]),
     // Blok tanda tangan: satu kesatuan (keepNext) bersama tembusan agar tidak terpisah antarhalaman.
-    paragrafXml(runXml(tanggalTeks), { kiri: INDENT_TTD, sebelum: SATU_BARIS, tahanBersama: true }),
-    paragrafXml(runXml(jabatanTtd), { kiri: INDENT_TTD, tahanBersama: true }),
-    paragrafXml(runXml("${ttd_pengirim}"), {
-      kiri: INDENT_TTD,
-      sebelum: JARAK_RUANG_TTD,
-      tahanBersama: true,
-    }),
-    paragrafXml(runXml(data.penandatanganNama || ""), {
-      kiri: INDENT_TTD,
-      sebelum: JARAK_RUANG_TTD,
-      tahanBersama: true,
-    }),
-    paragrafXml(runXml(data.penandatanganNip ? `NIP. ${data.penandatanganNip}` : ""), {
-      kiri: INDENT_TTD,
-      tahanBersama: tembusan.length > 0,
-    }),
+    ...tandaTanganXml(true, tembusan.length > 0),
     ...(tembusan.length > 0
       ? [
           paragrafXml(runXml("Tembusan:"), { sebelum: SATU_BARIS, tahanBersama: true }),
@@ -329,6 +431,7 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
           ),
         ]
       : []),
+    ...halamanLampiran,
   ].join("");
 
   for (const node of fragmenKeNode(doc, xml)) {

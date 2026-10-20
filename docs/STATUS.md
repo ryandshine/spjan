@@ -3,7 +3,19 @@
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
 Terakhir diperbarui: 2026-10-20 (fitur "isi naskah ST dari surat undangan" selesai dibuat, belum di-commit).
 
-## Isi naskah ST dari surat undangan (belum di-commit)
+## Surat Tugas: versi 1 (≤ 3 pelaksana) dan versi 2 (> 3 pelaksana, belum di-commit)
+
+- **Versi 1 = format sekarang** (`docx/generator.ts`): pelaksana ditulis langsung di bagian "Kepada" ("Nama / Jabatan", bernomor). Dipakai untuk 1-3 pelaksana.
+- **Versi 2 = format `ST_CILOTO.docx`** (ST.189/PPS/PEMPS/PSL.04.02/B/08/2026, diberikan pengguna 2026-10-20; berkas ada di folder unggahan sesi, bukan di repo): bagian "Kepada" hanya berisi **"DAFTAR TERLAMPIR"**; daftar nama pindah ke halaman 2 sebagai **lampiran**:
+  - Halaman 1 tetap lengkap: Menimbang, Dasar, Memberi Tugas, Untuk, tanggal, tanda tangan (Direktur), tembusan.
+  - Halaman 2: nomor halaman "-2-", judul "Lampiran Surat Tugas" + "Nomor : …" dan "Tanggal : …", judul "DAFTAR PELAKSANA TUGAS", tabel 3 kolom **NO | NAMA/NIP | JABATAN** (nama di baris atas, "NIP. …" di baris bawahnya; non-PNS "NIP. -"), lalu blok tanda tangan Direktur diulang.
+  - Margin contoh (atas 1138, kanan 1138, bawah 1530, kiri 1699 dxa) berbeda dari generator; **tidak dipakai** (lihat keputusan di bawah).
+- **Keputusan pengguna (2026-10-20):** versi 2 aktif otomatis bila pelaksana **lebih dari 3** (`AMBANG_LAMPIRAN_PELAKSANA`, `pakaiLampiranPelaksana` di `packages/shared/src/naskah-st.ts`); margin, font, kop, dan jarak **tetap mengikuti generator versi 1**, bukan contoh `ST_CILOTO.docx` (margin kiri 3 cm tidak dipakai). Tanpa opsi manual dan tanpa kolom/migrasi baru.
+- Dikerjakan: `docx/generator.ts` (Kepada = "DAFTAR TERLAMPIR"; halaman baru via `pageBreakBefore`; nomor halaman field `PAGE` "-N-"; "Lampiran Surat Tugas" + Nomor + Tanggal; tabel NO | NAMA/NIP | JABATAN dengan baris judul berulang dan baris tak terpotong; tanda tangan diulang tanpa baris tanggal; tembusan hanya di halaman 1) dan pratinjau di `st-naskah-editor.tsx` (lembar kedua "-2-"). Nomor/tanggal pratinjau kini memakai satu sumber (`nomorPratinjau`, `tanggalPratinjau`).
+- Diperiksa lewat render LibreOffice: 3 pelaksana 1 halaman, 4 pelaksana 2 halaman, 40 pelaksana 4 halaman (baris judul tabel berulang). Belum diperiksa di Word dan di peramban.
+- Keterbatasan: baris terakhir tabel diberi keep-with-next agar tanda tangan tidak sendirian di satu halaman; Word menghormatinya, LibreOffice tidak (pada daftar yang pas memenuhi satu halaman, tanda tangan bisa terdampar sendirian). NIP lampiran ditulis apa adanya dari data pelaksana (tidak diformat ulang).
+
+## Isi naskah ST dari surat undangan (sudah di-push, commit 5f30249)
 
 - Di editor `/st-naskah`, kartu "Isi dari surat undangan" menerima PDF/JPG/PNG/WEBP (seret-lepas atau pilih berkas, maks 10 MB). AI membaca dokumen dan mengusulkan maksud tugas, lokasi, tanggal mulai/selesai, dan dasar spesifik ("Undangan {penyelenggara} Nomor {nomor} tanggal {tanggal}"). Pelaksana tidak diisi AI.
 - Alur: `POST /api/naskah-st/ekstrak-undangan` (multipart, sinkron; berkas **tidak disimpan**) → `{ model, hasil }`. Usulan dihitung di web oleh fungsi murni `usulanDariUndangan`/`terapkanUsulan` (`packages/shared/src/undangan-ekstraksi.ts`). Panel usulan memberi kotak centang per field; hanya field kosong/bawaan yang tercentang awal, field yang sudah Anda isi harus dicentang sendiri. Panel hilang setelah Terapkan/Batal.

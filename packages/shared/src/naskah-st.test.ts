@@ -5,6 +5,8 @@ import {
   formatRentangWaktuSt,
   hitungLamaHariSt,
   DASAR_HUKUM_BAWAAN_ST,
+  AMBANG_LAMPIRAN_PELAKSANA,
+  pakaiLampiranPelaksana,
 } from "./naskah-st.js";
 
 describe("naskah-st helper", () => {
@@ -38,5 +40,19 @@ describe("naskah-st helper", () => {
     expect(data.penandatanganNama).toBe("Dr. Marcus Octavianus Susatyo, S.Hut., M.P.");
     expect(data.dasarHukum.length).toBe(DASAR_HUKUM_BAWAAN_ST.length);
     expect(data.pembebananAnggaran).toContain("2026");
+  });
+});
+
+describe("daftar pelaksana sebagai lampiran", () => {
+  it("ambangnya 3 pelaksana", () => {
+    expect(AMBANG_LAMPIRAN_PELAKSANA).toBe(3);
+  });
+
+  it("lampiran hanya bila pelaksana lebih dari 3", () => {
+    expect(pakaiLampiranPelaksana(0)).toBe(false);
+    expect(pakaiLampiranPelaksana(1)).toBe(false);
+    expect(pakaiLampiranPelaksana(3)).toBe(false);
+    expect(pakaiLampiranPelaksana(4)).toBe(true);
+    expect(pakaiLampiranPelaksana(10)).toBe(true);
   });
 });
