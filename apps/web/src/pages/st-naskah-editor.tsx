@@ -940,9 +940,7 @@ export default function NaskahStEditorPage() {
       jabatan: p.jabatan,
     })),
   } : buatNaskahStAwal({
-    pjNama: pengaturan?.pjNama,
-    pjNip: pengaturan?.pjNip,
-    pjJabatan: pengaturan?.pjJabatan,
+    // Penandatangan ST = Direktur (bawaan buatNaskahStAwal), bukan "pejabat yang bertanggung jawab" SPTB di Pengaturan.
     tahunAnggaran: pengaturan?.tahunAnggaran,
   })
 
