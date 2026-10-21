@@ -3,6 +3,15 @@
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
 Terakhir diperbarui: 2026-10-20 (fitur "isi naskah ST dari surat undangan" selesai dibuat, belum di-commit).
 
+## Perapian kode web (2026-10-21, belum di-commit)
+
+- Hanya struktur, tanpa mengubah perilaku. `st-naskah-editor.tsx` 998 → ±685 baris: pratinjau lembar dipindah ke `components/st/naskah-pratinjau.tsx`; kartu pilihan format → `PilihanFormat`; geser pelaksana memakai `lib/geser.ts`; label mentah → `Field`.
+- `lib/api.ts`: penguraian galat yang ditulis tiga kali jadi satu (`bacaJson`, `unggahBerkas`, `requestBlob`); unduh DOCX naskah lewat `api.naskahSt.docx`. `lib/unduh.ts` (`unduhBlob`) dipakai editor naskah dan `dokumen.tsx`.
+- `penginapan-kartu.tsx` 582 → 436 baris: logika dan tampilan paket rapat / uang harian pihak lain yang kembar dijadikan `lib/use-tanggal-terpilih.ts` + `components/st/bagian-tanggal.tsx`.
+- Lulus tsc, eslint, build, tes (web 39, shared 143). Dicoba di Chromium (API + database sementara): editor naskah (pratinjau, lampiran >3 pelaksana, simpan, muat ulang, unduh DOCX pratinjau dan tersimpan) dan editor SPJ (tambah/hapus pelaksana, penginapan: paket rapat dan uang harian pihak lain, tambah biaya, dialog pegawai baru, banner galat simpan); tanpa galat konsol. Tidak dicoba: mode gelap, layar sempit, ST terkunci/hanya lihat.
+- `pelaksana-card.tsx` 412 → 213 baris: `blok-identitas-pelaksana.tsx` (termasuk dialog pegawai baru) dan `blok-transportasi.tsx`. `pages/st-editor.tsx` 486 → 430: `navigasi-langkah.tsx`, `banner-st.tsx`, dan hook `lib/use-daftar-pelaksana.ts` (kunci stabil, pelaksana aktif, tambah/hapus).
+- Belum disentuh: komponen `Editor` di `st-editor.tsx` masih ±350 baris (simpan/kunci/hapus/usulan) dan `apps/api` selain `docx/generator.ts` belum ditinjau.
+
 ## Surat Tugas: versi 1 (≤ 3 pelaksana) dan versi 2 (> 3 pelaksana, belum di-commit)
 
 - **Versi 1 = format sekarang** (`docx/generator.ts`): pelaksana ditulis langsung di bagian "Kepada" ("Nama / Jabatan", bernomor). Dipakai untuk 1-3 pelaksana.

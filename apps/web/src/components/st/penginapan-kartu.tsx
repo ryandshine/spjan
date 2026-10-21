@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   BedDoubleIcon,
   CheckIcon,
@@ -22,6 +21,7 @@ import {
   type Sbm,
 } from '@spjan/shared'
 
+import { BagianTanggal } from '@/components/st/bagian-tanggal'
 import { DasarAturan } from '@/components/st/dasar-aturan'
 import { RupiahInput } from '@/components/st/rupiah-input'
 import { Button } from '@/components/ui/button'
@@ -30,13 +30,7 @@ import { Label } from '@/components/ui/label'
 import { TandaWajib } from '@/components/ui/penanda-isian'
 import { TextareaOtomatis } from '@/components/ui/textarea-otomatis'
 import { rupiah } from '@/lib/format'
-
-function labelTanggal(iso: string): string {
-  const t = parseTanggal(iso)
-  if (!t) return iso
-  const dt = new Date(Date.UTC(t.y, t.m - 1, t.d))
-  return dt.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })
-}
+import { useTanggalTerpilih } from '@/lib/use-tanggal-terpilih'
 
 /**
  * Kartu Penginapan untuk satu tujuan: nama hotel, tarif per malam, malam otomatis/manual, subtotal,
@@ -75,46 +69,13 @@ export function PenginapanEtapeKartu({
   const tglAwal = parseTanggal(etape.berangkat)
   const tglAkhir = parseTanggal(etape.pulang)
   const listHari = tglAwal && tglAkhir && selisihHari(tglAwal, tglAkhir) >= 0 ? daftarHariIso(tglAwal, tglAkhir) : []
-  const fullboardAktif = (etape.fullboardDates ?? []).filter((t) => listHari.includes(t))
-  const jmlFullboard = fullboardAktif.length
+  const fullboard = useTanggalTerpilih(etape, 'fullboardDates', listHari, onUbah)
+  const tanpaUangHarian = useTanggalTerpilih(etape, 'tanpaUangHarianDates', listHari, onUbah)
+  const jmlFullboard = fullboard.jumlah
   const jmlBiasa = listHari.length - jmlFullboard
+  const jmlTanpaUangHarian = tanpaUangHarian.jumlah
 
-  const [bukaFullboardManual, setBukaFullboardManual] = useState<boolean | null>(null)
-  const bukaFullboard = bukaFullboardManual ?? (etape.fullboardDates ?? []).length > 0
-
-  const toggleFullboard = (tgl: string, checked: boolean) => {
-    const prev = new Set(etape.fullboardDates ?? [])
-    if (checked) prev.add(tgl)
-    else prev.delete(tgl)
-    onUbah({ fullboardDates: Array.from(prev).sort() })
-  }
-  const pilihSemuaFullboard = () => onUbah({ fullboardDates: [...listHari].sort() })
-  const kosongkanFullboard = () => onUbah({ fullboardDates: [] })
-  const handleToggleSection = (aktif: boolean) => {
-    setBukaFullboardManual(aktif)
-    if (!aktif) onUbah({ fullboardDates: [] })
-  }
-
-  const tanpaUangHarianAktif = (etape.tanpaUangHarianDates ?? []).filter((t) => listHari.includes(t))
-  const jmlTanpaUangHarian = tanpaUangHarianAktif.length
-
-  const [bukaTanpaUangHarianManual, setBukaTanpaUangHarianManual] = useState<boolean | null>(null)
-  const bukaTanpaUangHarian = bukaTanpaUangHarianManual ?? (etape.tanpaUangHarianDates ?? []).length > 0
-
-  const toggleTanpaUangHarian = (tgl: string, checked: boolean) => {
-    const prev = new Set(etape.tanpaUangHarianDates ?? [])
-    if (checked) prev.add(tgl)
-    else prev.delete(tgl)
-    onUbah({ tanpaUangHarianDates: Array.from(prev).sort() })
-  }
-  const pilihSemuaTanpaUangHarian = () => onUbah({ tanpaUangHarianDates: [...listHari].sort() })
-  const kosongkanTanpaUangHarian = () => onUbah({ tanpaUangHarianDates: [] })
-  const handleToggleTanpaUangHarianSection = (aktif: boolean) => {
-    setBukaTanpaUangHarianManual(aktif)
-    if (!aktif) onUbah({ tanpaUangHarianDates: [] })
-  }
-
-  const semuaFullboard = bukaFullboard && jmlFullboard > 0 && jmlFullboard === listHari.length
+  const semuaFullboard = fullboard.buka && jmlFullboard > 0 && jmlFullboard === listHari.length
   const defaultMalam = hari ? (semuaFullboard ? 0 : Math.max(hari - 1, 0)) : 0
   const isManualMalam = etape.malamOverride != null
   const tanpaMenginap = hari === 1 && malam === 0 && !isManualMalam
@@ -344,198 +305,92 @@ export function PenginapanEtapeKartu({
           ) : null}
 
           {listHari.length > 0 ? (
-            <div className="grid gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <label className="flex cursor-pointer items-center gap-2.5 text-sm select-none">
-                  <input
-                    type="checkbox"
-                    checked={bukaFullboard}
-                    onChange={(e) => handleToggleSection(e.target.checked)}
-                    className="size-4 rounded border-border text-primary focus:ring-primary"
-                  />
-                  <span className="font-semibold text-foreground">
-                    Ada paket rapat di hotel (<Istilah kata="Fullboard" />)
+            <BagianTanggal
+              judul={
+                <>
+                  Ada paket rapat di hotel (<Istilah kata="Fullboard" />)
+                </>
+              }
+              chip={`${jmlFullboard} dari ${listHari.length} hari terpilih`}
+              petunjuk="Pilih tanggal yang tercakup paket rapat:"
+              gaya="primer"
+              listHari={listHari}
+              tanggal={fullboard}
+            >
+            {jmlFullboard > 0 ? (
+              <div className="grid gap-2">
+                <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <InfoIcon className="size-3.5 shrink-0" aria-hidden />
+                  <span>
+                    <strong>{jmlFullboard} hari</strong> paket rapat (uang saku) dan <strong>{jmlBiasa} hari</strong> lain (uang harian penuh).
                   </span>
-                </label>
-                {bukaFullboard ? (
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      jmlFullboard > 0
-                        ? 'bg-accent text-accent-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
-                    aria-live="polite"
-                  >
-                    {jmlFullboard} dari {listHari.length} hari terpilih
-                  </span>
-                ) : null}
+                </p>
+                {(malam ?? 0) > 0 ? (
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blue-200 bg-blue-50/70 p-2.5 text-xs text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200">
+                    <span className="flex items-center gap-1.5">
+                      <InfoIcon className="size-3.5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden />
+                      <span>Hotel kegiatan fullboard dibayarkan pihak lain / panitia?</span>
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-6 px-2.5 text-xs border-blue-300 bg-white hover:bg-blue-100 text-blue-800 dark:border-blue-700 dark:bg-slate-900 dark:text-blue-200 dark:hover:bg-blue-950"
+                      onClick={() => onUbah({ malamOverride: 0 })}
+                    >
+                      Atur penginapan 0 malam
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 p-2 text-xs text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+                    <CheckIcon className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                    <span>Penginapan diatur 0 malam (kamar hotel ditanggung pihak lain / panitia).</span>
+                  </div>
+                )}
               </div>
-
-              {bukaFullboard ? (
-                <div className="grid gap-2.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs font-medium text-foreground">Pilih tanggal yang tercakup paket rapat:</p>
-                    <div className="flex items-center gap-3">
-                      <button type="button" className="text-xs text-primary hover:underline" onClick={pilihSemuaFullboard}>
-                        Pilih semua
-                      </button>
-                      <button type="button" className="text-xs text-primary hover:underline" onClick={kosongkanFullboard}>
-                        Kosongkan
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {listHari.map((tgl) => {
-                      const isChecked = fullboardAktif.includes(tgl)
-                      return (
-                        <button
-                          key={tgl}
-                          type="button"
-                          aria-pressed={isChecked}
-                          onClick={() => toggleFullboard(tgl, !isChecked)}
-                          className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                            isChecked
-                              ? 'border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/90'
-                              : 'border-input bg-card text-foreground hover:bg-accent'
-                          }`}
-                        >
-                          {isChecked ? <CheckIcon className="size-3.5 stroke-[3]" aria-hidden /> : null}
-                          {labelTanggal(tgl)}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  {jmlFullboard > 0 ? (
-                    <div className="grid gap-2">
-                      <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <InfoIcon className="size-3.5 shrink-0" aria-hidden />
-                        <span>
-                          <strong>{jmlFullboard} hari</strong> paket rapat (uang saku) dan <strong>{jmlBiasa} hari</strong> lain (uang harian penuh).
-                        </span>
-                      </p>
-                      {(malam ?? 0) > 0 ? (
-                        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blue-200 bg-blue-50/70 p-2.5 text-xs text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200">
-                          <span className="flex items-center gap-1.5">
-                            <InfoIcon className="size-3.5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden />
-                            <span>Hotel kegiatan fullboard dibayarkan pihak lain / panitia?</span>
-                          </span>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-6 px-2.5 text-xs border-blue-300 bg-white hover:bg-blue-100 text-blue-800 dark:border-blue-700 dark:bg-slate-900 dark:text-blue-200 dark:hover:bg-blue-950"
-                            onClick={() => onUbah({ malamOverride: 0 })}
-                          >
-                            Atur penginapan 0 malam
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 p-2 text-xs text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
-                          <CheckIcon className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-                          <span>Penginapan diatur 0 malam (kamar hotel ditanggung pihak lain / panitia).</span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="mt-0.5 flex items-start gap-1.5 text-xs font-medium text-warning-foreground">
-                      <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> Belum ada tanggal yang dipilih. Klik tombol tanggal di atas untuk menandai hari kegiatan rapat.
-                    </p>
-                  )}
-                </div>
-              ) : null}
-            </div>
+            ) : (
+              <p className="mt-0.5 flex items-start gap-1.5 text-xs font-medium text-warning-foreground">
+                <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> Belum ada tanggal yang dipilih. Klik tombol tanggal di atas untuk menandai hari kegiatan rapat.
+              </p>
+            )}
+            </BagianTanggal>
           ) : null}
 
           {listHari.length > 0 ? (
-            <div className="grid gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <label className="flex cursor-pointer items-center gap-2.5 text-sm select-none">
-                  <input
-                    type="checkbox"
-                    checked={bukaTanpaUangHarian}
-                    onChange={(e) => handleToggleTanpaUangHarianSection(e.target.checked)}
-                    className="size-4 rounded border-border text-primary focus:ring-primary"
-                  />
-                  <span className="font-semibold text-foreground">
-                    Uang harian (lumpsum) ditanggung pihak lain
+            <BagianTanggal
+              judul="Uang harian (lumpsum) ditanggung pihak lain"
+              chip={`${jmlTanpaUangHarian} dari ${listHari.length} hari dinonaktifkan`}
+              petunjuk="Pilih tanggal yang uang hariannya dibayarkan pihak lain (Rp0):"
+              gaya="amber"
+              akhiranTerpilih="(Pihak lain)"
+              listHari={listHari}
+              tanggal={tanpaUangHarian}
+            >
+            {jmlTanpaUangHarian > 0 ? (
+              <div className="grid gap-2">
+                <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <InfoIcon className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+                  <span>
+                    <strong>{jmlTanpaUangHarian} hari</strong> uang harian ditanggung pihak lain (Rp0, tidak dibebankan ke SPJ).{' '}
+                    {listHari.length - jmlTanpaUangHarian > 0 ? (
+                      <>
+                        Sisa <strong>{listHari.length - jmlTanpaUangHarian} hari</strong> tetap dibayarkan kantor.
+                      </>
+                    ) : (
+                      <>Seluruh uang harian ditiadakan.</>
+                    )}
                   </span>
-                </label>
-                {bukaTanpaUangHarian ? (
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      jmlTanpaUangHarian > 0
-                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
-                    aria-live="polite"
-                  >
-                    {jmlTanpaUangHarian} dari {listHari.length} hari dinonaktifkan
-                  </span>
-                ) : null}
+                </p>
               </div>
-
-              {bukaTanpaUangHarian ? (
-                <div className="grid gap-2.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs font-medium text-foreground">Pilih tanggal yang uang hariannya dibayarkan pihak lain (Rp0):</p>
-                    <div className="flex items-center gap-3">
-                      <button type="button" className="text-xs text-primary hover:underline" onClick={pilihSemuaTanpaUangHarian}>
-                        Pilih semua
-                      </button>
-                      <button type="button" className="text-xs text-primary hover:underline" onClick={kosongkanTanpaUangHarian}>
-                        Kosongkan
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {listHari.map((tgl) => {
-                      const isDitanggung = tanpaUangHarianAktif.includes(tgl)
-                      return (
-                        <button
-                          key={tgl}
-                          type="button"
-                          aria-pressed={isDitanggung}
-                          onClick={() => toggleTanpaUangHarian(tgl, !isDitanggung)}
-                          className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                            isDitanggung
-                              ? 'border-amber-400 bg-amber-50 text-amber-900 shadow-sm hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-200'
-                              : 'border-input bg-card text-foreground hover:bg-accent'
-                          }`}
-                        >
-                          {isDitanggung ? <CheckIcon className="size-3.5 stroke-[3] text-amber-600 dark:text-amber-400" aria-hidden /> : null}
-                          {labelTanggal(tgl)}
-                          {isDitanggung ? <span className="ml-1 text-[10px] font-normal opacity-80">(Pihak lain)</span> : null}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  {jmlTanpaUangHarian > 0 ? (
-                    <div className="grid gap-2">
-                      <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <InfoIcon className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-                        <span>
-                          <strong>{jmlTanpaUangHarian} hari</strong> uang harian ditanggung pihak lain (Rp0, tidak dibebankan ke SPJ).{' '}
-                          {listHari.length - jmlTanpaUangHarian > 0 ? (
-                            <>
-                              Sisa <strong>{listHari.length - jmlTanpaUangHarian} hari</strong> tetap dibayarkan kantor.
-                            </>
-                          ) : (
-                            <>Seluruh uang harian ditiadakan.</>
-                          )}
-                        </span>
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="mt-0.5 flex items-start gap-1.5 text-xs font-medium text-warning-foreground">
-                      <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> Belum ada tanggal yang dipilih. Klik tombol tanggal di atas untuk menandai hari yang ditanggung pihak lain.
-                    </p>
-                  )}
-                  <DasarAturan judul="Uang harian ditanggung pihak lain">
-                    <p>PMK 113/PMK.05/2012: Dalam hal komponen biaya perjalanan dinas (termasuk uang harian) telah ditanggung oleh pihak lain/penyelenggara, biaya tersebut tidak dibebankan lagi pada DIPA pengirim guna menghindari pembayaran ganda (double-funding).</p>
-                  </DasarAturan>
-                </div>
-              ) : null}
-            </div>
+            ) : (
+              <p className="mt-0.5 flex items-start gap-1.5 text-xs font-medium text-warning-foreground">
+                <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> Belum ada tanggal yang dipilih. Klik tombol tanggal di atas untuk menandai hari yang ditanggung pihak lain.
+              </p>
+            )}
+            <DasarAturan judul="Uang harian ditanggung pihak lain">
+              <p>PMK 113/PMK.05/2012: Dalam hal komponen biaya perjalanan dinas (termasuk uang harian) telah ditanggung oleh pihak lain/penyelenggara, biaya tersebut tidak dibebankan lagi pada DIPA pengirim guna menghindari pembayaran ganda (double-funding).</p>
+            </DasarAturan>
+            </BagianTanggal>
           ) : null}
 
           {(malam ?? 0) > 0 ? (

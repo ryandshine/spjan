@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -20,11 +20,13 @@ import {
   hitungLamaHariSt,
   pakaiLampiranPelaksana,
   tanggalIndonesia,
+  type NaskahStDto,
   type NaskahStPayload,
   type NaskahStPelaksanaPayload,
 } from '@spjan/shared'
 
 import { IsiDariUndangan } from '@/components/st/isi-dari-undangan'
+import { NaskahPratinjau } from '@/components/st/naskah-pratinjau'
 import { PageHeader } from '@/components/page-header'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,7 +35,9 @@ import { Input } from '@/components/ui/input'
 import { InputTanggal } from '@/components/ui/input-tanggal'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { api } from '@/lib/api'
 import { pesanGalat } from '@/lib/format'
+import { geser } from '@/lib/geser'
 import {
   useBuatSpjDariNaskah,
   useNaskahSt,
@@ -41,7 +45,63 @@ import {
   usePengaturan,
   useSimpanNaskahSt,
 } from '@/lib/queries'
+import { unduhBlob } from '@/lib/unduh'
 import { cn } from '@/lib/utils'
+
+/** Kartu pilihan format nomor surat (SRIKANDI / manual). */
+function PilihanFormat({
+  aktif,
+  judul,
+  onPilih,
+  children,
+}: {
+  aktif: boolean
+  judul: string
+  onPilih: () => void
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPilih}
+      aria-pressed={aktif}
+      className={cn(
+        'cursor-pointer rounded-lg border p-3.5 text-left text-sm transition-all',
+        aktif ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border hover:bg-accent/40',
+      )}
+    >
+      <div className="mb-1 flex items-center justify-between">
+        <span className="font-semibold text-foreground">{judul}</span>
+        {aktif && <CheckIcon className="size-4 text-primary" />}
+      </div>
+      <p className="text-xs text-muted-foreground">{children}</p>
+    </button>
+  )
+}
+
+/** Bentuk isian formulir dari naskah tersimpan. */
+function payloadDariNaskah(n: NaskahStDto): NaskahStPayload {
+  return {
+    nomor: n.nomor,
+    modeNomor: n.modeNomor,
+    tanggal: n.tanggal,
+    tempatNaskah: n.tempatNaskah,
+    maksudTugas: n.maksudTugas,
+    lokasiTugas: n.lokasiTugas,
+    tanggalMulai: n.tanggalMulai,
+    tanggalSelesai: n.tanggalSelesai,
+    lamaHari: n.lamaHari,
+    dasarHukum: n.dasarHukum,
+    dasarSpesifik: n.dasarSpesifik,
+    pelaporanHari: n.pelaporanHari,
+    pembebananAnggaran: n.pembebananAnggaran,
+    penandatanganJabatan: n.penandatanganJabatan,
+    penandatanganNama: n.penandatanganNama,
+    penandatanganNip: n.penandatanganNip,
+    tembusan: n.tembusan,
+    pelaksana: n.pelaksana.map(({ pegawaiId, nama, nip, jabatan }) => ({ pegawaiId, nama, nip, jabatan })),
+  }
+}
 
 function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: number }) {
   const navigate = useNavigate()
@@ -54,27 +114,26 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
   const pegawaiList = useMemo(() => pegawaiQuery.data ?? [], [pegawaiQuery.data])
 
   const [form, setForm] = useState<NaskahStPayload>(awal)
-  const [pegawaiPilihanId, setPegawaiPilihanId] = useState<string>('')
   const [sedangUnduh, setSedangUnduh] = useState(false)
 
-  // Otomatis hitung lama hari saat tanggal mulai / selesai berubah
-  function handleTanggalMulaiChange(tgl: string | null) {
-    if (!tgl) return
-    setForm((prev) => {
-      const lama = hitungLamaHariSt(tgl, prev.tanggalSelesai)
-      return { ...prev, tanggalMulai: tgl, lamaHari: lama }
-    })
+  /** Ubah sebagian isian formulir. */
+  function ubah(patch: Partial<NaskahStPayload>) {
+    setForm((prev) => ({ ...prev, ...patch }))
   }
 
-  function handleTanggalSelesaiChange(tgl: string | null) {
-    if (!tgl) return
-    setForm((prev) => {
-      const lama = hitungLamaHariSt(prev.tanggalMulai, tgl)
-      return { ...prev, tanggalSelesai: tgl, lamaHari: lama }
-    })
+  // Lama hari dihitung ulang tiap tanggal mulai / selesai berubah
+  function ubahTanggalMulai(tgl: string | null) {
+    if (tgl) setForm((p) => ({ ...p, tanggalMulai: tgl, lamaHari: hitungLamaHariSt(tgl, p.tanggalSelesai) }))
   }
 
-  // Tambah pelaksana dari master pegawai
+  function ubahTanggalSelesai(tgl: string | null) {
+    if (tgl) setForm((p) => ({ ...p, tanggalSelesai: tgl, lamaHari: hitungLamaHariSt(p.tanggalMulai, tgl) }))
+  }
+
+  function tambahPelaksana(pelaksana: NaskahStPelaksanaPayload) {
+    setForm((p) => ({ ...p, pelaksana: [...p.pelaksana, pelaksana] }))
+  }
+
   function tambahPelaksanaDariPegawai(pegId: number) {
     const peg = pegawaiList.find((p) => p.id === pegId)
     if (!peg) return
@@ -82,88 +141,31 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
       toast.info('Pegawai ini sudah ada dalam daftar pelaksana.')
       return
     }
-
-    setForm((prev) => ({
-      ...prev,
-      pelaksana: [
-        ...prev.pelaksana,
-        {
-          pegawaiId: peg.id,
-          nama: peg.nama,
-          nip: peg.nip,
-          jabatan: peg.jabatan,
-        },
-      ],
-    }))
-    setPegawaiPilihanId('')
-  }
-
-  // Tambah pelaksana manual
-  function tambahPelaksanaManual() {
-    setForm((prev) => ({
-      ...prev,
-      pelaksana: [
-        ...prev.pelaksana,
-        {
-          pegawaiId: null,
-          nama: '',
-          nip: '',
-          jabatan: '',
-        },
-      ],
-    }))
+    tambahPelaksana({ pegawaiId: peg.id, nama: peg.nama, nip: peg.nip, jabatan: peg.jabatan })
   }
 
   function ubahPelaksana(index: number, patch: Partial<NaskahStPelaksanaPayload>) {
-    setForm((prev) => {
-      const list = [...prev.pelaksana]
-      if (list[index]) {
-        list[index] = { ...list[index]!, ...patch }
-      }
-      return { ...prev, pelaksana: list }
-    })
+    setForm((p) => ({ ...p, pelaksana: p.pelaksana.map((x, i) => (i === index ? { ...x, ...patch } : x)) }))
   }
 
   function hapusPelaksana(index: number) {
-    setForm((prev) => ({
-      ...prev,
-      pelaksana: prev.pelaksana.filter((_, i) => i !== index),
-    }))
+    setForm((p) => ({ ...p, pelaksana: p.pelaksana.filter((_, i) => i !== index) }))
   }
 
-  function geserPelaksana(index: number, arah: 'naik' | 'turun') {
-    setForm((prev) => {
-      const list = [...prev.pelaksana]
-      const target = arah === 'naik' ? index - 1 : index + 1
-      if (target < 0 || target >= list.length) return prev
-      const temp = list[index]!
-      list[index] = list[target]!
-      list[target] = temp
-      return { ...prev, pelaksana: list }
-    })
+  function geserPelaksana(index: number, delta: -1 | 1) {
+    setForm((p) => ({ ...p, pelaksana: geser(p.pelaksana, index, delta) }))
   }
 
-  // Tembusan
   function tambahTembusan() {
-    setForm((prev) => ({
-      ...prev,
-      tembusan: [...prev.tembusan, ''],
-    }))
+    setForm((p) => ({ ...p, tembusan: [...p.tembusan, ''] }))
   }
 
   function ubahTembusan(index: number, val: string) {
-    setForm((prev) => {
-      const list = [...prev.tembusan]
-      list[index] = val
-      return { ...prev, tembusan: list }
-    })
+    setForm((p) => ({ ...p, tembusan: p.tembusan.map((t, i) => (i === index ? val : t)) }))
   }
 
   function hapusTembusan(index: number) {
-    setForm((prev) => ({
-      ...prev,
-      tembusan: prev.tembusan.filter((_, i) => i !== index),
-    }))
+    setForm((p) => ({ ...p, tembusan: p.tembusan.filter((_, i) => i !== index) }))
   }
 
   async function handleSimpan() {
@@ -200,31 +202,8 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
   async function handleUnduhDocx() {
     try {
       setSedangUnduh(true)
-      let url = '/api/naskah-st/preview-docx'
-      let method = 'POST'
-      let body: string | undefined = JSON.stringify(form)
-
-      if (stId) {
-        url = `/api/naskah-st/${stId}/docx`
-        method = 'GET'
-        body = undefined
-      }
-
-      const res = await fetch(url, {
-        method,
-        headers: body ? { 'content-type': 'application/json' } : undefined,
-        body,
-      })
-
-      if (!res.ok) throw new Error('Gagal mengunduh berkas DOCX')
-      const blob = await res.blob()
-      const downloadUrl = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = downloadUrl
-      const namaFile = `Surat-Tugas-${(form.nomor || 'Draft').replace(/[^A-Za-z0-9._-]+/g, '_')}.docx`
-      a.download = namaFile
-      a.click()
-      URL.revokeObjectURL(downloadUrl)
+      const blob = await api.naskahSt.docx(form, stId)
+      unduhBlob(blob, `Surat-Tugas-${(form.nomor || 'Draft').replace(/[^A-Za-z0-9._-]+/g, '_')}.docx`)
       toast.success('Berkas DOCX berhasil diunduh.')
     } catch (err) {
       toast.error(pesanGalat(err))
@@ -297,7 +276,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
         <div className="space-y-6 lg:col-span-7">
           <IsiDariUndangan
             naskah={form}
-            onTerapkan={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
+            onTerapkan={ubah}
           />
 
           {/* 1. Format Naskah & Nomor */}
@@ -307,42 +286,21 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div
-                  onClick={() => setForm((p) => ({ ...p, modeNomor: 'srikandi', nomor: '${nomor_naskah}' }))}
-                  className={cn(
-                    'cursor-pointer rounded-lg border p-3.5 transition-all text-sm',
-                    form.modeNomor === 'srikandi'
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border hover:bg-accent/40',
-                  )}
+                <PilihanFormat
+                  aktif={form.modeNomor === 'srikandi'}
+                  judul="Format SRIKANDI (TTE)"
+                  onPilih={() => ubah({ modeNomor: 'srikandi', nomor: '${nomor_naskah}' })}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-foreground">Format SRIKANDI (TTE)</span>
-                    {form.modeNomor === 'srikandi' && <CheckIcon className="size-4 text-primary" />}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Memakai variabel {'${nomor_naskah}'}, {'${tanggal_naskah}'}, dan {'${ttd_pengirim}'}. Siap langsung
-                    di-upload ke SRIKANDI.
-                  </p>
-                </div>
-
-                <div
-                  onClick={() => setForm((p) => ({ ...p, modeNomor: 'manual', nomor: p.nomor === '${nomor_naskah}' ? '' : p.nomor }))}
-                  className={cn(
-                    'cursor-pointer rounded-lg border p-3.5 transition-all text-sm',
-                    form.modeNomor === 'manual'
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border hover:bg-accent/40',
-                  )}
+                  Memakai variabel {'${nomor_naskah}'}, {'${tanggal_naskah}'}, dan {'${ttd_pengirim}'}. Siap langsung
+                  di-upload ke SRIKANDI.
+                </PilihanFormat>
+                <PilihanFormat
+                  aktif={form.modeNomor === 'manual'}
+                  judul="Format Definitif / Manual"
+                  onPilih={() => ubah({ modeNomor: 'manual', nomor: form.nomor === '${nomor_naskah}' ? '' : form.nomor })}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-foreground">Format Definitif / Manual</span>
-                    {form.modeNomor === 'manual' && <CheckIcon className="size-4 text-primary" />}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Ketik nomor surat dan tanggal riil secara manual (untuk naskah cetak fisik / TTD basah).
-                  </p>
-                </div>
+                  Ketik nomor surat dan tanggal riil secara manual (untuk naskah cetak fisik / TTD basah).
+                </PilihanFormat>
               </div>
 
               {form.modeNomor === 'manual' ? (
@@ -352,7 +310,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                       id="st-nomor"
                       placeholder="ST.245/PPS/PEMPS/PSL.04.02/B/10/2026"
                       value={form.nomor}
-                      onChange={(e) => setForm((p) => ({ ...p, nomor: e.target.value }))}
+                      onChange={(e) => ubah({ nomor: e.target.value })}
                     />
                   </Field>
                   <Field label="Tanggal Surat" htmlFor="st-tanggal" mode="opsional">
@@ -360,7 +318,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                       id="st-tanggal"
                       label="Tanggal surat"
                       nilai={form.tanggal}
-                      onUbah={(iso) => setForm((p) => ({ ...p, tanggal: iso }))}
+                      onUbah={(iso) => ubah({ tanggal: iso })}
                     />
                   </Field>
                 </div>
@@ -372,7 +330,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                     id="st-tempat"
                     placeholder="Jakarta"
                     value={form.tempatNaskah}
-                    onChange={(e) => setForm((p) => ({ ...p, tempatNaskah: e.target.value }))}
+                    onChange={(e) => ubah({ tempatNaskah: e.target.value })}
                   />
                 </Field>
               </div>
@@ -396,7 +354,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                   rows={3}
                   placeholder="Menghadiri Rapat Pembahasan Penanganan Tanaman Sawit dalam Proses Transformasi Kulin KK..."
                   value={form.maksudTugas}
-                  onChange={(e) => setForm((p) => ({ ...p, maksudTugas: e.target.value }))}
+                  onChange={(e) => ubah({ maksudTugas: e.target.value })}
                 />
               </Field>
 
@@ -405,7 +363,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                   id="st-lokasi"
                   placeholder="Ruang Rapat CIFOR, Jl. Raya Cifor, Kota Bogor"
                   value={form.lokasiTugas}
-                  onChange={(e) => setForm((p) => ({ ...p, lokasiTugas: e.target.value }))}
+                  onChange={(e) => ubah({ lokasiTugas: e.target.value })}
                 />
               </Field>
 
@@ -415,7 +373,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                     id="st-mulai"
                     label="Tanggal Mulai"
                     nilai={form.tanggalMulai}
-                    onUbah={handleTanggalMulaiChange}
+                    onUbah={ubahTanggalMulai}
                   />
                 </Field>
 
@@ -424,7 +382,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                     id="st-selesai"
                     label="Tanggal Selesai"
                     nilai={form.tanggalSelesai}
-                    onUbah={handleTanggalSelesaiChange}
+                    onUbah={ubahTanggalSelesai}
                   />
                 </Field>
               </div>
@@ -457,7 +415,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                   rows={2}
                   placeholder="Undangan Direktur Penyiapan Kawasan Perhutanan Sosial Nomor: UN.207/PKPS/PPPS/PSL.01.01/B/10/2026 tanggal 12 Oktober 2026."
                   value={form.dasarSpesifik}
-                  onChange={(e) => setForm((p) => ({ ...p, dasarSpesifik: e.target.value }))}
+                  onChange={(e) => ubah({ dasarSpesifik: e.target.value })}
                 />
               </Field>
 
@@ -478,7 +436,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
               <div>
                 <CardTitle className="text-base">4. Personil yang Ditugaskan ({form.pelaksana.length})</CardTitle>
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={tambahPelaksanaManual}>
+              <Button type="button" variant="outline" size="sm" onClick={() => tambahPelaksana({ pegawaiId: null, nama: '', nip: '', jabatan: '' })}>
                 <PlusIcon className="size-3.5 mr-1" /> Pelaksana Bebas
               </Button>
             </CardHeader>
@@ -486,7 +444,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
               {/* Tambah Cepat dari Master Pegawai */}
               <div className="flex items-center gap-2">
                 <Select
-                  value={pegawaiPilihanId}
+                  value=""
                   onChange={(e) => {
                     const val = e.target.value
                     if (val) tambahPelaksanaDariPegawai(Number(val))
@@ -522,7 +480,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                             size="icon"
                             className="size-7"
                             disabled={idx === 0}
-                            onClick={() => geserPelaksana(idx, 'naik')}
+                            onClick={() => geserPelaksana(idx, -1)}
                             title="Geser ke atas"
                           >
                             <ChevronUpIcon className="size-3.5" />
@@ -533,7 +491,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                             size="icon"
                             className="size-7"
                             disabled={idx === form.pelaksana.length - 1}
-                            onClick={() => geserPelaksana(idx, 'turun')}
+                            onClick={() => geserPelaksana(idx, 1)}
                             title="Geser ke bawah"
                           >
                             <ChevronDownIcon className="size-3.5" />
@@ -552,32 +510,30 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="sm:col-span-2">
-                          <label className="text-xs font-medium text-foreground block mb-1">
-                            Nama Lengkap & Gelar <span className="text-destructive">*</span>
-                          </label>
+                        <Field label="Nama Lengkap & Gelar" htmlFor={`st-pel-nama-${idx}`} mode="wajib" className="sm:col-span-2">
                           <Input
+                            id={`st-pel-nama-${idx}`}
                             placeholder="Sukardi, S.Hut., M.Si."
                             value={pel.nama}
                             onChange={(e) => ubahPelaksana(idx, { nama: e.target.value })}
                           />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-foreground block mb-1">Jabatan</label>
+                        </Field>
+                        <Field label="Jabatan" htmlFor={`st-pel-jabatan-${idx}`}>
                           <Input
+                            id={`st-pel-jabatan-${idx}`}
                             placeholder="PEH Ahli Madya"
                             value={pel.jabatan}
                             onChange={(e) => ubahPelaksana(idx, { jabatan: e.target.value })}
                           />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-foreground block mb-1">NIP (Opsional)</label>
+                        </Field>
+                        <Field label="NIP (Opsional)" htmlFor={`st-pel-nip-${idx}`}>
                           <Input
+                            id={`st-pel-nip-${idx}`}
                             placeholder="197501012000031001"
                             value={pel.nip}
                             onChange={(e) => ubahPelaksana(idx, { nip: e.target.value })}
                           />
-                        </div>
+                        </Field>
                       </div>
                     </div>
                   ))}
@@ -598,7 +554,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                   rows={2}
                   placeholder="Anggaran DIPA Kantor Pusat Direktorat Jenderal Perhutanan Sosial Tahun Anggaran 2026."
                   value={form.pembebananAnggaran}
-                  onChange={(e) => setForm((p) => ({ ...p, pembebananAnggaran: e.target.value }))}
+                  onChange={(e) => ubah({ pembebananAnggaran: e.target.value })}
                 />
               </Field>
 
@@ -610,7 +566,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                   max={30}
                   className="w-32"
                   value={form.pelaporanHari}
-                  onChange={(e) => setForm((p) => ({ ...p, pelaporanHari: Number(e.target.value) || 5 }))}
+                  onChange={(e) => ubah({ pelaporanHari: Number(e.target.value) || 5 })}
                 />
               </Field>
             </CardContent>
@@ -628,7 +584,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                     id="st-pj-jabatan"
                     placeholder="Direktur,"
                     value={form.penandatanganJabatan}
-                    onChange={(e) => setForm((p) => ({ ...p, penandatanganJabatan: e.target.value }))}
+                    onChange={(e) => ubah({ penandatanganJabatan: e.target.value })}
                   />
                 </Field>
                 <Field label="Nama Pejabat" htmlFor="st-pj-nama" mode="wajib">
@@ -636,7 +592,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                     id="st-pj-nama"
                     placeholder="Dr. Marcus Octavianus Susatyo, S.Hut., M.P."
                     value={form.penandatanganNama}
-                    onChange={(e) => setForm((p) => ({ ...p, penandatanganNama: e.target.value }))}
+                    onChange={(e) => ubah({ penandatanganNama: e.target.value })}
                   />
                 </Field>
                 <Field label="NIP Pejabat" htmlFor="st-pj-nip" mode="opsional">
@@ -644,7 +600,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                     id="st-pj-nip"
                     placeholder="196810191998031001"
                     value={form.penandatanganNip}
-                    onChange={(e) => setForm((p) => ({ ...p, penandatanganNip: e.target.value }))}
+                    onChange={(e) => ubah({ penandatanganNip: e.target.value })}
                   />
                 </Field>
               </div>
@@ -704,245 +660,13 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
             </Button>
           </div>
 
-          {/* Lembar Naskah Dinas Resmi (Standar Tata Naskah Dinas Simetris) */}
-          <div
-            className="bg-white text-neutral-900 shadow-xl border border-neutral-300 p-6 sm:pt-[1.5cm] sm:pb-[2.5cm] sm:pl-[2.0cm] sm:pr-[2.0cm] text-[11.5pt] leading-relaxed select-text overflow-x-auto"
-            style={{ fontFamily: "'Bookman Old Style', 'Bookman', 'URW Bookman L', 'Palatino Linotype', Georgia, serif" }}
-          >
-            {/* Kop Resmi Kementerian Kehutanan (Center Murni sejajar Judul & Nomor) */}
-            <div className="flex items-center justify-between pb-2">
-              <img
-                src="/logo-kemenhut.png"
-                alt="Logo Kementerian Kehutanan"
-                className="w-[2.65cm] h-[2.65cm] object-contain shrink-0"
-              />
-              <div
-                className="flex-1 text-center px-2"
-                style={{ fontFamily: "'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
-              >
-                <p className="font-bold text-[14pt] tracking-wide leading-tight uppercase text-neutral-950">
-                  KEMENTERIAN KEHUTANAN
-                </p>
-                <p className="font-bold text-[13pt] tracking-wide leading-tight uppercase mt-1 text-neutral-900">
-                  DIREKTORAT JENDERAL PERHUTANAN SOSIAL
-                </p>
-                <p className="font-bold text-[12.5pt] tracking-wide leading-tight uppercase mt-1 text-neutral-900 whitespace-nowrap">
-                  DIREKTORAT PENGENDALIAN PERHUTANAN SOSIAL
-                </p>
-              </div>
-              {/* Penyeimbang visual agar teks kop tepat berada di titik tengah kertas (simetris sumbu tengah x = 10.5cm) */}
-              <div className="w-[2.65cm] shrink-0 hidden sm:block" aria-hidden="true" />
-            </div>
-
-            {/* Garis Ganda Pemisah Kop (Simetris Sama Jarak Kiri dan Kanan) */}
-            <div className="space-y-[1.5px] mt-2 mb-5">
-              <div className="h-[2.5px] bg-black" />
-              <div className="h-[0.75px] bg-black" />
-            </div>
-
-            {/* Judul & Nomor Naskah (Jarak 2 spasi dari garis kop sesuai ketentuan TND) */}
-            <div className="text-center mb-5">
-              <p className="font-bold tracking-widest text-[12pt] uppercase">SURAT TUGAS</p>
-              <p className="text-[11pt] mt-0.5">
-                Nomor: {nomorPratinjau}
-              </p>
-            </div>
-
-            {/* Jabatan Pemberi Tugas (2 spasi di bawah nomor naskah) */}
-            <div className="text-center font-bold text-[11pt] tracking-[0.1em] mb-5 uppercase">
-              DIREKTUR PENGENDALIAN PERHUTANAN SOSIAL,
-            </div>
-
-            {/* Bagian Tabel Isi (Menimbang, Dasar, Memberi Tugas, Kepada, Untuk) */}
-            <div className="space-y-2.5 text-[11.5px] leading-relaxed text-justify">
-              {/* Menimbang (jarak ke "Dasar" seperti di DOCX) */}
-              <div className="flex gap-2 mb-3">
-                <div className="w-24 shrink-0 flex justify-between font-normal">
-                  <span>Menimbang</span>
-                  <span>:</span>
-                </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex gap-2">
-                    <span className="shrink-0">a.</span>
-                    <span>
-                      bahwa dalam rangka {form.maksudTugas || '...'}, diperlukan untuk menugaskan personil;
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="shrink-0">b.</span>
-                    <span>bahwa sehubungan dengan poin a perlu diterbitkan Surat Tugas.</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Dasar */}
-              <div className="flex gap-2">
-                <div className="w-24 shrink-0 flex justify-between font-normal">
-                  <span>Dasar</span>
-                  <span>:</span>
-                </div>
-                <div className="flex-1 space-y-1">
-                  {form.dasarHukum.map((d, i) => (
-                    <div key={i} className="flex gap-2">
-                      <span className="shrink-0">{i + 1}.</span>
-                      <span>{d}</span>
-                    </div>
-                  ))}
-                  {form.dasarSpesifik ? (
-                    <div className="flex gap-2">
-                      <span className="shrink-0">{form.dasarHukum.length + 1}.</span>
-                      <span>{form.dasarSpesifik}</span>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              {/* MEMBERI TUGAS, */}
-              <div className="text-center font-bold tracking-widest text-[12px] py-2">
-                MEMBERI TUGAS,
-              </div>
-
-              {/* Kepada (jarak ke "Untuk" seperti di DOCX) */}
-              <div className="flex gap-2 mb-3">
-                <div className="w-24 shrink-0 flex justify-between font-normal">
-                  <span>Kepada</span>
-                  <span>:</span>
-                </div>
-                <div className="flex-1 space-y-1">
-                  {form.pelaksana.length === 0 ? (
-                    <p className="italic text-neutral-400">(Belum ada pelaksana yang dipilih)</p>
-                  ) : lampiran ? (
-                    <p>DAFTAR TERLAMPIR</p>
-                  ) : (
-                    form.pelaksana.map((p, i) => (
-                      <div key={i} className="flex gap-2">
-                        <span className="shrink-0">{i + 1}.</span>
-                        <span>
-                          {p.nama}
-                          {p.jabatan ? ` / ${p.jabatan}` : ''}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Untuk */}
-              <div className="flex gap-2">
-                <div className="w-24 shrink-0 flex justify-between font-normal">
-                  <span>Untuk</span>
-                  <span>:</span>
-                </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex gap-2">
-                    <span className="shrink-0">1.</span>
-                    <span>
-                      Melaksanakan perjalanan dinas dalam rangka {form.maksudTugas || '...'} di{' '}
-                      {form.lokasiTugas || '...'};
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="shrink-0">2.</span>
-                    <span>
-                      Yang bersangkutan melaksanakan perintah tugas selama{' '}
-                      <strong>{formatHariDenganTerbilang(lamaHari)} hari</strong> pada tanggal{' '}
-                      <strong>{rentangTanggalTeks}</strong>;
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="shrink-0">3.</span>
-                    <span>
-                      Selambat-lambatnya {formatHariDenganTerbilang(form.pelaporanHari || 5)} hari setelah
-                      melaksanakan tugas, membuat laporan tertulis kepada Direktur PPS;
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="shrink-0">4.</span>
-                    <span>Biaya dibebankan kepada {form.pembebananAnggaran.endsWith('.') ? form.pembebananAnggaran : form.pembebananAnggaran + '.'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Blok Tanda Tangan Resmi */}
-            <div className="mt-6 flex justify-end text-[11.5px]">
-              <div className="w-64 text-left space-y-0.5">
-                <p>
-                  {form.tempatNaskah || 'Jakarta'}, {tanggalPratinjau}
-                </p>
-                <p>{form.penandatanganJabatan || 'Direktur,'}</p>
-                <div className="h-16 flex items-center text-neutral-400 font-mono text-[11px]">
-                  {'${ttd_pengirim}'}
-                </div>
-                <p className="font-semibold">{form.penandatanganNama || 'Dr. Marcus Octavianus Susatyo, S.Hut., M.P.'}</p>
-                <p>NIP. {form.penandatanganNip || '196810191998031001'}</p>
-              </div>
-            </div>
-
-            {/* Tembusan */}
-            {form.tembusan.length > 0 ? (
-              <div className="mt-5 pt-2 text-[11.5px] space-y-0.5">
-                <p className="font-normal">Tembusan:</p>
-                <div className="space-y-0.5">
-                  {form.tembusan.map((t, i) => (
-                    <div key={i} className="flex gap-2">
-                      <span className="shrink-0">{i + 1}.</span>
-                      <span>{t}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          {/* Lampiran: daftar pelaksana pindah ke halaman 2 bila pelaksana lebih dari 3 */}
-          {lampiran ? (
-            <div
-              className="bg-white text-neutral-900 shadow-xl border border-neutral-300 p-6 sm:pt-[1.5cm] sm:pb-[2.5cm] sm:pl-[2.0cm] sm:pr-[2.0cm] text-[11.5px] leading-relaxed select-text overflow-x-auto"
-              style={{ fontFamily: "'Bookman Old Style', 'Bookman', 'URW Bookman L', 'Palatino Linotype', Georgia, serif" }}
-            >
-              <p className="text-center">-2-</p>
-              <div className="mt-3 ml-auto w-64 space-y-0">
-                <p>Lampiran Surat Tugas</p>
-                <p>Nomor &nbsp;&nbsp;&nbsp;: {nomorPratinjau}</p>
-                <p>Tanggal : {tanggalPratinjau}</p>
-              </div>
-              <p className="mt-4 mb-3 text-center font-bold">DAFTAR PELAKSANA TUGAS</p>
-              <table className="w-full border-collapse text-[11px]">
-                <thead>
-                  <tr>
-                    <th className="w-10 border border-neutral-800 px-2 py-1">NO</th>
-                    <th className="border border-neutral-800 px-2 py-1">NAMA/NIP</th>
-                    <th className="border border-neutral-800 px-2 py-1">JABATAN</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {form.pelaksana.map((p, i) => (
-                    <tr key={i}>
-                      <td className="border border-neutral-800 px-2 py-1 text-center align-top">{i + 1}.</td>
-                      <td className="border border-neutral-800 px-2 py-1 align-top">
-                        <p>{p.nama}</p>
-                        <p>NIP. {p.nip?.trim() || '-'}</p>
-                      </td>
-                      <td className="border border-neutral-800 px-2 py-1 align-top">
-                        {(p.jabatan || '').trim().replace(/^\/\s*/, '')}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="mt-4 flex justify-end">
-                <div className="w-64 text-left space-y-0.5">
-                  <p>{form.penandatanganJabatan || 'Direktur,'}</p>
-                  <div className="h-16 flex items-center text-neutral-400 font-mono text-[11px]">
-                    {'${ttd_pengirim}'}
-                  </div>
-                  <p className="font-semibold">{form.penandatanganNama || 'Dr. Marcus Octavianus Susatyo, S.Hut., M.P.'}</p>
-                  <p>NIP. {form.penandatanganNip || '196810191998031001'}</p>
-                </div>
-              </div>
-            </div>
-          ) : null}
+          <NaskahPratinjau
+            form={form}
+            nomor={nomorPratinjau}
+            tanggal={tanggalPratinjau}
+            lamaHari={lamaHari}
+            lampiran={lampiran}
+          />
         </div>
       </div>
     </div>
@@ -965,34 +689,11 @@ export default function NaskahStEditorPage() {
   }
 
   const pengaturan = pengaturanQuery.data
-  const awal: NaskahStPayload = isEdit && naskahQuery.data ? {
-    nomor: naskahQuery.data.nomor,
-    modeNomor: naskahQuery.data.modeNomor,
-    tanggal: naskahQuery.data.tanggal,
-    tempatNaskah: naskahQuery.data.tempatNaskah,
-    maksudTugas: naskahQuery.data.maksudTugas,
-    lokasiTugas: naskahQuery.data.lokasiTugas,
-    tanggalMulai: naskahQuery.data.tanggalMulai,
-    tanggalSelesai: naskahQuery.data.tanggalSelesai,
-    lamaHari: naskahQuery.data.lamaHari,
-    dasarHukum: naskahQuery.data.dasarHukum,
-    dasarSpesifik: naskahQuery.data.dasarSpesifik,
-    pelaporanHari: naskahQuery.data.pelaporanHari,
-    pembebananAnggaran: naskahQuery.data.pembebananAnggaran,
-    penandatanganJabatan: naskahQuery.data.penandatanganJabatan,
-    penandatanganNama: naskahQuery.data.penandatanganNama,
-    penandatanganNip: naskahQuery.data.penandatanganNip,
-    tembusan: naskahQuery.data.tembusan,
-    pelaksana: naskahQuery.data.pelaksana.map((p) => ({
-      pegawaiId: p.pegawaiId,
-      nama: p.nama,
-      nip: p.nip,
-      jabatan: p.jabatan,
-    })),
-  } : buatNaskahStAwal({
-    // Penandatangan ST = Direktur (bawaan buatNaskahStAwal), bukan "pejabat yang bertanggung jawab" SPTB di Pengaturan.
-    tahunAnggaran: pengaturan?.tahunAnggaran,
-  })
+  const awal: NaskahStPayload =
+    isEdit && naskahQuery.data
+      ? payloadDariNaskah(naskahQuery.data)
+      : // Penandatangan ST = Direktur (bawaan buatNaskahStAwal), bukan "pejabat yang bertanggung jawab" SPTB di Pengaturan.
+        buatNaskahStAwal({ tahunAnggaran: pengaturan?.tahunAnggaran })
 
   return <NaskahStEditorForm awal={awal} stId={stId} key={stId ?? 'baru'} />
 }

@@ -15,6 +15,7 @@ import { keteranganFoto } from '@/lib/gambar'
 import { muatDataUri } from '@/lib/berkas-data-uri'
 import { pesanGalat } from '@/lib/format'
 import { useDaftarBerkas, useHasilSuratTugas, useLaporan } from '@/lib/queries'
+import { unduhBlob } from '@/lib/unduh'
 import { cn } from '@/lib/utils'
 import { siapkanDokumen } from '@/pdf/data'
 import { daftarkanFont } from '@/pdf/fonts'
@@ -194,12 +195,7 @@ export default function DokumenPage() {
   function unduh() {
     const blob = blobTerakhir.current
     if (!blob || !d || !terpilih) return
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${terpilih.jenis === 'laporan' ? 'Laporan' : 'SPJ'}-${d.st.nomor.replace(/[^A-Za-z0-9]+/g, '-')}-${terpilih.kunci.replace(':', '-')}.pdf`
-    a.click()
-    window.setTimeout(() => URL.revokeObjectURL(url), 1_000)
+    unduhBlob(blob, `${terpilih.jenis === 'laporan' ? 'Laporan' : 'SPJ'}-${d.st.nomor.replace(/[^A-Za-z0-9]+/g, '-')}-${terpilih.kunci.replace(':', '-')}.pdf`)
   }
 
   if (hasil.isError) return <Alert variant="destructive">{pesanGalat(hasil.error)}</Alert>

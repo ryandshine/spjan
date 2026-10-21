@@ -54,6 +54,20 @@ export class ApiError extends Error {
   }
 }
 
+/** Galat standar API dari badan respons yang gagal; `cadangan` dipakai bila server tidak mengirim pesan. */
+function galatDariRespons(res: Response, data: unknown, cadangan = res.statusText): ApiError {
+  const d = (data ?? {}) as { error?: string; pesan?: string; rincian?: unknown }
+  return new ApiError(res.status, d.error ?? 'GALAT', d.pesan ?? cadangan, d.rincian)
+}
+
+/** Baca badan JSON dari respons; lempar `ApiError` bila statusnya gagal. */
+async function bacaJson<T>(res: Response, cadangan?: string): Promise<T> {
+  if (res.status === 204) return undefined as T
+  const data: unknown = await res.json().catch(() => null)
+  if (!res.ok) throw galatDariRespons(res, data, cadangan)
+  return data as T
+}
+
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
     method,
@@ -61,13 +75,28 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     headers: body !== undefined ? { 'content-type': 'application/json' } : undefined,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
-  if (res.status === 204) return undefined as T
-  const data: unknown = await res.json().catch(() => null)
-  if (!res.ok) {
-    const d = (data ?? {}) as { error?: string; pesan?: string; rincian?: unknown }
-    throw new ApiError(res.status, d.error ?? 'GALAT', d.pesan ?? res.statusText, d.rincian)
-  }
-  return data as T
+  return bacaJson<T>(res)
+}
+
+/** Kirim satu berkas sebagai multipart (kolom `file`). */
+async function unggahBerkas<T>(url: string, file: File, cadanganGerbang?: string): Promise<T> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(url, { method: 'POST', credentials: 'same-origin', body: form })
+  const galatGerbang = [502, 503, 504].includes(res.status)
+  return bacaJson<T>(res, galatGerbang ? cadanganGerbang : undefined)
+}
+
+/** Ambil badan respons sebagai Blob (unduhan berkas). */
+async function requestBlob(method: string, url: string, body?: unknown): Promise<Blob> {
+  const res = await fetch(url, {
+    method,
+    credentials: 'same-origin',
+    headers: body !== undefined ? { 'content-type': 'application/json' } : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) throw galatDariRespons(res, await res.json().catch(() => null), 'Gagal mengunduh berkas')
+  return res.blob()
 }
 
 export type SessionUser = PenggunaSesiDto
@@ -120,30 +149,17 @@ export const api = {
   },
 
   berkas: {
-    unggah: async (
+    unggah: (
       file: File,
       stId?: number,
       opsi?: { jenis?: JenisBerkas; keterangan?: string },
     ): Promise<{ berkas: BerkasDto; duplikat: boolean }> => {
-      const form = new FormData()
-      form.append('file', file)
       const params = new URLSearchParams()
       if (stId !== undefined) params.set('stId', String(stId))
       if (opsi?.jenis) params.set('jenis', opsi.jenis)
       if (opsi?.keterangan) params.set('keterangan', opsi.keterangan)
       const qs = params.toString()
-      const url = qs ? `/api/berkas?${qs}` : '/api/berkas'
-      const res = await fetch(url, {
-        method: 'POST',
-        credentials: 'same-origin',
-        body: form,
-      })
-      const data: unknown = await res.json().catch(() => null)
-      if (!res.ok) {
-        const d = (data ?? {}) as { error?: string; pesan?: string; rincian?: unknown }
-        throw new ApiError(res.status, d.error ?? 'GALAT', d.pesan ?? res.statusText, d.rincian)
-      }
-      return data as { berkas: BerkasDto; duplikat: boolean }
+      return unggahBerkas(qs ? `/api/berkas?${qs}` : '/api/berkas', file)
     },
     get: (id: number) => request<BerkasDto>('GET', `/api/berkas/${id}`),
     list: (stId?: number) => request<BerkasDto[]>('GET', stId !== undefined ? `/api/berkas?stId=${stId}` : '/api/berkas'),
@@ -180,19 +196,11 @@ export const api = {
     update: (id: number, p: NaskahStPayload) => request<NaskahStDto>('PUT', `/api/naskah-st/${id}`, p),
     remove: (id: number) => request<void>('DELETE', `/api/naskah-st/${id}`),
     buatSpj: (id: number) => request<{ spjId: number }>('POST', `/api/naskah-st/${id}/buat-spj`),
-    ekstrakUndangan: async (file: File): Promise<{ model: string; hasil: HasilEkstraksiUndangan }> => {
-      const form = new FormData()
-      form.append('file', file)
-      const res = await fetch('/api/naskah-st/ekstrak-undangan', { method: 'POST', credentials: 'same-origin', body: form })
-      const data: unknown = await res.json().catch(() => null)
-      if (!res.ok) {
-        const d = (data ?? {}) as { error?: string; pesan?: string; rincian?: unknown }
-        const galatGerbang = [502, 503, 504].includes(res.status)
-        const cadangan = galatGerbang ? 'Server tidak merespons. Coba lagi beberapa saat lagi.' : res.statusText
-        throw new ApiError(res.status, d.error ?? 'GALAT', d.pesan ?? cadangan, d.rincian)
-      }
-      return data as { model: string; hasil: HasilEkstraksiUndangan }
-    },
+    ekstrakUndangan: (file: File): Promise<{ model: string; hasil: HasilEkstraksiUndangan }> =>
+      unggahBerkas('/api/naskah-st/ekstrak-undangan', file, 'Server tidak merespons. Coba lagi beberapa saat lagi.'),
+    /** DOCX naskah: yang tersimpan bila `id` ada, selain itu dibuat dari isian `payload` (pratinjau). */
+    docx: (payload: NaskahStPayload, id?: number): Promise<Blob> =>
+      id !== undefined ? requestBlob('GET', `/api/naskah-st/${id}/docx`) : requestBlob('POST', '/api/naskah-st/preview-docx', payload),
   },
 }
 
