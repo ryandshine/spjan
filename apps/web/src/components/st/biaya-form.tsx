@@ -203,19 +203,30 @@ export function BiayaBaris({
         </div>
       </td>
       <td className="p-2">
-        <Input
-          aria-label="Jumlah"
-          className="h-8 px-1 text-center text-xs"
-          type="number"
-          min={1}
-          placeholder="1"
-          value={biaya.qty ?? ''}
-          onChange={(e) =>
-            onUbah({
-              qty: e.target.value === '' ? null : Number(e.target.value),
-            })
-          }
-        />
+        <div className="grid gap-1">
+          <Input
+            aria-label="Jumlah"
+            className="h-8 px-1 text-center text-xs"
+            type="number"
+            min={1}
+            placeholder="1"
+            value={biaya.qty ?? ''}
+            onChange={(e) =>
+              onUbah({
+                qty: e.target.value === '' ? null : Number(e.target.value),
+              })
+            }
+          />
+          {biaya.jenis === 'LAINNYA' || biaya.jenis === 'KERETA_BUS_LAIN' || biaya.satuan ? (
+            <Input
+              aria-label="Satuan"
+              className="h-6 px-1 text-center text-[11px]"
+              placeholder="satuan"
+              value={biaya.satuan ?? ''}
+              onChange={(e) => onUbah({ satuan: e.target.value || null })}
+            />
+          ) : null}
+        </div>
       </td>
       <td className="p-2">
         <div className="relative">

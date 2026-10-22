@@ -31,6 +31,8 @@ export const JENIS_BIAYA = [
   "AIRPORT_TAX_BAGASI",
   "KERETA_BUS_LAIN",
   "LAINNYA",
+  "PENGINAPAN_LAIN",
+  "UANG_HARIAN_LAIN",
 ] as const;
 export type JenisBiaya = (typeof JENIS_BIAYA)[number];
 
@@ -50,6 +52,8 @@ export const JENIS_LABEL: Record<JenisBiaya, string> = {
   AIRPORT_TAX_BAGASI: "Airport tax / bagasi / retribusi",
   KERETA_BUS_LAIN: "Kereta api / bus / lainnya",
   LAINNYA: "Lainnya",
+  PENGINAPAN_LAIN: "Biaya penginapan lainnya",
+  UANG_HARIAN_LAIN: "Uang harian lainnya",
 };
 
 export type KelasTiket = "Bisnis" | "Ekonomi";
@@ -93,6 +97,8 @@ export interface EtapeInput {
   fullboardDates?: string[];
   /** Menginap tanpa fasilitas hotel: berhak 30% dari tarif SBM (PMK 113/PMK.05/2012) dan masuk ke DPR */
   hotel30Persen?: boolean | null;
+  /** Daftar tanggal (YYYY-MM-DD) menginap tanpa fasilitas hotel (30% tarif SBM) */
+  hotel30Dates?: string[];
   /** Perjalanan dinas dalam kota / Jabodetabek lebih dari 8 jam (menggunakan tarif uang harian dalam kota) */
   dalamKota8Jam?: boolean | null;
   /** Daftar tanggal (YYYY-MM-DD) di mana uang harian / lumpsum tidak dibebankan ke SPJ (ditanggung pihak lain / panitia) */

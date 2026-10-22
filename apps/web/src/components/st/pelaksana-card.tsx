@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { InfoIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import {
   etapeKosong,
+  type BiayaPayload,
   type PegawaiDto,
   type PelaksanaHasil,
   type PelaksanaPayload,
@@ -11,10 +12,11 @@ import {
 import { BlokForm } from '@/components/st/blok-form'
 import { BlokIdentitasPelaksana } from '@/components/st/blok-identitas-pelaksana'
 import { BlokTransportasi } from '@/components/st/blok-transportasi'
-import { KartuUangHarian } from '@/components/st/biaya-form'
+import { BlokUangHarian } from '@/components/st/blok-uang-harian'
 import { EtapeForm } from '@/components/st/etape-form'
 import { KelompokIsian } from '@/components/st/kelompok-isian'
 import { PenginapanEtapeKartu } from '@/components/st/penginapan-kartu'
+import { TabelRincianBebas } from '@/components/st/tabel-rincian-bebas'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,7 +24,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { MenuAksi } from '@/components/ui/menu-aksi'
 import { TabPanel, Tabs, type TabItem } from '@/components/ui/tabs'
 import { rupiah } from '@/lib/format'
-import { batasHotelEtape, hapusEtape, ubahEtape } from '@/lib/pelaksana-ubah'
+import { batasHotelEtape, hapusEtape, ubahBiaya, ubahEtape } from '@/lib/pelaksana-ubah'
 import type { BagianPelaksana } from '@/lib/periksa'
 import { cakupanGalat, type PetaGalat } from '@/lib/validasi'
 
@@ -61,7 +63,6 @@ export function PelaksanaCard({
   const [dialogHapus, setDialogHapus] = useState(false)
   const adaGalat = !!galat && Object.keys(galat).length > 0
   const id = (k: string) => `pel-${nomor}-${k}`
-  const cfg = p.status ? sbm.statusKonfigurasi[p.status] : undefined
 
   const jumlahPeringatan = hasil?.peringatan.length ?? 0
   const isCatatanTransportTiket = (c: string) => {
@@ -72,11 +73,38 @@ export function PelaksanaCard({
 
   const itemBagian: TabItem<BagianPelaksana>[] = [
     { kunci: 'perjalanan', label: 'Perjalanan', galat: adaGalat },
+    { kunci: 'transport', label: 'Transport' },
     { kunci: 'penginapan', label: 'Penginapan' },
-    { kunci: 'biaya', label: 'Biaya' },
+    { kunci: 'uang_harian', label: 'Uang Harian' },
   ]
   // Kartu yang belum diisi apa pun dihapus langsung; yang sudah berisi minta konfirmasi karena hapusnya tidak bisa dibatalkan.
   const masihKosong = !p.nama && !p.nip && p.biaya.length === 0 && p.etape.every((e) => !e.kota && !e.kegiatan && !e.berangkat)
+
+  // Filter rincian penginapan bebas
+  const itemsPenginapanBebas = p.biaya
+    .map((biaya, originalIndex) => ({ biaya, originalIndex }))
+    .filter(({ biaya }) => biaya.jenis === 'PENGINAPAN_LAIN')
+
+  const tambahRincianPenginapan = () => {
+    const baru: BiayaPayload = {
+      jenis: 'PENGINAPAN_LAIN',
+      uraian: '',
+      qty: 1,
+      satuan: 'malam',
+      tarif: 0,
+      keterangan: null,
+      pengeluaranRiil: false,
+    }
+    onUbah((x) => ({ ...x, biaya: [...x.biaya, baru] }))
+  }
+
+  const ubahItemPenginapan = (originalIndex: number, patch: Partial<BiayaPayload>) => {
+    onUbah((x) => ubahBiaya(x, originalIndex, patch))
+  }
+
+  const hapusItemPenginapan = (originalIndex: number) => {
+    onUbah((x) => ({ ...x, biaya: x.biaya.filter((_, j) => j !== originalIndex) }))
+  }
 
   return (
     <Card>
@@ -154,7 +182,7 @@ export function PelaksanaCard({
           </KelompokIsian>
         </TabPanel>
 
-        <TabPanel idAwal={`pel-${nomor}-bagian`} kunci="biaya" aktif={bagian === 'biaya'}>
+        <TabPanel idAwal={`pel-${nomor}-bagian`} kunci="transport" aktif={bagian === 'transport'}>
           <KelompokIsian terkunci={terkunci}>
             <div className="grid gap-5">
               <BlokTransportasi
@@ -166,18 +194,62 @@ export function PelaksanaCard({
                 onUbah={onUbah}
                 terkunci={terkunci}
               />
+            </div>
+          </KelompokIsian>
+        </TabPanel>
 
-              {hasil && (hasil.uangHarian.length > 0 || hasil.representasi.length > 0 || p.etape.some((e) => (e.tanpaUangHarianDates ?? []).length > 0)) ? (
-                <BlokForm judul="Uang Harian">
-                  <KartuUangHarian
-                    uangHarian={hasil.uangHarian}
-                    representasi={hasil.representasi}
-                    total={hasil.totalUangHarian + hasil.totalRepresentasi}
-                    tanpaUangHarianJumlah={p.etape.reduce((sum, e) => sum + (e.tanpaUangHarianDates ?? []).length, 0)}
-                    onBukaPenginapan={() => onBagian('penginapan')}
+        <TabPanel idAwal={`pel-${nomor}-bagian`} kunci="penginapan" aktif={bagian === 'penginapan'}>
+          <KelompokIsian terkunci={terkunci}>
+            <div className="grid gap-5">
+              <BlokForm judul="Penginapan (Hotel / Penginapan Etape)">
+                {p.etape.map((e, i) => (
+                  <PenginapanEtapeKartu
+                    key={i}
+                    idAwal={`${nomor}-${i + 1}`}
+                    nomor={i + 1}
+                    etape={e}
+                    batasHotel={batasHotelEtape(e, p.status, sbm)}
+                    sbm={sbm}
+                    peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
+                    onUbah={(patch) => onUbah((x) => ubahEtape(x, i, patch, sbm))}
                   />
-                </BlokForm>
-              ) : null}
+                ))}
+              </BlokForm>
+
+              <TabelRincianBebas
+                judul="Rincian Biaya Penginapan Bebas (Manual / Lainnya)"
+                deskripsi="Tambahkan rincian biaya penginapan non-hotel atau biaya penginapan riil lainnya yang tidak tercakup di atas (misal homestay, sewa rumah singgah, fasilitas penginapan lapangan)."
+                tombolLabel="Tambah Rincian Penginapan Bebas"
+                placeholderUraian="Contoh: Sewa homestay di desa / rumah singgah warga"
+                satuanBawaan="malam"
+                items={itemsPenginapanBebas}
+                terkunci={terkunci}
+                onTambah={tambahRincianPenginapan}
+                onUbah={ubahItemPenginapan}
+                onHapus={hapusItemPenginapan}
+              />
+
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/40 px-4 py-3">
+                <div>
+                  <span className="text-sm font-semibold text-foreground">Total Keseluruhan Penginapan</span>
+                  <p className="text-xs text-muted-foreground">Akumulasi biaya hotel, penginapan 30% SBM, dan rincian bebas</p>
+                </div>
+                <span className="font-mono text-lg font-bold tabular-nums text-foreground">{rupiah(hasil?.totalPenginapan ?? 0)}</span>
+              </div>
+            </div>
+          </KelompokIsian>
+        </TabPanel>
+
+        <TabPanel idAwal={`pel-${nomor}-bagian`} kunci="uang_harian" aktif={bagian === 'uang_harian'}>
+          <KelompokIsian terkunci={terkunci}>
+            <div className="grid gap-5">
+              <BlokUangHarian
+                p={p}
+                hasil={hasil}
+                sbm={sbm}
+                onUbah={onUbah}
+                terkunci={terkunci}
+              />
 
               {/* Ringkasan akhir seluruh catatan & pagu biaya pelaksana */}
               {hasil && hasil.catatan.length > 0 ? (
@@ -193,28 +265,6 @@ export function PelaksanaCard({
                   </ul>
                 </section>
               ) : null}
-            </div>
-          </KelompokIsian>
-        </TabPanel>
-
-        <TabPanel idAwal={`pel-${nomor}-bagian`} kunci="penginapan" aktif={bagian === 'penginapan'}>
-          <KelompokIsian terkunci={terkunci}>
-            <div className="grid gap-5">
-              <BlokForm judul="Penginapan">
-                {p.etape.map((e, i) => (
-                  <PenginapanEtapeKartu
-                    key={i}
-                    idAwal={`${nomor}-${i + 1}`}
-                    nomor={i + 1}
-                    etape={e}
-                    bolehRepresentasi={(cfg?.barisRepresentasi ?? 0) > 0}
-                    batasHotel={batasHotelEtape(e, p.status, sbm)}
-                    sbm={sbm}
-                    peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
-                    onUbah={(patch) => onUbah((x) => ubahEtape(x, i, patch, sbm))}
-                  />
-                ))}
-              </BlokForm>
             </div>
           </KelompokIsian>
         </TabPanel>

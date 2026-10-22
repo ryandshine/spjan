@@ -155,6 +155,55 @@ describe("hitungSpj - kasus emas", () => {
     expect(h.total).toBe(2_440_500);
   });
 
+  it("Riandi: opsi menginap sebagian malam tanpa hotel (hotel30Dates) membagi baris hotel riil dan 30% SBM", () => {
+    // SBM D.I. Yogyakarta: Rp845.000, 30% = Rp253.500.
+    // 3 malam total (10, 11, 12). 1 malam tanpa hotel (10 Sep), 2 malam hotel riil (11-12 Sep) @ 600.000
+    const p: PelaksanaInput = {
+      ...riandi,
+      etape: [
+        {
+          ...etapeYogya({ hotelNama: "Hotel Grand Yogya", hotelTarif: 600_000 }),
+          hotel30Persen: true,
+          hotel30Dates: ["2026-09-10"],
+        },
+      ],
+    };
+    const h = hitungSpj(spj([p]), SBM_2026).pelaksana[0]!;
+    expect(h.peringatan).toEqual([]);
+    expect(h.penginapan).toHaveLength(2);
+
+    // Baris 1: Hotel riil 2 malam @ 600.000 = 1.200.000
+    expect(h.penginapan[0]).toMatchObject({
+      uraian: "Hotel Grand Yogya",
+      qty: 2,
+      satuan: "malam",
+      tarif: 600_000,
+      jumlah: 1_200_000,
+      keterangan: "Tanggal 11 s.d. 12 September 2026, Bukti terlampir",
+    });
+
+    // Baris 2: 30% SBM 1 malam @ 253.500 = 253.500
+    expect(h.penginapan[1]).toMatchObject({
+      uraian: "Biaya Penginapan 30% SBM",
+      qty: 1,
+      satuan: "malam",
+      tarif: 253_500,
+      jumlah: 253_500,
+      keterangan: "Tanggal 10 September 2026, Tanpa fasilitas hotel (DPR)",
+    });
+
+    expect(h.totalPenginapan).toBe(1_453_500);
+
+    // Hanya 1 malam 30% yang masuk ke DPR
+    expect(h.pengeluaranRiil).toHaveLength(1);
+    expect(h.pengeluaranRiil[0]).toMatchObject({
+      qty: 1,
+      tarif: 253_500,
+      jumlah: 253_500,
+    });
+    expect(h.totalPengeluaranRiil).toBe(253_500);
+  });
+
   it("Direktur Manado: Eselon II dinas jabatan, total 11.909.784", () => {
     const direktur: PelaksanaInput = {
       nama: "Dr. Marcus Octavianus Susatyo, S.Hut., M.P.",
@@ -715,6 +764,75 @@ describe("hitungSpj - paket pertemuan / fullboard", () => {
       });
       expect(h.totalUangHarian).toBe(504_000);
       expect(h.catatan).toContain("2 hari uang harian dibayarkan 60%.");
+    });
+
+    it("memasukkan PENGINAPAN_LAIN dan UANG_HARIAN_LAIN ke kategori dan total yang sesuai", () => {
+      const p: PelaksanaInput = {
+        nama: "Dewi",
+        nip: "19880101",
+        jabatan: "Pengendali Ekosistem Hutan",
+        status: "ESELON_IV_GOL_III_II_I",
+        noSpd: "SPD-001",
+        etape: [
+          {
+            provinsi: "JAWA BARAT",
+            kota: "Bandung",
+            kegiatan: "Monitoring Lapangan KPS",
+            berangkat: "2026-10-10",
+            pulang: "2026-10-11",
+            hotelNama: "Hotel Bandung",
+            hotelTarif: 500_000,
+          },
+        ],
+        biaya: [
+          {
+            jenis: "PENGINAPAN_LAIN",
+            uraian: "Sewa Homestay Desa",
+            qty: 1,
+            satuan: "malam",
+            tarif: 250_000,
+            keterangan: "Tanpa kuitansi resmi",
+            pengeluaranRiil: true,
+          },
+          {
+            jenis: "UANG_HARIAN_LAIN",
+            uraian: "Uang Saku Pendampingan Lapangan",
+            qty: 2,
+            satuan: "hari",
+            tarif: 100_000,
+            keterangan: "Kegiatan bersama masyarakat",
+            pengeluaranRiil: true,
+          },
+        ],
+      };
+      const hasil = hitungSpj(spj([p]), SBM_2026);
+      const h = hasil.pelaksana[0]!;
+
+      // Penginapan: hotel 500k + homestay 250k = 750k
+      expect(h.penginapan).toHaveLength(2);
+      expect(h.penginapan[1]).toMatchObject({
+        uraian: "Sewa Homestay Desa",
+        qty: 1,
+        satuan: "malam",
+        tarif: 250_000,
+        jumlah: 250_000,
+      });
+      expect(h.totalPenginapan).toBe(750_000);
+
+      // Uang Harian: normal 2 hari @ 430.000 (860.000) + uang harian lain 2 x 100.000 (200.000) = 1.060.000
+      expect(h.uangHarian).toHaveLength(2);
+      expect(h.uangHarian[1]).toMatchObject({
+        uraian: "Uang Saku Pendampingan Lapangan",
+        qty: 2,
+        satuan: "hari",
+        tarif: 100_000,
+        jumlah: 200_000,
+      });
+      expect(h.totalUangHarian).toBe(1_060_000);
+
+      // Pengeluaran Riil: homestay 250k + saku 200k = 450k
+      expect(h.pengeluaranRiil).toHaveLength(2);
+      expect(h.totalPengeluaranRiil).toBe(450_000);
     });
   });
 

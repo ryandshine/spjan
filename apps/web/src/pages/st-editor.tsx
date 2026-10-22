@@ -367,13 +367,29 @@ function Editor({
         }
       } else {
         navSebelumnya = {
-          label: `Sebelumnya: Pelaksana ${aktifIdx} (Biaya)`,
+          label: `Sebelumnya: Pelaksana ${aktifIdx} (Uang Harian)`,
           onClick: () => {
             daftarPelaksana.setAktif(aktifIdx - 1)
-            daftarPelaksana.setBagian('biaya')
+            daftarPelaksana.setBagian('uang_harian')
             window.scrollTo({ top: 0, behavior: 'smooth' })
           },
         }
+      }
+
+      navBerikutnya = {
+        label: 'Lanjut ke Transport',
+        onClick: () => {
+          daftarPelaksana.setBagian('transport')
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        },
+      }
+    } else if (subBagian === 'transport') {
+      navSebelumnya = {
+        label: 'Sebelumnya: Perjalanan',
+        onClick: () => {
+          daftarPelaksana.setBagian('perjalanan')
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        },
       }
 
       navBerikutnya = {
@@ -385,21 +401,21 @@ function Editor({
       }
     } else if (subBagian === 'penginapan') {
       navSebelumnya = {
-        label: 'Sebelumnya: Perjalanan',
+        label: 'Sebelumnya: Transport',
         onClick: () => {
-          daftarPelaksana.setBagian('perjalanan')
+          daftarPelaksana.setBagian('transport')
           window.scrollTo({ top: 0, behavior: 'smooth' })
         },
       }
 
       navBerikutnya = {
-        label: 'Lanjut ke Rincian Biaya',
+        label: 'Lanjut ke Uang Harian',
         onClick: () => {
-          daftarPelaksana.setBagian('biaya')
+          daftarPelaksana.setBagian('uang_harian')
           window.scrollTo({ top: 0, behavior: 'smooth' })
         },
       }
-    } else if (subBagian === 'biaya') {
+    } else if (subBagian === 'uang_harian') {
       navSebelumnya = {
         label: 'Sebelumnya: Penginapan',
         onClick: () => {
@@ -437,10 +453,10 @@ function Editor({
     }
   } else if (tab === 'laporan') {
     navSebelumnya = {
-      label: 'Sebelumnya: Pelaksana & Biaya',
+      label: 'Sebelumnya: Pelaksana (Uang Harian)',
       onClick: () => {
         setTab('pelaksana')
-        daftarPelaksana.setBagian('biaya')
+        daftarPelaksana.setBagian('uang_harian')
         window.scrollTo({ top: 0, behavior: 'smooth' })
       },
     }

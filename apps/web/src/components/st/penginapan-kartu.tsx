@@ -11,8 +11,6 @@ import {
 } from 'lucide-react'
 import {
   daftarHariIso,
-  isKotaJabodetabek,
-  norm,
   parseTanggal,
   ringkasEtape,
   selisihHari,
@@ -40,16 +38,13 @@ export function PenginapanEtapeKartu({
   idAwal,
   nomor,
   etape,
-  bolehRepresentasi,
   batasHotel,
-  sbm,
   peringatan,
   onUbah,
 }: {
   idAwal: string
   nomor: number
   etape: EtapePayload
-  bolehRepresentasi: boolean
   batasHotel: number | null
   sbm?: Sbm
   peringatan: Peringatan[]
@@ -59,35 +54,34 @@ export function PenginapanEtapeKartu({
   const peringatanKode = (kode: string) => peringatan.find((w) => w.kode === kode)?.pesan
   const id = (k: string) => `etape-${idAwal}-${k}`
   const tarif30 = batasHotel !== null ? Math.round(batasHotel * 0.3) : null
-  const provNorm = norm(etape.provinsi)
-  const tarifLuarKota = sbm?.uangHarian[provNorm]?.luarKota
-  const tarifDalamKota = sbm?.uangHarian[provNorm]?.dalamKota8Jam
-  // Opsi dalam kota (> 8 jam) hanya untuk perjalanan sehari; beberapa hari selalu luar kota, jadi opsinya disembunyikan.
-  const tampilDalamKota = hari === 1
-  const catatanOtomatis = (etape.dalamKota8Jam ?? false) && hari === 1 && isKotaJabodetabek(etape.kota)
 
   const tglAwal = parseTanggal(etape.berangkat)
   const tglAkhir = parseTanggal(etape.pulang)
   const listHari = tglAwal && tglAkhir && selisihHari(tglAwal, tglAkhir) >= 0 ? daftarHariIso(tglAwal, tglAkhir) : []
-  const fullboard = useTanggalTerpilih(etape, 'fullboardDates', listHari, onUbah)
-  const tanpaUangHarian = useTanggalTerpilih(etape, 'tanpaUangHarianDates', listHari, onUbah)
-  const uangHarian60 = useTanggalTerpilih(etape, 'uangHarian60Dates', listHari, onUbah)
-  const jmlFullboard = fullboard.jumlah
-  const jmlBiasa = listHari.length - jmlFullboard
-  const jmlTanpaUangHarian = tanpaUangHarian.jumlah
-  const jmlUangHarian60 = uangHarian60.jumlah
-  const isDalamKota = !!etape.dalamKota8Jam && listHari.length === 1
-  const tarifHarian = isDalamKota ? tarifDalamKota : tarifLuarKota
-  const tarif60 = tarifHarian !== undefined ? Math.round(tarifHarian * 0.6) : null
 
-  const semuaFullboard = fullboard.buka && jmlFullboard > 0 && jmlFullboard === listHari.length
+  const semuaFullboard = (etape.fullboardDates ?? []).length >= (hari ?? 0) && (hari ?? 0) > 0
   const defaultMalam = hari ? (semuaFullboard ? 0 : Math.max(hari - 1, 0)) : 0
   const isManualMalam = etape.malamOverride != null
   const tanpaMenginap = hari === 1 && malam === 0 && !isManualMalam
-  const tarifEfektif = etape.hotelTarif ?? (etape.hotel30Persen && tarif30 !== null ? tarif30 : null)
-  const subtotal = (malam ?? 0) * (tarifEfektif ?? 0)
+
+  const listMalam = listHari.slice(0, Math.max(0, malam ?? defaultMalam))
+  const hotel30 = useTanggalTerpilih(etape, 'hotel30Dates', listMalam, (patch) => {
+    const dates = patch.hotel30Dates ?? []
+    onUbah({
+      ...patch,
+      hotel30Persen: dates.length > 0,
+      hotelNama: dates.length === listMalam.length && listMalam.length > 0 ? etape.hotelNama || 'Biaya Penginapan 30% SBM' : etape.hotelNama,
+    })
+  })
+  const jmlHotel30 = hotel30.jumlah
+  const jmlMalamHotel = Math.max(0, listMalam.length - jmlHotel30)
+  const isSemua30 = jmlHotel30 > 0 && jmlHotel30 === listMalam.length
+  const isSebagian30 = jmlHotel30 > 0 && jmlHotel30 < listMalam.length
+
+  const tarifEfektif = isSemua30 ? (etape.hotelTarif ?? (tarif30 !== null ? tarif30 : null)) : etape.hotelTarif
+  const subtotal = (jmlMalamHotel * (etape.hotelTarif ?? 0)) + (jmlHotel30 * (tarif30 ?? 0))
   const peringatanTarif = peringatanKode('TARIF_HOTEL_KOSONG') ?? peringatanKode('HOTEL_MELEBIHI_BATAS')
-  const tarifKosong = (malam ?? 0) > 0 && !tarifEfektif
+  const tarifKosong = (malam ?? 0) > 0 && jmlMalamHotel > 0 && !etape.hotelTarif
   const judulBaris = `Tujuan ${nomor}${etape.kota ? ` - ${etape.kota}` : ''}`
 
   return (
@@ -112,9 +106,11 @@ export function PenginapanEtapeKartu({
                 placeholder={
                   (malam ?? 0) === 0
                     ? 'Opsional (penginapan 0 malam)'
-                    : etape.hotel30Persen
+                    : isSemua30
                       ? 'Biaya Penginapan 30% SBM'
-                      : 'Nama hotel atau penginapan'
+                      : isSebagian30
+                        ? 'Nama hotel (untuk malam hotel riil)'
+                        : 'Nama hotel atau penginapan'
                 }
                 onChange={(e) => onUbah({ hotelNama: e.target.value || null })}
               />
@@ -122,17 +118,17 @@ export function PenginapanEtapeKartu({
             <div className="grid gap-1.5">
               <Label htmlFor={id('tarif')}>
                 Tarif hotel per malam
-                {!etape.hotel30Persen && (malam ?? 0) > 0 ? <TandaWajib /> : null}
+                {!isSemua30 && jmlMalamHotel > 0 ? <TandaWajib /> : null}
               </Label>
               <div className="relative">
                 <RupiahInput
                   awalan
                   id={id('tarif')}
-                  className={`font-mono ${etape.hotel30Persen ? 'pr-8' : ''}`}
+                  className={`font-mono ${isSemua30 ? 'pr-8' : ''}`}
                   value={tarifEfektif}
                   onChange={(v) => onUbah({ hotelTarif: v })}
                 />
-                {etape.hotel30Persen && etape.hotelTarif != null ? (
+                {isSemua30 && etape.hotelTarif != null ? (
                   <button
                     type="button"
                     title="Kembali ke tarif 30% otomatis"
@@ -146,8 +142,12 @@ export function PenginapanEtapeKartu({
               </div>
               {(malam ?? 0) === 0 ? (
                 <p className="text-xs text-muted-foreground">Tarif tidak dibebankan ke SPJ (0 malam).</p>
-              ) : etape.hotel30Persen ? (
+              ) : isSemua30 ? (
                 <p className="text-xs text-muted-foreground tabular-nums">30% SBM: {tarif30 !== null ? rupiah(tarif30) : 'Otomatis'}</p>
+              ) : isSebagian30 ? (
+                <p className="text-xs text-muted-foreground tabular-nums">
+                  {jmlMalamHotel} malam hotel riil + {jmlHotel30} malam 30% SBM ({rupiah(tarif30 ?? 0)}/malam)
+                </p>
               ) : batasHotel !== null ? (
                 <p className="text-xs text-muted-foreground tabular-nums">Batas SBM {rupiah(batasHotel)}</p>
               ) : null}
@@ -262,7 +262,9 @@ export function PenginapanEtapeKartu({
               </div>
             )}
 
-            {semuaFullboard && !isManualMalam ? <p className="text-xs text-muted-foreground">Otomatis 0 malam (seluruh hari paket rapat).</p> : null}
+            {semuaFullboard && !isManualMalam ? (
+              <p className="text-xs text-muted-foreground">Otomatis 0 malam (seluruh hari paket rapat fullboard diatur pada tab Uang Harian).</p>
+            ) : null}
             <p className="mt-1 flex items-center justify-between border-t pt-2 text-sm font-semibold">
               <span>Subtotal Penginapan</span>
               <span className="font-mono tabular-nums">{rupiah(subtotal)}</span>
@@ -271,203 +273,48 @@ export function PenginapanEtapeKartu({
         </div>
       )}
 
-      <div className="grid gap-3 border-t pt-4">
-        <div className="grid gap-3">
-          <h5 className="text-sm font-semibold text-muted-foreground">Opsi Tambahan (Paket Rapat &amp; Uang Harian)</h5>
-
-          {tampilDalamKota ? (
-            <div className="grid gap-1">
-              <label className="flex cursor-pointer items-start gap-2.5 text-sm select-none">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 size-4 rounded border-input text-primary focus:ring-primary"
-                  checked={etape.dalamKota8Jam ?? false}
-                  onChange={(e) => {
-                    const aktif = e.target.checked
-                    onUbah({ dalamKota8Jam: aktif, ...(aktif && hari === 1 ? { malamOverride: 0 } : {}) })
-                  }}
-                />
-                <span>
-                  <span className="font-medium text-foreground">Pulang-pergi di hari yang sama di sekitar Jakarta (lebih dari 8 jam, tanpa menginap)</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    Dihitung sebagai <strong>uang harian dalam kota</strong>
-                    {tarifDalamKota ? ` ${rupiah(tarifDalamKota)}/hari` : ''}, bukan luar kota
-                    {tarifLuarKota ? ` ${rupiah(tarifLuarKota)}/hari` : ''}.
-                  </span>
-                </span>
-              </label>
-              {catatanOtomatis ? (
-                <p className="pl-6 text-xs text-muted-foreground">
-                  Dicentang otomatis: {etape.kota} termasuk Jabodetabek dan perjalanan hanya 1 hari.
-                </p>
-              ) : null}
-              <div className="pl-6">
-                <DasarAturan judul="Uang harian dalam kota lebih dari 8 jam">
-                  <p>PMK 113/PMK.05/2012 Pasal 14 ayat (3): perjalanan dinas dalam kota lebih dari 8 jam dibayarkan uang harian dalam kota sebesar satu hari penuh sesuai tarif SBM.</p>
-                </DasarAturan>
-              </div>
-            </div>
-          ) : null}
-
-          {listHari.length > 0 ? (
-            <BagianTanggal
-              judul={
-                <>
-                  Ada paket rapat di hotel (<Istilah kata="Fullboard" />)
-                </>
-              }
-              chip={`${jmlFullboard} dari ${listHari.length} hari terpilih`}
-              petunjuk="Pilih tanggal yang tercakup paket rapat:"
-              gaya="primer"
-              listHari={listHari}
-              tanggal={fullboard}
-            >
-            {jmlFullboard > 0 ? (
+      {(malam ?? 0) > 0 && listMalam.length > 0 ? (
+        <div className="grid gap-3 border-t pt-4">
+          <h5 className="text-sm font-semibold text-muted-foreground">Opsi Penginapan Tambahan</h5>
+          <BagianTanggal
+            judul="Menginap tanpa fasilitas hotel (biaya penginapan 30%)"
+            chip={`${jmlHotel30} dari ${listMalam.length} malam (30%)`}
+            petunjuk="Pilih tanggal/malam menginap tanpa fasilitas hotel (30% dari tarif SBM):"
+            gaya="primer"
+            akhiranTerpilih="(30%)"
+            listHari={listMalam}
+            tanggal={hotel30}
+          >
+            {jmlHotel30 > 0 ? (
               <div className="grid gap-2">
                 <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <InfoIcon className="size-3.5 shrink-0" aria-hidden />
+                  <InfoIcon className="size-3.5 shrink-0 text-primary" aria-hidden />
                   <span>
-                    <strong>{jmlFullboard} hari</strong> paket rapat (uang saku) dan <strong>{jmlBiasa} hari</strong> lain (uang harian penuh).
-                  </span>
-                </p>
-                {(malam ?? 0) > 0 ? (
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blue-200 bg-blue-50/70 p-2.5 text-xs text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200">
-                    <span className="flex items-center gap-1.5">
-                      <InfoIcon className="size-3.5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden />
-                      <span>Hotel kegiatan fullboard dibayarkan pihak lain / panitia?</span>
-                    </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-6 px-2.5 text-xs border-blue-300 bg-white hover:bg-blue-100 text-blue-800 dark:border-blue-700 dark:bg-slate-900 dark:text-blue-200 dark:hover:bg-blue-950"
-                      onClick={() => onUbah({ malamOverride: 0 })}
-                    >
-                      Atur penginapan 0 malam
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 p-2 text-xs text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
-                    <CheckIcon className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-                    <span>Penginapan diatur 0 malam (kamar hotel ditanggung pihak lain / panitia).</span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="mt-0.5 flex items-start gap-1.5 text-xs font-medium text-warning-foreground">
-                <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> Belum ada tanggal yang dipilih. Klik tombol tanggal di atas untuk menandai hari kegiatan rapat.
-              </p>
-            )}
-            </BagianTanggal>
-          ) : null}
-
-          {listHari.length > 0 ? (
-            <BagianTanggal
-              judul="Uang harian (lumpsum) ditanggung pihak lain"
-              chip={`${jmlTanpaUangHarian} dari ${listHari.length} hari dinonaktifkan`}
-              petunjuk="Pilih tanggal yang uang hariannya dibayarkan pihak lain (Rp0):"
-              gaya="amber"
-              akhiranTerpilih="(Pihak lain)"
-              listHari={listHari}
-              tanggal={tanpaUangHarian}
-            >
-            {jmlTanpaUangHarian > 0 ? (
-              <div className="grid gap-2">
-                <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <InfoIcon className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-                  <span>
-                    <strong>{jmlTanpaUangHarian} hari</strong> uang harian ditanggung pihak lain (Rp0, tidak dibebankan ke SPJ).{' '}
-                    {listHari.length - jmlTanpaUangHarian > 0 ? (
+                    <strong>{jmlHotel30} malam</strong> tanpa fasilitas hotel berhak atas <strong>30% SBM</strong>
+                    {tarif30 !== null ? ` (${rupiah(tarif30)}/malam)` : ''} dan otomatis tercatat di <Istilah kata="DPR" />.{' '}
+                    {jmlMalamHotel > 0 ? (
                       <>
-                        Sisa <strong>{listHari.length - jmlTanpaUangHarian} hari</strong> tetap dibayarkan kantor.
+                        Sisa <strong>{jmlMalamHotel} malam</strong> dihitung sesuai tarif hotel riil terlampir.
                       </>
                     ) : (
-                      <>Seluruh uang harian ditiadakan.</>
+                      <>Seluruh malam menginap tanpa fasilitas hotel.</>
                     )}
                   </span>
                 </p>
               </div>
             ) : (
               <p className="mt-0.5 flex items-start gap-1.5 text-xs font-medium text-warning-foreground">
-                <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> Belum ada tanggal yang dipilih. Klik tombol tanggal di atas untuk menandai hari yang ditanggung pihak lain.
+                <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> Belum ada malam yang dipilih. Klik tombol tanggal di atas untuk menandai malam yang berhak 30% SBM.
               </p>
             )}
-            <DasarAturan judul="Uang harian ditanggung pihak lain">
-              <p>PMK 113/PMK.05/2012: Dalam hal komponen biaya perjalanan dinas (termasuk uang harian) telah ditanggung oleh pihak lain/penyelenggara, biaya tersebut tidak dibebankan lagi pada DIPA pengirim guna menghindari pembayaran ganda (double-funding).</p>
+            <DasarAturan judul="Penginapan 30% tarif SBM">
+              <p>
+                PMK 113/PMK.05/2012 Pasal 16 ayat (2): pelaksana perjalanan dinas yang tidak menggunakan fasilitas hotel atau penginapan lainnya diberikan biaya penginapan sebesar 30% (tiga puluh persen) dari tarif hotel di kota tempat tujuan sesuai SBM.
+              </p>
             </DasarAturan>
-            </BagianTanggal>
-          ) : null}
-
-          {listHari.length > 0 ? (
-            <BagianTanggal
-              judul="Uang harian 60% (Lumpsum 60%)"
-              chip={`${jmlUangHarian60} dari ${listHari.length} hari (60%)`}
-              petunjuk="Pilih tanggal yang mendapatkan uang harian 60% (mis. transpor lokal riil / tugas multi-lokasi / penugasan khusus SBM):"
-              gaya="indigo"
-              akhiranTerpilih="(60%)"
-              listHari={listHari}
-              tanggal={uangHarian60}
-            >
-              {jmlUangHarian60 > 0 ? (
-                <div className="grid gap-2">
-                  <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <InfoIcon className="size-3.5 shrink-0 text-indigo-600 dark:text-indigo-400" aria-hidden />
-                    <span>
-                      <strong>{jmlUangHarian60} hari</strong> uang harian dibayarkan <strong>60%</strong>
-                      {tarif60 !== null ? ` (${rupiah(tarif60)}/hari)` : ''}.
-                    </span>
-                  </p>
-                </div>
-              ) : (
-                <p className="mt-0.5 flex items-start gap-1.5 text-xs font-medium text-warning-foreground">
-                  <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> Belum ada tanggal yang dipilih. Klik tombol tanggal di atas untuk menandai hari yang mendapatkan uang harian 60%.
-                </p>
-              )}
-              <DasarAturan judul="Uang Harian 60% SBM">
-                <p>Lampiran SBM Kemenkeu & Ketentuan Perjalanan Dinas: Uang harian dibayarkan sebesar 60% dari tarif normal antara lain untuk perjalanan dinas dalam kota lebih dari satu lokasi dengan transpor lokal riil, atau penugasan dinas singkat sesuai ketentuan SBM.</p>
-              </DasarAturan>
-            </BagianTanggal>
-          ) : null}
-
-          {(malam ?? 0) > 0 ? (
-            <div className="grid gap-1">
-              <label className="flex cursor-pointer items-start gap-2.5 text-sm select-none">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 size-4 rounded border-input text-primary focus:ring-primary"
-                  checked={etape.hotel30Persen ?? false}
-                  onChange={(e) => {
-                    const aktif = e.target.checked
-                    onUbah({
-                      hotel30Persen: aktif,
-                      hotelNama: aktif ? etape.hotelNama || 'Biaya Penginapan 30% SBM' : etape.hotelNama,
-                      hotelTarif: aktif ? (tarif30 ?? etape.hotelTarif) : etape.hotelTarif,
-                    })
-                  }}
-                />
-                <span>
-                  <span className="font-medium text-foreground">Menginap tanpa fasilitas hotel (biaya penginapan 30%)</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    Pelaksana yang tidak memakai hotel berhak atas 30% dari batas tertinggi SBM penginapan{tarif30 !== null ? ` (${rupiah(tarif30)}/malam)` : ''}, dan otomatis tercatat di <Istilah kata="DPR" />.
-                  </span>
-                </span>
-              </label>
-              <div className="pl-6">
-                <DasarAturan judul="Penginapan 30% tarif SBM">
-                  <p>PMK 113/PMK.05/2012 Pasal 16 ayat (2): pelaksana perjalanan dinas yang tidak menggunakan fasilitas hotel atau penginapan lainnya diberikan biaya penginapan sebesar 30% (tiga puluh persen) dari tarif hotel di kota tempat tujuan sesuai SBM.</p>
-                </DasarAturan>
-              </div>
-            </div>
-          ) : null}
-
-          {bolehRepresentasi ? (
-            <label className="flex cursor-pointer items-center gap-2.5 text-sm select-none">
-              <input type="checkbox" className="size-4" checked={etape.dinasJabatan ?? false} onChange={(e) => onUbah({ dinasJabatan: e.target.checked })} />
-              Perjalanan dinas jabatan (berhak uang representasi)
-            </label>
-          ) : null}
+          </BagianTanggal>
         </div>
-      </div>
+      ) : null}
     </div>
   )
 }

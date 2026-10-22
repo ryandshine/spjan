@@ -20,8 +20,8 @@ export function sasaranPeringatan(w: Peringatan, nomorPelaksana: number): string
   }
 }
 
-/** Bagian pelaksana (sub-tab) yang memuat isian: tarif hotel ada di Penginapan, sisanya di Perjalanan. */
-export type BagianPelaksana = 'perjalanan' | 'penginapan' | 'biaya'
+/** Bagian pelaksana (sub-tab) yang memuat isian. */
+export type BagianPelaksana = 'perjalanan' | 'transport' | 'penginapan' | 'uang_harian'
 export function bagianUntukSasaran(sasaranId: string): BagianPelaksana {
   return sasaranId.endsWith('-tarif') ? 'penginapan' : 'perjalanan'
 }

@@ -73,6 +73,7 @@ export const stResa = {
           dinasJabatan: false,
           fullboardDates: [],
           hotel30Persen: false,
+          hotel30Dates: [],
           dalamKota8Jam: false,
           tanpaUangHarianDates: [],
           uangHarian60Dates: [],

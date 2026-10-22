@@ -32,6 +32,7 @@ export function etapeKosong(): EtapePayload {
     dinasJabatan: false,
     fullboardDates: [],
     hotel30Persen: false,
+    hotel30Dates: [],
     dalamKota8Jam: false,
     tanpaUangHarianDates: [],
     uangHarian60Dates: [],
@@ -82,7 +83,27 @@ export function jenisButuhEtape(jenis: JenisBiaya): boolean {
 
 /** Jenis yang uraiannya wajib bermakna: transport darat dan Jakarta-sekitar (kunci pagu), airport tax dan lainnya (teks bebas). */
 export function jenisButuhUraian(jenis: JenisBiaya): boolean {
-  return ["TRANSPORT_DARAT", "TRANSPORT_JAKARTA_SEKITAR", "AIRPORT_TAX_BAGASI", "KERETA_BUS_LAIN", "LAINNYA"].includes(jenis);
+  return [
+    "TRANSPORT_DARAT",
+    "TRANSPORT_JAKARTA_SEKITAR",
+    "AIRPORT_TAX_BAGASI",
+    "KERETA_BUS_LAIN",
+    "LAINNYA",
+    "PENGINAPAN_LAIN",
+    "UANG_HARIAN_LAIN",
+  ].includes(jenis);
+}
+
+export function isJenisTransport(jenis: JenisBiaya): boolean {
+  return jenis !== "PENGINAPAN_LAIN" && jenis !== "UANG_HARIAN_LAIN";
+}
+
+export function isJenisPenginapan(jenis: JenisBiaya): boolean {
+  return jenis === "PENGINAPAN_LAIN";
+}
+
+export function isJenisUangHarian(jenis: JenisBiaya): boolean {
+  return jenis === "UANG_HARIAN_LAIN";
 }
 
 export interface RingkasEtape {
@@ -149,7 +170,7 @@ export function indeksBarisTransport(
 
   const aktif = biaya
     .map((b, i) => ({ ...b, origIdx: i }))
-    .filter((b) => b.tarif > 0);
+    .filter((b) => b.tarif > 0 && (b.jenis ? isJenisTransport(b.jenis as JenisBiaya) : true));
 
   aktif.sort((a, b) => {
     const ua = urutan(a.jenis);

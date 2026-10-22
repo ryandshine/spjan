@@ -103,6 +103,10 @@ function uraianBiaya(b: BiayaInput, input: SpjInput, etape: EtapeInput[]): strin
     }
     case "LAINNYA":
       return uraian || "Biaya lainnya";
+    case "PENGINAPAN_LAIN":
+      return uraian || "Biaya penginapan lainnya";
+    case "UANG_HARIAN_LAIN":
+      return uraian || "Uang harian lainnya";
     default: {
       const label = LABEL_URAIAN[b.jenis] ?? b.jenis;
       return uraian ? `${label} - ${uraian}` : label;
@@ -113,8 +117,8 @@ function uraianBiaya(b: BiayaInput, input: SpjInput, etape: EtapeInput[]): strin
 function barisTransport(b: BiayaInput, input: SpjInput, etape: EtapeInput[], sbm: Sbm): BarisBiaya | null {
   if (!(b.tarif > 0)) return null;
   const qty = b.qty && b.qty > 0 ? b.qty : 1;
-  const tampil = !TAKSI.has(b.jenis) && qty > 1;
-  const satuanDefault = SEWA.has(b.jenis) ? "hari" : "kali";
+  const satuanDefault = b.jenis === "PENGINAPAN_LAIN" ? "malam" : b.jenis === "UANG_HARIAN_LAIN" ? "hari" : SEWA.has(b.jenis) ? "hari" : "kali";
+  const tampil = !TAKSI.has(b.jenis) && (qty > 1 || b.jenis === "PENGINAPAN_LAIN" || b.jenis === "UANG_HARIAN_LAIN" || ada(b.satuan));
   const catatan = catatanBiaya(sbm, b, input.provinsiKedudukan);
   const tanpaKeterangan = TAKSI.has(b.jenis);
   const ketInput = ada(b.keterangan) ? (b.keterangan as string).trim() : "";
@@ -124,7 +128,7 @@ function barisTransport(b: BiayaInput, input: SpjInput, etape: EtapeInput[], sbm
   return {
     uraian: uraianBiaya(b, input, etape),
     qty: tampil ? qty : null,
-    satuan: tampil ? ada(b.satuan) ? (b.satuan as string) : satuanDefault : null,
+    satuan: tampil ? (ada(b.satuan) ? (b.satuan as string) : satuanDefault) : null,
     tarif: tampil ? b.tarif : null,
     jumlah: Math.round(qty * b.tarif),
     keterangan,
@@ -135,7 +139,7 @@ function barisTransport(b: BiayaInput, input: SpjInput, etape: EtapeInput[], sbm
 interface HasilEtape {
   uangHarian?: BarisBiaya[];
   representasi?: BarisBiaya;
-  penginapan?: BarisBiaya;
+  penginapan?: BarisBiaya | BarisBiaya[];
   hotel30Persen?: boolean;
   peringatan: Peringatan[];
   uraianSptb?: string;
@@ -272,13 +276,21 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
   }
 
   const batas = cfg ? sbm.penginapan[prov]?.[cfg.kolomHotel - 1] : undefined;
-  const isHotel30 = !!e.hotel30Persen;
   const tarif30 = batas !== undefined ? Math.round(batas * 0.3) : 0;
-  const tarifHotel = isHotel30 ? (e.hotelTarif && e.hotelTarif > 0 ? e.hotelTarif : tarif30) : (e.hotelTarif ?? 0);
+  const listMalam = listHari.slice(0, Math.max(0, malam));
+  const tglHotel30 = (e.hotel30Dates ?? []).filter((tgl) => listMalam.includes(tgl));
+  const hasHotel30Dates = (e.hotel30Dates ?? []).length > 0;
+  const isSemua30 = hasHotel30Dates ? tglHotel30.length >= malam : !!e.hotel30Persen;
+  const isSebagian30 = hasHotel30Dates && tglHotel30.length > 0 && tglHotel30.length < malam;
+  const malam30 = isSemua30 ? malam : isSebagian30 ? tglHotel30.length : 0;
+  const malamHotel = malam - malam30;
+  const tglHotel = listMalam.filter((tgl) => !tglHotel30.includes(tgl));
 
   if (malam > 0) {
-    if (isHotel30) {
-      if (tarifHotel <= 0) {
+    if (malam30 > 0 && malamHotel === 0) {
+      // Semua malam 30% SBM
+      const tarifEfektif30 = e.hotelTarif && e.hotelTarif > 0 ? e.hotelTarif : tarif30;
+      if (tarifEfektif30 <= 0) {
         peringatan.push({
           kode: "TARIF_HOTEL_KOSONG",
           pesan: `${nomor}: tarif penginapan 30% belum dapat dihitung (provinsi tidak ditemukan di SBM).`,
@@ -291,12 +303,14 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
           uraian: namaTampil,
           qty: malam,
           satuan: "malam",
-          tarif: tarifHotel,
-          jumlah: malam * tarifHotel,
+          tarif: tarifEfektif30,
+          jumlah: malam * tarifEfektif30,
           keterangan: `Tanggal ${rincian}, Tanpa fasilitas hotel (DPR)`,
         };
       }
-    } else {
+    } else if (malam30 === 0 && malamHotel > 0) {
+      // Semua malam hotel riil
+      const tarifHotel = e.hotelTarif ?? 0;
       if (!(tarifHotel > 0)) {
         peringatan.push({ kode: "TARIF_HOTEL_KOSONG", pesan: `${nomor}: tarif hotel belum diisi (${malam} malam).`, etape: i });
       } else {
@@ -316,6 +330,48 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
           });
         }
       }
+    } else if (malam30 > 0 && malamHotel > 0) {
+      // Sebagian malam 30% SBM dan sebagian malam hotel riil
+      hasil.hotel30Persen = true;
+      const daftarPgn: BarisBiaya[] = [];
+      const tarifHotel = e.hotelTarif ?? 0;
+      if (!(tarifHotel > 0)) {
+        peringatan.push({ kode: "TARIF_HOTEL_KOSONG", pesan: `${nomor}: tarif hotel belum diisi (${malamHotel} malam).`, etape: i });
+      } else {
+        daftarPgn.push({
+          uraian: (e.hotelNama ?? "").trim() || "Penginapan / Hotel",
+          qty: malamHotel,
+          satuan: "malam",
+          tarif: tarifHotel,
+          jumlah: malamHotel * tarifHotel,
+          keterangan: `Tanggal ${formatDaftarTanggal(tglHotel)}, Bukti terlampir`,
+        });
+        if (batas !== undefined && tarifHotel > batas) {
+          peringatan.push({
+            kode: "HOTEL_MELEBIHI_BATAS",
+            pesan: `${nomor}: tarif hotel ${formatRp(tarifHotel)} melebihi batas SBM ${formatRp(batas)}.`,
+            etape: i,
+          });
+        }
+      }
+
+      if (tarif30 <= 0) {
+        peringatan.push({
+          kode: "TARIF_HOTEL_KOSONG",
+          pesan: `${nomor}: tarif penginapan 30% belum dapat dihitung (provinsi tidak ditemukan di SBM).`,
+          etape: i,
+        });
+      } else {
+        daftarPgn.push({
+          uraian: "Biaya Penginapan 30% SBM",
+          qty: malam30,
+          satuan: "malam",
+          tarif: tarif30,
+          jumlah: malam30 * tarif30,
+          keterangan: `Tanggal ${formatDaftarTanggal(tglHotel30)}, Tanpa fasilitas hotel (DPR)`,
+        });
+      }
+      hasil.penginapan = daftarPgn;
     }
   }
 
@@ -346,16 +402,19 @@ function hitungPelaksana(p: PelaksanaInput, input: SpjInput, sbm: Sbm): Pelaksan
     if (h.uangHarian) uangHarian.push(...h.uangHarian);
     if (h.representasi) representasi.push(h.representasi);
     if (h.penginapan) {
-      penginapan.push(h.penginapan);
-      if (h.hotel30Persen) {
-        pengeluaranRiil.push({
-          uraian: `Biaya penginapan 30% (tanpa fasilitas hotel) di ${e.kota || proper(e.provinsi)}`,
-          qty: h.penginapan.qty,
-          satuan: h.penginapan.satuan,
-          tarif: h.penginapan.tarif,
-          jumlah: h.penginapan.jumlah,
-          keterangan: h.penginapan.keterangan,
-        });
+      const listPgn = Array.isArray(h.penginapan) ? h.penginapan : [h.penginapan];
+      for (const pgn of listPgn) {
+        penginapan.push(pgn);
+        if (pgn.keterangan?.includes("Tanpa fasilitas hotel") || (h.hotel30Persen && !Array.isArray(h.penginapan))) {
+          pengeluaranRiil.push({
+            uraian: `Biaya penginapan 30% (tanpa fasilitas hotel) di ${e.kota || proper(e.provinsi)}`,
+            qty: pgn.qty,
+            satuan: pgn.satuan,
+            tarif: pgn.tarif,
+            jumlah: pgn.jumlah,
+            keterangan: pgn.keterangan,
+          });
+        }
       }
     }
     if (h.tanpaUangHarianJumlah && h.tanpaUangHarianJumlah > 0) {
@@ -415,7 +474,13 @@ function urutanBiayaTransport(jenis: JenisBiaya): number {
   for (const b of biayaUrut) {
     const baris = barisTransport(b, input, p.etape, sbm);
     if (baris) {
-      transport.push(baris);
+      if (b.jenis === "PENGINAPAN_LAIN") {
+        penginapan.push(baris);
+      } else if (b.jenis === "UANG_HARIAN_LAIN") {
+        uangHarian.push(baris);
+      } else {
+        transport.push(baris);
+      }
       if (b.pengeluaranRiil) {
         pengeluaranRiil.push(baris);
       }
