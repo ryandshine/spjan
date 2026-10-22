@@ -74,9 +74,9 @@ describe('tambahBiayaKePelaksana', () => {
 
 describe('tabBergalat', () => {
   it('memisahkan galat tab data dan tab pelaksana', () => {
-    expect(tabBergalat({})).toEqual({ data: false, pelaksana: false })
-    expect(tabBergalat({ nomor: 'x' })).toEqual({ data: true, pelaksana: false })
-    expect(tabBergalat({ 'pelaksana.0.nama': 'x' })).toEqual({ data: false, pelaksana: true })
+    expect(tabBergalat({})).toEqual({ data: false, bukti: false, pelaksana: false, laporan: false })
+    expect(tabBergalat({ nomor: 'x' })).toEqual({ data: true, bukti: false, pelaksana: false, laporan: false })
+    expect(tabBergalat({ 'pelaksana.0.nama': 'x' })).toEqual({ data: false, bukti: false, pelaksana: true, laporan: false })
   })
 })
 

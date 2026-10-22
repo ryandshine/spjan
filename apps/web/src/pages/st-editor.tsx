@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { FileTextIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   SuratTugasPayloadSchema,
@@ -8,12 +9,10 @@ import {
   payloadDariDto,
   stKosong,
   toSpjInput,
-  type BiayaPayload,
   type PengaturanPayload,
   type Sbm,
   type SumberDana,
   type SuratTugasPayload,
-  type UsulanHotelItem,
 } from '@spjan/shared'
 
 import { PageHeader } from '@/components/page-header'
@@ -32,16 +31,18 @@ import { LangkahSt, type LangkahItem } from '@/components/st/langkah-st'
 import { NavigasiLangkah, type NavigasiAksi } from '@/components/st/navigasi-langkah'
 import { RingkasanRingkas, RingkasanSt } from '@/components/st/ringkasan-st'
 import { TabPelaksanaSt } from '@/components/st/tab-pelaksana-st'
-import { UsulanHotelPanel } from '@/components/st/usulan-hotel-panel'
-import { UsulanTransportPanel } from '@/components/st/usulan-transport-panel'
 
 import { Alert } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { TabPanel, Tabs, type TabItem } from '@/components/ui/tabs'
 import { pesanGalat } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { hitungProgresSpj } from '@/lib/progres-spj'
 import {
+  useDaftarBerkas,
   useHapusSuratTugas,
   useKunciSuratTugas,
+  useLaporan,
   useMe,
   usePegawai,
   usePengaturan,
@@ -53,8 +54,6 @@ import {
 import {
   sesuaikanKodeAkun,
   tabBergalat,
-  tambahBiayaKePelaksana,
-  terapkanHotelKeEtape,
 } from '@/lib/st-editor'
 import { bagianUntukSasaran, lompatKeIsian } from '@/lib/periksa'
 import { useSlotSidebar } from '@/lib/slot-sidebar'
@@ -62,8 +61,8 @@ import { useDaftarPelaksana } from '@/lib/use-daftar-pelaksana'
 import { usePenjagaPerubahan } from '@/lib/use-penjaga-perubahan'
 import { pesanValidasi, petaGalat } from '@/lib/validasi'
 
-type TabKunci = 'data' | 'pelaksana' | 'bukti' | 'laporan'
-type SubBukti = 'bukti' | 'hotel' | 'transport' | 'foto'
+type TabKunci = 'data' | 'bukti' | 'pelaksana' | 'laporan'
+type SubBukti = 'bukti' | 'foto'
 
 function deskripsiHeader({ modeLaporan, kotor, baru }: { modeLaporan: boolean; kotor: boolean; baru: boolean }): string {
   if (modeLaporan) return 'Laporan Perjalanan Dinas'
@@ -103,7 +102,11 @@ function Editor({
   const [galat, setGalat] = useState<string[]>([])
   const [dialogHapus, setDialogHapus] = useState(false)
   const [cobaSimpan, setCobaSimpan] = useState(false)
-  const [tab, setTab] = useState<TabKunci>(id !== null && awal.pelaksana.length > 0 ? 'pelaksana' : 'data')
+  const [searchParams] = useSearchParams()
+  const tabAwal = searchParams.get('tab') as TabKunci | null
+  const [tab, setTab] = useState<TabKunci>(tabAwal ?? 'data')
+  const daftarBerkas = useDaftarBerkas(id)
+  const laporanQuery = useLaporan(id ?? undefined)
   const slotSidebar = useSlotSidebar()
   const daftarPelaksana = useDaftarPelaksana(setSt, awal.pelaksana, st.pelaksana.length)
   const [subBukti, setSubBukti] = useState<SubBukti>('bukti')
@@ -133,18 +136,6 @@ function Editor({
     setTab('pelaksana')
     daftarPelaksana.setAktif(i)
   }
-
-  /** Menerapkan usulan ke form lalu langsung menyimpannya; kegagalan simpan dilempar ke panel pemanggil untuk ditampilkan. */
-  async function terapkanDanSimpan(stBaru: SuratTugasPayload) {
-    setSt(stBaru)
-    if (id === null) return
-    await simpan.mutateAsync({ id, payload: stBaru })
-    tandaiTersimpan(stBaru)
-  }
-  const terapkanUsulanHotel = (pelaksanaIdx: number, etapeIdx: number, usulan: UsulanHotelItem) =>
-    terapkanDanSimpan(terapkanHotelKeEtape(st, pelaksanaIdx, etapeIdx, usulan))
-  const terapkanUsulanTransport = (pelaksanaIdx: number, biaya: BiayaPayload) =>
-    terapkanDanSimpan(tambahBiayaKePelaksana(st, pelaksanaIdx, biaya))
 
   async function kirim() {
     const cek = SuratTugasPayloadSchema.safeParse(st)
@@ -196,12 +187,53 @@ function Editor({
     setDialogKunci(null)
   }
 
+  const progres = useMemo(
+    () => hitungProgresSpj(st, hasil, daftarBerkas.data ?? [], !!laporanQuery.data?.isi),
+    [st, hasil, daftarBerkas.data, laporanQuery.data?.isi],
+  )
+
   const adaPerlu = hasil.pelaksana.some((p) => p.peringatan.length > 0)
   const langkah: LangkahItem<TabKunci>[] = [
-    { kunci: 'data', label: 'Data surat tugas', deskripsi: 'Identitas & anggaran', galat: galatTab.data },
-    { kunci: 'pelaksana', label: 'Pelaksana', deskripsi: 'Personel, perjalanan, biaya', jumlah: st.pelaksana.length, galat: galatTab.pelaksana, perlu: adaPerlu },
+    {
+      kunci: 'data',
+      label: 'Data surat tugas',
+      deskripsi: 'Identitas & anggaran',
+      galat: galatTab.data,
+      jumlahPerlu: progres.perTahap.data.peringatan,
+    },
+    {
+      kunci: 'bukti',
+      label: 'Bukti pengeluaran',
+      deskripsi: 'Tiket, hotel, kuitansi, foto',
+      jumlah: daftarBerkas.data?.length,
+      galat: galatTab.bukti,
+      jumlahPerlu: progres.perTahap.bukti.peringatan,
+    },
+    {
+      kunci: 'pelaksana',
+      label: 'Pelaksana & rincian biaya',
+      deskripsi: 'Personel, perjalanan, biaya',
+      jumlah: st.pelaksana.length,
+      galat: galatTab.pelaksana,
+      jumlahPerlu: progres.perTahap.pelaksana.peringatan,
+      perlu: adaPerlu,
+    },
+    {
+      kunci: 'laporan',
+      label: 'Laporan & berkas cetak',
+      deskripsi: 'Laporan pelaksanaan, SPTB, SPD',
+      galat: false,
+      jumlahPerlu: progres.perTahap.laporan.peringatan,
+    },
   ]
-  if (id !== null) langkah.push({ kunci: 'bukti', label: 'Bukti & usulan', deskripsi: 'Lampiran dan usulan biaya' }, { kunci: 'laporan', label: 'Laporan', deskripsi: 'Laporan perjalanan dinas' })
+
+  const pilihTab = (k: TabKunci) => {
+    if (id === null && (k === 'bukti' || k === 'laporan')) {
+      toast.info('Simpan data surat tugas terlebih dahulu untuk mengunggah bukti atau menyusun laporan.')
+      return
+    }
+    setTab(k)
+  }
 
   const modeLaporan = tab === 'laporan' && id !== null
 
@@ -212,7 +244,26 @@ function Editor({
 
   if (tab === 'data') {
     navBerikutnya = {
-      label: 'Lanjut ke Pelaksana',
+      label: 'Lanjut ke Bukti Pengeluaran',
+      onClick: () => {
+        if (id === null) {
+          void kirim()
+        } else {
+          setTab('bukti')
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+      },
+    }
+  } else if (tab === 'bukti') {
+    navSebelumnya = {
+      label: 'Sebelumnya: Data ST',
+      onClick: () => {
+        setTab('data')
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      },
+    }
+    navBerikutnya = {
+      label: 'Lanjut ke Pelaksana & Biaya',
       onClick: () => {
         setTab('pelaksana')
         daftarPelaksana.setBagian('perjalanan')
@@ -227,9 +278,13 @@ function Editor({
     if (subBagian === 'perjalanan') {
       if (aktifIdx === 0) {
         navSebelumnya = {
-          label: 'Sebelumnya: Data Surat Tugas',
+          label: 'Sebelumnya: Bukti Pengeluaran',
           onClick: () => {
-            setTab('data')
+            if (id === null) {
+              setTab('data')
+            } else {
+              setTab('bukti')
+            }
             window.scrollTo({ top: 0, behavior: 'smooth' })
           },
         }
@@ -290,9 +345,9 @@ function Editor({
 
       if (id !== null) {
         navBerikutnya = {
-          label: 'Lanjut ke Bukti & Usulan',
+          label: 'Lanjut ke Laporan',
           onClick: () => {
-            setTab('bukti')
+            setTab('laporan')
             window.scrollTo({ top: 0, behavior: 'smooth' })
           },
         }
@@ -303,9 +358,9 @@ function Editor({
         }
       }
     }
-  } else if (tab === 'bukti') {
+  } else if (tab === 'laporan') {
     navSebelumnya = {
-      label: 'Sebelumnya: Pelaksana (Rincian Biaya)',
+      label: 'Sebelumnya: Pelaksana & Biaya',
       onClick: () => {
         setTab('pelaksana')
         daftarPelaksana.setBagian('biaya')
@@ -313,20 +368,14 @@ function Editor({
       },
     }
 
-    navBerikutnya = {
-      label: 'Lanjut ke Laporan',
-      onClick: () => {
-        setTab('laporan')
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-      },
-    }
-  } else if (tab === 'laporan') {
-    navSebelumnya = {
-      label: 'Sebelumnya: Bukti & Usulan',
-      onClick: () => {
-        setTab('bukti')
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-      },
+    if (id !== null) {
+      navBerikutnya = {
+        label: 'Selesai & Unduh Berkas',
+        variant: 'default',
+        onClick: () => {
+          navigate(`/st/${id}/dokumen`)
+        },
+      }
     }
   }
 
@@ -358,10 +407,8 @@ function Editor({
   }
 
   const itemSubBukti: TabItem<SubBukti>[] = [
-    { kunci: 'bukti', label: 'Bukti' },
-    { kunci: 'hotel', label: 'Usulan hotel' },
-    { kunci: 'transport', label: 'Usulan transport' },
-    { kunci: 'foto', label: 'Foto dokumentasi' },
+    { kunci: 'bukti', label: 'Bukti Pengeluaran' },
+    { kunci: 'foto', label: 'Foto Dokumentasi' },
   ]
 
   return (
@@ -383,9 +430,10 @@ function Editor({
               kolom
               item={langkah}
               aktif={tab}
-              onPilih={setTab}
+              onPilih={pilihTab}
               idAwal="st-menu"
               label="Langkah surat tugas"
+              progres={progres}
               anak={{
                 pelaksana: (
                   <DaftarPelaksanaSt
@@ -405,17 +453,23 @@ function Editor({
           )
         : null}
       <div className="md:hidden">
-        <LangkahSt item={langkah} aktif={tab} onPilih={setTab} idAwal="st" label="Langkah surat tugas" />
+        <LangkahSt item={langkah} aktif={tab} onPilih={pilihTab} idAwal="st" label="Langkah surat tugas" progres={progres} />
       </div>
 
       <div className={cn('grid items-start gap-6', !modeLaporan && 'xl:grid-cols-[minmax(0,1fr)_18rem]')}>
         <div className="min-w-0">
           {modeLaporan ? null : (
             <div className="xl:hidden">
-              <RingkasanRingkas hasil={hasil} onPerbaiki={perbaikiIsian} />
+              <RingkasanRingkas
+                hasil={hasil}
+                onPerbaiki={perbaikiIsian}
+                jumlahPerlu={progres.perTahap[tab]?.peringatan ?? 0}
+                labelPerlu="isian perlu di tahap ini"
+              />
             </div>
           )}
 
+          {/* Tahap 1: Data Surat Tugas */}
           <TabPanel idAwal="st" kunci="data" aktif={tab === 'data'}>
             <KelompokIsian terkunci={terkunci}>
               <div className="grid gap-6">
@@ -425,31 +479,31 @@ function Editor({
             </KelompokIsian>
           </TabPanel>
 
+          {/* Tahap 2: Bukti Pengeluaran & Lampiran */}
           {id !== null ? (
-            <>
-              <TabPanel idAwal="st" kunci="bukti" aktif={tab === 'bukti'}>
-                <Tabs gaya="segmen" item={itemSubBukti} aktif={subBukti} onPilih={setSubBukti} idAwal="st-bukti" label="Bagian bukti dan usulan" />
-                <KelompokIsian terkunci={terkunci}>
-                  <TabPanel idAwal="st-bukti" kunci="bukti" aktif={subBukti === 'bukti'}>
-                    <BuktiPanel stId={id} />
-                  </TabPanel>
-                  <TabPanel idAwal="st-bukti" kunci="hotel" aktif={subBukti === 'hotel'}>
-                    <UsulanHotelPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanHotel} />
-                  </TabPanel>
-                  <TabPanel idAwal="st-bukti" kunci="transport" aktif={subBukti === 'transport'}>
-                    <UsulanTransportPanel stId={id} pelaksanaList={st.pelaksana} onTerapkan={terapkanUsulanTransport} />
-                  </TabPanel>
-                  <TabPanel idAwal="st-bukti" kunci="foto" aktif={subBukti === 'foto'}>
-                    <FotoDokumentasiPanel stId={id} />
-                  </TabPanel>
-                </KelompokIsian>
-              </TabPanel>
-              <TabPanel idAwal="st" kunci="laporan" aktif={tab === 'laporan'}>
-                <LaporanEditor stId={id} terkunci={terkunci} />
-              </TabPanel>
-            </>
-          ) : null}
+            <TabPanel idAwal="st" kunci="bukti" aktif={tab === 'bukti'}>
+              <Tabs gaya="segmen" item={itemSubBukti} aktif={subBukti} onPilih={setSubBukti} idAwal="st-bukti" label="Bagian bukti dan dokumentasi" />
+              <KelompokIsian terkunci={terkunci}>
+                <TabPanel idAwal="st-bukti" kunci="bukti" aktif={subBukti === 'bukti'}>
+                  <BuktiPanel stId={id} />
+                </TabPanel>
+                <TabPanel idAwal="st-bukti" kunci="foto" aktif={subBukti === 'foto'}>
+                  <FotoDokumentasiPanel stId={id} />
+                </TabPanel>
+              </KelompokIsian>
+            </TabPanel>
+          ) : (
+            <TabPanel idAwal="st" kunci="bukti" aktif={tab === 'bukti'}>
+              <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+                <p>Simpan data surat tugas terlebih dahulu untuk mengunggah bukti pengeluaran.</p>
+                <Button className="mt-3" onClick={() => void kirim()}>
+                  Simpan Data ST &amp; Buka Unggah Bukti
+                </Button>
+              </div>
+            </TabPanel>
+          )}
 
+          {/* Tahap 3: Pelaksana & Rincian Biaya */}
           <TabPanel idAwal="st" kunci="pelaksana" aktif={tab === 'pelaksana'}>
             <TabPelaksanaSt
               pelaksana={st.pelaksana}
@@ -468,12 +522,35 @@ function Editor({
               onUbah={daftarPelaksana.ubah}
               onHapus={daftarPelaksana.hapus}
               onTambah={daftarPelaksana.tambah}
+              stId={id}
             />
           </TabPanel>
 
+          {/* Tahap 4: Laporan & Berkas Cetak */}
+          {id !== null ? (
+            <TabPanel idAwal="st" kunci="laporan" aktif={tab === 'laporan'}>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/40 p-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Pratinjau &amp; Unduh Dokumen Lengkap</h3>
+                  <p className="text-xs text-muted-foreground">Unduh berkas SPTB, SPD, Kuitansi Rampung, dan Laporan Perjalanan Dinas sekaligus.</p>
+                </div>
+                <Button variant="default" size="sm" onClick={() => navigate(`/st/${id}/dokumen`)} className="gap-1.5">
+                  <FileTextIcon className="size-4" /> Buka Halaman Unduh Dokumen
+                </Button>
+              </div>
+              <LaporanEditor stId={id} terkunci={terkunci} />
+            </TabPanel>
+          ) : (
+            <TabPanel idAwal="st" kunci="laporan" aktif={tab === 'laporan'}>
+              <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+                <p>Simpan data surat tugas terlebih dahulu untuk menyusun laporan perjalanan dinas.</p>
+              </div>
+            </TabPanel>
+          )}
+
           <NavigasiLangkah
             sebelumnya={navSebelumnya}
-            berikutnya={modeLaporan ? null : navBerikutnya}
+            berikutnya={navBerikutnya}
             ekstraBerikutnya={modeLaporan ? null : navEkstraBerikutnya}
             tampilSimpan={!modeLaporan && bolehUbah && !dikunci}
             menyimpan={simpan.isPending}

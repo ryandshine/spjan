@@ -126,22 +126,34 @@ export function RingkasanSt({ hasil, status, onPerbaiki, className }: { hasil: S
 }
 
 /** Versi ringkas untuk layar yang belum cukup lebar bagi panel kanan: total dan jumlah isian yang perlu dilengkapi dalam satu baris. */
-export function RingkasanRingkas({ hasil, onPerbaiki }: { hasil: SpjHasil; onPerbaiki: PerbaikiIsian }) {
+export function RingkasanRingkas({
+  hasil,
+  onPerbaiki,
+  jumlahPerlu,
+  labelPerlu,
+}: {
+  hasil: SpjHasil
+  onPerbaiki: PerbaikiIsian
+  jumlahPerlu?: number
+  labelPerlu?: string
+}) {
   const periksa = kumpulkanPeriksa(hasil.pelaksana)
   const pertama = periksa[0]
+  const count = jumlahPerlu !== undefined ? jumlahPerlu : periksa.length
+
   return (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border bg-card px-4 py-3" role="complementary" aria-label="Ringkasan surat tugas">
       <p className="flex items-baseline gap-2" title={hasil.terbilang} aria-live="polite">
         <span className="text-sm text-muted-foreground">Total SPTB</span>
         <span className="font-mono text-lg font-bold text-primary tabular-nums">{rupiah(hasil.total)}</span>
       </p>
-      {pertama ? (
+      {count > 0 && pertama ? (
         <button
           type="button"
           onClick={() => onPerbaiki(pertama.sasaranId, pertama.nomorPelaksana)}
           className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-warning/15 px-3 py-1 text-xs font-medium text-warning-foreground transition-colors hover:bg-warning/25 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          <TriangleAlertIcon className="size-3.5" aria-hidden /> {periksa.length} isian perlu dilengkapi
+          <TriangleAlertIcon className="size-3.5" aria-hidden /> {count} {labelPerlu ?? 'isian perlu diperiksa'}
         </button>
       ) : (
         <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success">

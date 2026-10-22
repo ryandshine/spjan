@@ -67,11 +67,13 @@ export function adaDataPejabat(st: DataPejabat): boolean {
 }
 
 /** Tab yang memuat kolom bergalat: kolom pelaksana berawalan "pelaksana.", sisanya ada di tab data. */
-export function tabBergalat(peta: PetaGalat): { data: boolean; pelaksana: boolean } {
+export function tabBergalat(peta: PetaGalat): { data: boolean; bukti: boolean; pelaksana: boolean; laporan: boolean } {
   const kunci = Object.keys(peta)
   return {
     data: kunci.some((k) => !k.startsWith('pelaksana.')),
+    bukti: false,
     pelaksana: kunci.some((k) => k.startsWith('pelaksana.')),
+    laporan: false,
   }
 }
 

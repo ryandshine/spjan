@@ -40,6 +40,7 @@ export function PelaksanaCard({
   galat,
   onUbah,
   onHapus,
+  stId,
 }: {
   nomor: number
   /** Sub-tab yang sedang dibuka; dipegang pemanggil supaya "perlu dilengkapi" bisa membukanya. */
@@ -57,11 +58,13 @@ export function PelaksanaCard({
   galat?: PetaGalat
   onUbah: (fn: (p: PelaksanaPayload) => PelaksanaPayload) => void
   onHapus: () => void
+  stId?: number | null
 }) {
   const [dialogHapus, setDialogHapus] = useState(false)
   const adaGalat = !!galat && Object.keys(galat).length > 0
   const id = (k: string) => `pel-${nomor}-${k}`
   const cfg = p.status ? sbm.statusKonfigurasi[p.status] : undefined
+  const pelaksanaId = p && 'id' in p ? ((p as { id?: number }).id ?? null) : null
 
   const jumlahPeringatan = hasil?.peringatan.length ?? 0
   const isCatatanTransportTiket = (c: string) => {
@@ -157,7 +160,19 @@ export function PelaksanaCard({
         <TabPanel idAwal={`pel-${nomor}-bagian`} kunci="biaya" aktif={bagian === 'biaya'}>
           <KelompokIsian terkunci={terkunci}>
             <div className="grid gap-5">
-              <BlokTransportasi p={p} hasil={hasil} sbm={sbm} provinsi={provinsi} provinsiKedudukan={provinsiKedudukan} onUbah={onUbah} />
+              <BlokTransportasi
+                p={p}
+                hasil={hasil}
+                sbm={sbm}
+                provinsi={provinsi}
+                provinsiKedudukan={provinsiKedudukan}
+                onUbah={onUbah}
+                stId={stId}
+                pelaksanaIdx={nomor - 1}
+                pelaksanaNama={p.nama}
+                pelaksanaId={pelaksanaId}
+                terkunci={terkunci}
+              />
 
               {hasil && (hasil.uangHarian.length > 0 || hasil.representasi.length > 0 || p.etape.some((e) => (e.tanpaUangHarianDates ?? []).length > 0)) ? (
                 <BlokForm judul="Uang Harian">
@@ -204,6 +219,11 @@ export function PelaksanaCard({
                     sbm={sbm}
                     peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
                     onUbah={(patch) => onUbah((x) => ubahEtape(x, i, patch, sbm))}
+                    stId={stId}
+                    pelaksanaIdx={nomor - 1}
+                    pelaksanaNama={p.nama}
+                    pelaksanaId={pelaksanaId}
+                    terkunci={terkunci}
                   />
                 ))}
               </BlokForm>

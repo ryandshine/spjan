@@ -1,7 +1,28 @@
 # Status SPJAN
 
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
-Terakhir diperbarui: 2026-10-22 (standardisasi penamaan file unduhan dokumen SPJ dan naskah ST dengan tanggal dan jenis dokumen).
+Terakhir diperbarui: 2026-10-22 (refactor alur tahapan stepper SPJ, OCR binding pelaksana, integrasi progress kelengkapan murni, dan navigasi bawah linier).
+
+## Refactoring Alur Stepper & Binding OCR SPJ (2026-10-22, belum di-commit)
+
+- **Restrukturisasi Urutan Tahapan (Macro Stepper)**:
+  - Urutan 4 tahapan sidebar & tab kini mencerminkan alur kerja administrasi riil:
+    - **Tahap 1: Data Surat Tugas** (`data`): Identitas ST, MAK/Akun, Tahun Anggaran, dan Penandatangan.
+    - **Tahap 2: Bukti Pengeluaran & Lampiran** (`bukti`): Upload tiket, invoice hotel, kuitansi, dan foto dokumentasi kegiatan (sub-tab `bukti` dan `foto`). Sub-tab duplikat usulan hotel & transport dihilangkan karena telah diintegrasikan langsung ke tahap Pelaksana.
+    - **Tahap 3: Pelaksana & Rincian Biaya** (`pelaksana`): Verifikasi personel, perjalanan, hotel, uang harian, dan tiket transportasi.
+    - **Tahap 4: Laporan & Berkas Cetak** (`laporan`): Penyusunan laporan pelaksanaan perjalanan dinas serta akses pratinjau & unduh berkas cetak (SPTB, SPD, Kuitansi Rampung).
+- **Integrasi Data Bukti ke Rincian Pelaksana (Auto-Fill & Binding)**:
+  - Dibuat `WidgetBuktiHotel` (`apps/web/src/components/st/widget-bukti-hotel.tsx`) pada sub-tab "Penginapan" di tiap etape/tujuan untuk menampilkan invoice hotel hasil OCR dengan 1-klik "Gunakan Bukti Hotel Ini (Auto-Fill)" yang mengisi nama hotel, tarif riil per malam, dan jumlah malam.
+  - Dibuat `WidgetBuktiTransport` (`apps/web/src/components/st/widget-bukti-transport.tsx`) pada sub-tab "Biaya" di atas tabel transportasi untuk menampilkan tiket pesawat/kereta/taksi hasil OCR dengan 1-klik "Gunakan Bukti Tiket Ini untuk [Pelaksana]" yang otomatis memasukkan baris biaya transportasi.
+- **Logika Status & Validasi Indikator**:
+  - Dibuat modul kalkulasi murni `apps/web/src/lib/progres-spj.ts` (`hitungProgresSpj`): menghitung persentase murni kelengkapan seluruh 4 tahap secara presisi, dengan aturan mutlak: persentase tidak boleh mencapai 100% bila masih ada peringatan aktif.
+  - Ditambahkan progress bar global "Kelengkapan SPJ" di sidebar (`LangkahSt`) dan counter alert validasi spesifik per tahap (`{t.jumlahPerlu} isian`) pada tiap butir langkah stepper, menggantikan counter alert global di header yang membingungkan.
+- **Navigasi Bawah Konsisten (Bottom Action Buttons)**:
+  - Tahap 1: "Lanjut ke Bukti Pengeluaran →"
+  - Tahap 2: "← Sebelumnya: Data ST" | "Lanjut ke Pelaksana & Biaya →"
+  - Tahap 3: "← Sebelumnya: Bukti Pengeluaran" | "Lanjut ke Laporan →" (bergerak linier antar sub-tab Perjalanan → Penginapan → Biaya)
+  - Tahap 4: "← Sebelumnya: Pelaksana & Biaya" | "Selesai & Unduh Berkas" (mengarahkan ke `/st/:id/dokumen`).
+- Lulus `npm run lint` & `npm run build` monorepo serta seluruh unit test (188 api, 41 web, 143 shared).
 
 ## Penamaan File Unduhan Dokumen & Naskah ST (2026-10-22, belum di-commit)
 

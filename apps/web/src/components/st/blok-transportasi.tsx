@@ -9,6 +9,7 @@ import {
 
 import { BiayaBaris } from '@/components/st/biaya-form'
 import { BlokForm } from '@/components/st/blok-form'
+import { WidgetBuktiTransport } from '@/components/st/widget-bukti-transport'
 import { MenuAksi } from '@/components/ui/menu-aksi'
 import { rupiah } from '@/lib/format'
 import {
@@ -27,6 +28,11 @@ export function BlokTransportasi({
   provinsi,
   provinsiKedudukan,
   onUbah,
+  stId,
+  pelaksanaIdx,
+  pelaksanaNama,
+  pelaksanaId,
+  terkunci = false,
 }: {
   p: PelaksanaPayload
   hasil: PelaksanaHasil | undefined
@@ -34,6 +40,11 @@ export function BlokTransportasi({
   provinsi: string[]
   provinsiKedudukan?: string | null
   onUbah: (fn: (p: PelaksanaPayload) => PelaksanaPayload) => void
+  stId?: number | null
+  pelaksanaIdx?: number
+  pelaksanaNama?: string
+  pelaksanaId?: number | null
+  terkunci?: boolean
 }) {
   const indeks = indeksBarisTransport(p.biaya)
   const tambahBiaya = (b: BiayaPayload) => onUbah((x) => ({ ...x, biaya: [...x.biaya, b] }))
@@ -50,6 +61,20 @@ export function BlokTransportasi({
 
   return (
     <BlokForm judul="Transportasi">
+      {stId !== undefined && stId !== null ? (
+        <div className="mb-4">
+          <WidgetBuktiTransport
+            stId={stId}
+            pelaksanaIdx={pelaksanaIdx ?? 0}
+            pelaksanaNama={pelaksanaNama ?? p.nama ?? ''}
+            pelaksanaId={pelaksanaId ?? null}
+            terkunci={terkunci}
+            onTambahBiaya={async (biaya) => {
+              tambahBiaya(biaya)
+            }}
+          />
+        </div>
+      ) : null}
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full min-w-[56rem] table-fixed border-collapse text-sm">
           <colgroup>
