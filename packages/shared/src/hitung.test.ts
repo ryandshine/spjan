@@ -643,6 +643,81 @@ describe("hitungSpj - paket pertemuan / fullboard", () => {
     });
   });
 
+  describe("uangHarian60Dates (Uang harian lumpsum 60%)", () => {
+    it("menghitung uang harian 60% pada tanggal tertentu dan memisahkan baris rincian", () => {
+      const p: PelaksanaInput = {
+        ...riandi,
+        etape: [
+          {
+            provinsi: "D.I. YOGYAKARTA",
+            kota: "Yogyakarta",
+            kegiatan: "Koordinasi",
+            berangkat: "2026-09-10",
+            pulang: "2026-09-13",
+            uangHarian60Dates: ["2026-09-12", "2026-09-13"],
+            hotelNama: "Hotel Yogya",
+            hotelTarif: 500_000,
+          },
+        ],
+      };
+      const hasil = hitungSpj(spj([p]), SBM_2026);
+      const h = hasil.pelaksana[0]!;
+
+      // 4 hari: 2 hari biasa (10-11) @ 420.000 = 840.000, 2 hari 60% (12-13) @ 252.000 = 504.000
+      expect(h.uangHarian).toHaveLength(2);
+      expect(h.uangHarian[0]!).toMatchObject({
+        uraian: "selama :",
+        qty: 2,
+        satuan: "hari",
+        tarif: 420_000,
+        jumlah: 840_000,
+        keterangan: "Lumpsum/Prov. D.I. Yogyakarta Tanggal 10 s.d. 11 September 2026",
+      });
+      expect(h.uangHarian[1]!).toMatchObject({
+        uraian: "selama (60%) :",
+        qty: 2,
+        satuan: "hari",
+        tarif: 252_000,
+        jumlah: 504_000,
+        keterangan: "Lumpsum (60%)/Prov. D.I. Yogyakarta Tanggal 12 s.d. 13 September 2026",
+      });
+      expect(h.totalUangHarian).toBe(1_344_000);
+      expect(h.catatan).toContain("2 hari uang harian dibayarkan 60%.");
+    });
+
+    it("jika seluruh hari uang harian 60%, seluruh hari dihitung dengan tarif 60%", () => {
+      const p: PelaksanaInput = {
+        ...riandi,
+        etape: [
+          {
+            provinsi: "D.I. YOGYAKARTA",
+            kota: "Yogyakarta",
+            kegiatan: "Tugas Khusus Multi-Lokasi",
+            berangkat: "2026-09-10",
+            pulang: "2026-09-11",
+            uangHarian60Dates: ["2026-09-10", "2026-09-11"],
+            hotelNama: "Hotel Yogya",
+            hotelTarif: 500_000,
+          },
+        ],
+      };
+      const hasil = hitungSpj(spj([p]), SBM_2026);
+      const h = hasil.pelaksana[0]!;
+
+      expect(h.uangHarian).toHaveLength(1);
+      expect(h.uangHarian[0]!).toMatchObject({
+        uraian: "selama (60%) :",
+        qty: 2,
+        satuan: "hari",
+        tarif: 252_000,
+        jumlah: 504_000,
+        keterangan: "Lumpsum (60%)/Prov. D.I. Yogyakarta Tanggal 10 s.d. 11 September 2026",
+      });
+      expect(h.totalUangHarian).toBe(504_000);
+      expect(h.catatan).toContain("2 hari uang harian dibayarkan 60%.");
+    });
+  });
+
   describe("bersihkanKegiatanUraian & format uraian SPTB", () => {
     it("menghapus awalan 'Melaksanakan perjalanan dinas dalam rangka' agar tidak ada duplikasi", () => {
       const keg =

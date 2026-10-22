@@ -140,6 +140,7 @@ interface HasilEtape {
   peringatan: Peringatan[];
   uraianSptb?: string;
   tanpaUangHarianJumlah?: number;
+  uangHarian60Jumlah?: number;
 }
 
 /** Membersihkan awalan kegiatan agar tidak terjadi pengulangan "dalam rangka" atau "perjalanan dinas". */
@@ -187,7 +188,9 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
   const tglTanpaUangHarian = (e.tanpaUangHarianDates ?? []).filter((tgl) => listHari.includes(tgl));
   const tglAktif = listHari.filter((tgl) => !tglTanpaUangHarian.includes(tgl));
   const tglFullboard = (e.fullboardDates ?? []).filter((tgl) => tglAktif.includes(tgl));
-  const tglBiasa = tglAktif.filter((tgl) => !tglFullboard.includes(tgl));
+  const tglSisaBiasa = tglAktif.filter((tgl) => !tglFullboard.includes(tgl));
+  const tglUangHarian60 = (e.uangHarian60Dates ?? []).filter((tgl) => tglSisaBiasa.includes(tgl));
+  const tglBiasa = tglSisaBiasa.filter((tgl) => !tglUangHarian60.includes(tgl));
   const semuaFullboard = tglFullboard.length >= hari;
 
   const malam = e.malamOverride != null ? e.malamOverride : semuaFullboard ? 0 : Math.max(hari - 1, 0);
@@ -197,13 +200,16 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
   if (tglTanpaUangHarian.length > 0) {
     hasil.tanpaUangHarianJumlah = tglTanpaUangHarian.length;
   }
+  if (tglUangHarian60.length > 0) {
+    hasil.uangHarian60Jumlah = tglUangHarian60.length;
+  }
 
   const ketHarian = dalamKota
     ? `Dalam kota (> 8 jam)/Prov. ${proper(e.provinsi)} Tanggal ${rincian}`
     : `Lumpsum/Prov. ${proper(e.provinsi)} Tanggal ${rincian}`;
 
   hasil.uangHarian = [];
-  if (tglFullboard.length === 0 && tglTanpaUangHarian.length === 0) {
+  if (tglFullboard.length === 0 && tglTanpaUangHarian.length === 0 && tglUangHarian60.length === 0) {
     hasil.uangHarian.push({
       uraian: "selama :",
       qty: hari,
@@ -223,6 +229,19 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
         keterangan: dalamKota
           ? `Dalam kota (> 8 jam)/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tglBiasa)}`
           : `Lumpsum/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tglBiasa)}`,
+      });
+    }
+    if (tglUangHarian60.length > 0) {
+      const tarif60 = Math.round(tarifHarian * 0.6);
+      hasil.uangHarian.push({
+        uraian: "selama (60%) :",
+        qty: tglUangHarian60.length,
+        satuan: "hari",
+        tarif: tarif60,
+        jumlah: tglUangHarian60.length * tarif60,
+        keterangan: dalamKota
+          ? `Dalam kota (60%)/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tglUangHarian60)}`
+          : `Lumpsum (60%)/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tglUangHarian60)}`,
       });
     }
     if (tglFullboard.length > 0) {
@@ -342,6 +361,10 @@ function hitungPelaksana(p: PelaksanaInput, input: SpjInput, sbm: Sbm): Pelaksan
     if (h.tanpaUangHarianJumlah && h.tanpaUangHarianJumlah > 0) {
       const pref = p.etape.length > 1 ? `Tujuan ${i + 1}: ` : "";
       catatan.push(`${pref}${h.tanpaUangHarianJumlah} hari uang harian tidak dibebankan ke SPJ (ditanggung pihak lain).`);
+    }
+    if (h.uangHarian60Jumlah && h.uangHarian60Jumlah > 0) {
+      const pref = p.etape.length > 1 ? `Tujuan ${i + 1}: ` : "";
+      catatan.push(`${pref}${h.uangHarian60Jumlah} hari uang harian dibayarkan 60%.`);
     }
     if (h.uraianSptb) segmen.push(h.uraianSptb);
   });

@@ -97,6 +97,8 @@ export interface EtapeInput {
   dalamKota8Jam?: boolean | null;
   /** Daftar tanggal (YYYY-MM-DD) di mana uang harian / lumpsum tidak dibebankan ke SPJ (ditanggung pihak lain / panitia) */
   tanpaUangHarianDates?: string[];
+  /** Daftar tanggal (YYYY-MM-DD) di mana uang harian dibayarkan 60% (mis. transpor lokal riil / tugas multi-lokasi / tugas singkat SBM) */
+  uangHarian60Dates?: string[];
 }
 
 export interface BiayaInput {

@@ -34,6 +34,7 @@ export function etapeKosong(): EtapePayload {
     hotel30Persen: false,
     dalamKota8Jam: false,
     tanpaUangHarianDates: [],
+    uangHarian60Dates: [],
   };
 }
 

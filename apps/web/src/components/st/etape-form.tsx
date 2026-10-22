@@ -51,6 +51,7 @@ export function EtapeForm({
   const id = (k: string) => `etape-${idAwal}-${k}`
   const jmlFullboard = (etape.fullboardDates ?? []).length
   const jmlTanpaUangHarian = (etape.tanpaUangHarianDates ?? []).length
+  const jmlUangHarian60 = (etape.uangHarian60Dates ?? []).length
 
   return (
     <div className="grid gap-4 border-t pt-5 first:border-t-0 first:pt-0">
@@ -62,6 +63,7 @@ export function EtapeForm({
               {hari} hari / {malam} malam
               {jmlFullboard > 0 ? ` (${jmlFullboard} hari paket rapat)` : ''}
               {jmlTanpaUangHarian > 0 ? ` (${jmlTanpaUangHarian} hari pihak lain)` : ''}
+              {jmlUangHarian60 > 0 ? ` (${jmlUangHarian60} hari UH 60%)` : ''}
             </Badge>
           ) : null}
         </div>

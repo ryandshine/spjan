@@ -1,10 +1,13 @@
-import { CheckCircle2Icon, ChevronRightIcon, TriangleAlertIcon } from 'lucide-react'
+import { useState } from 'react'
+import { CheckCircle2Icon, ChevronDownIcon, ChevronRightIcon, ChevronUpIcon, SearchIcon, TriangleAlertIcon } from 'lucide-react'
 import type { SpjHasil } from '@spjan/shared'
 
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { rupiah } from '@/lib/format'
-import { kumpulkanPeriksa, type PerbaikiIsian } from '@/lib/periksa'
+import { kumpulkanPeriksa, type ItemPeriksa, type PerbaikiIsian } from '@/lib/periksa'
 import { rincianTotal } from '@/lib/st-editor'
 import { cn } from '@/lib/utils'
 
@@ -28,9 +31,88 @@ function teksStatus({ dikunci, bolehUbah, kotor }: StatusSt): { teks: string; wa
   return { teks: 'Draft • belum dikunci', warna: 'bg-muted-foreground/40' }
 }
 
+/** Dialog modal yang menampilkan seluruh daftar isian yang perlu dilengkapi */
+function DialogPerluDilengkapi({
+  buka,
+  onTutup,
+  periksa,
+  onPerbaiki,
+}: {
+  buka: boolean
+  onTutup: () => void
+  periksa: ItemPeriksa[]
+  onPerbaiki: PerbaikiIsian
+}) {
+  const [cari, setCari] = useState('')
+
+  const difilter = cari.trim()
+    ? periksa.filter(
+        (p) =>
+          p.namaPelaksana.toLowerCase().includes(cari.toLowerCase()) ||
+          p.pesan.toLowerCase().includes(cari.toLowerCase()),
+      )
+    : periksa
+
+  return (
+    <Dialog open={buka} onOpenChange={(open) => !open && onTutup()}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <TriangleAlertIcon className="size-4 text-warning" aria-hidden />
+            Isian Perlu Dilengkapi ({periksa.length})
+          </DialogTitle>
+          <DialogDescription>
+            Pilih salah satu butir untuk langsung menuju formulir isian yang bersangkutan.
+          </DialogDescription>
+        </DialogHeader>
+
+        {periksa.length > 5 ? (
+          <div className="relative my-1">
+            <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input
+              value={cari}
+              onChange={(e) => setCari(e.target.value)}
+              placeholder="Cari pelaksana atau keterangan isian..."
+              className="pl-8 text-xs sm:text-sm"
+              autoFocus
+            />
+          </div>
+        ) : null}
+
+        <div className="max-h-[60vh] overflow-y-auto pr-1">
+          {difilter.length === 0 ? (
+            <p className="py-6 text-center text-xs text-muted-foreground">Tidak ada isian yang cocok dengan pencarian.</p>
+          ) : (
+            <ul className="grid gap-1.5">
+              {difilter.map((item, i) => (
+                <li key={i}>
+                  <button
+                    type="button"
+                    onClick={() => onPerbaiki(item.sasaranId, item.nomorPelaksana)}
+                    className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-left text-xs text-warning-foreground transition-colors hover:border-warning/60 hover:bg-warning/15 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  >
+                    <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                      <span className="font-semibold text-foreground">{item.namaPelaksana}:</span> {item.pesan}
+                    </span>
+                    <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 /** Daftar isian yang perlu dilengkapi (tiap butir menuju isiannya), atau penanda bahwa isian sudah lengkap. */
 function DaftarPerlu({ hasil, onPerbaiki }: { hasil: SpjHasil; onPerbaiki: PerbaikiIsian }) {
   const periksa = kumpulkanPeriksa(hasil.pelaksana)
+  const [tampilkanSemua, setTampilkanSemua] = useState(false)
+  const [bukaDialog, setBukaDialog] = useState(false)
+  const [cari, setCari] = useState('')
+
   if (periksa.length === 0) {
     return (
       <p className="flex items-center gap-1.5 text-sm font-medium text-success">
@@ -38,14 +120,50 @@ function DaftarPerlu({ hasil, onPerbaiki }: { hasil: SpjHasil; onPerbaiki: Perba
       </p>
     )
   }
+
   const sisa = periksa.length - MAKS_TAMPIL
+  const difilter = cari.trim()
+    ? periksa.filter(
+        (p) =>
+          p.namaPelaksana.toLowerCase().includes(cari.toLowerCase()) ||
+          p.pesan.toLowerCase().includes(cari.toLowerCase()),
+      )
+    : periksa
+
+  const itemDitampilkan = tampilkanSemua ? difilter : periksa.slice(0, MAKS_TAMPIL)
+
   return (
     <div>
-      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-warning-foreground uppercase">
-        <TriangleAlertIcon className="size-4 text-warning" aria-hidden /> Perlu dilengkapi ({periksa.length})
-      </p>
-      <ul className="grid gap-1.5">
-        {periksa.slice(0, MAKS_TAMPIL).map((item, i) => (
+      <div className="mb-2 flex items-center justify-between gap-1">
+        <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-warning-foreground uppercase">
+          <TriangleAlertIcon className="size-4 text-warning" aria-hidden /> Perlu dilengkapi ({periksa.length})
+        </p>
+        {periksa.length > MAKS_TAMPIL ? (
+          <button
+            type="button"
+            onClick={() => setBukaDialog(true)}
+            title="Buka dialog daftar lengkap"
+            className="cursor-pointer text-[11px] font-medium text-warning hover:underline"
+          >
+            Buka pop-up
+          </button>
+        ) : null}
+      </div>
+
+      {tampilkanSemua && periksa.length > 5 ? (
+        <div className="relative mb-2">
+          <SearchIcon className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Input
+            value={cari}
+            onChange={(e) => setCari(e.target.value)}
+            placeholder="Cari pelaksana atau isian..."
+            className="h-7 pl-7 text-xs"
+          />
+        </div>
+      ) : null}
+
+      <ul className={cn('grid gap-1.5', tampilkanSemua && 'max-h-80 overflow-y-auto pr-1')}>
+        {itemDitampilkan.map((item, i) => (
           <li key={i}>
             <button
               type="button"
@@ -61,7 +179,41 @@ function DaftarPerlu({ hasil, onPerbaiki }: { hasil: SpjHasil; onPerbaiki: Perba
           </li>
         ))}
       </ul>
-      {sisa > 0 ? <p className="mt-1.5 text-xs text-muted-foreground">dan {sisa} lainnya</p> : null}
+
+      {sisa > 0 && !tampilkanSemua ? (
+        <button
+          type="button"
+          onClick={() => setTampilkanSemua(true)}
+          className="mt-2 flex w-full cursor-pointer items-center justify-between rounded-md border border-warning/30 bg-warning/5 px-2.5 py-1.5 text-xs font-medium text-warning-foreground transition-colors hover:bg-warning/15 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          <span>Lihat {sisa} lainnya (more)</span>
+          <ChevronDownIcon className="size-3.5 shrink-0" aria-hidden />
+        </button>
+      ) : null}
+
+      {tampilkanSemua ? (
+        <button
+          type="button"
+          onClick={() => {
+            setTampilkanSemua(false)
+            setCari('')
+          }}
+          className="mt-2 flex w-full cursor-pointer items-center justify-between rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          <span>Tampilkan lebih sedikit</span>
+          <ChevronUpIcon className="size-3.5 shrink-0" aria-hidden />
+        </button>
+      ) : null}
+
+      <DialogPerluDilengkapi
+        buka={bukaDialog}
+        onTutup={() => setBukaDialog(false)}
+        periksa={periksa}
+        onPerbaiki={(sasaranId, nomorPelaksana) => {
+          setBukaDialog(false)
+          onPerbaiki(sasaranId, nomorPelaksana)
+        }}
+      />
     </div>
   )
 }
@@ -140,6 +292,7 @@ export function RingkasanRingkas({
   const periksa = kumpulkanPeriksa(hasil.pelaksana)
   const pertama = periksa[0]
   const count = jumlahPerlu !== undefined ? jumlahPerlu : periksa.length
+  const [bukaDialog, setBukaDialog] = useState(false)
 
   return (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border bg-card px-4 py-3" role="complementary" aria-label="Ringkasan surat tugas">
@@ -148,13 +301,30 @@ export function RingkasanRingkas({
         <span className="font-mono text-lg font-bold text-primary tabular-nums">{rupiah(hasil.total)}</span>
       </p>
       {count > 0 && pertama ? (
-        <button
-          type="button"
-          onClick={() => onPerbaiki(pertama.sasaranId, pertama.nomorPelaksana)}
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-warning/15 px-3 py-1 text-xs font-medium text-warning-foreground transition-colors hover:bg-warning/25 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-        >
-          <TriangleAlertIcon className="size-3.5" aria-hidden /> {count} {labelPerlu ?? 'isian perlu diperiksa'}
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              if (periksa.length > 1) {
+                setBukaDialog(true)
+              } else {
+                onPerbaiki(pertama.sasaranId, pertama.nomorPelaksana)
+              }
+            }}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-warning/15 px-3 py-1 text-xs font-medium text-warning-foreground transition-colors hover:bg-warning/25 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
+            <TriangleAlertIcon className="size-3.5" aria-hidden /> {count} {labelPerlu ?? 'isian perlu diperiksa'}
+          </button>
+          <DialogPerluDilengkapi
+            buka={bukaDialog}
+            onTutup={() => setBukaDialog(false)}
+            periksa={periksa}
+            onPerbaiki={(sasaranId, nomorPelaksana) => {
+              setBukaDialog(false)
+              onPerbaiki(sasaranId, nomorPelaksana)
+            }}
+          />
+        </>
       ) : (
         <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success">
           <CheckCircle2Icon className="size-3.5" aria-hidden /> Isian lengkap

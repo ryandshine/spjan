@@ -175,6 +175,7 @@ export function petakanStKeUsulan(
         hotel30Persen: false,
         dalamKota8Jam: dalamKota,
         tanpaUangHarianDates: [],
+        uangHarian60Dates: [],
       };
     });
 

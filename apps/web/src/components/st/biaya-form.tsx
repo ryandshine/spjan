@@ -301,6 +301,7 @@ export function BiayaBaris({
 
 function labelHarian(b: BarisBiaya): string {
   if (/fullboard/i.test(b.uraian)) return 'Uang Saku Fullboard'
+  if (/60%/i.test(b.uraian) || /60%/i.test(b.keterangan)) return 'Lumpsum 60%'
   if (/^lumpsum/i.test(b.keterangan)) return 'Lumpsum'
   if (/^dalam kota/i.test(b.keterangan)) return 'Dalam kota > 8 jam'
   if (/^representasi/i.test(b.uraian)) return 'Representasi'

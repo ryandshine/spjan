@@ -71,9 +71,14 @@ export function PenginapanEtapeKartu({
   const listHari = tglAwal && tglAkhir && selisihHari(tglAwal, tglAkhir) >= 0 ? daftarHariIso(tglAwal, tglAkhir) : []
   const fullboard = useTanggalTerpilih(etape, 'fullboardDates', listHari, onUbah)
   const tanpaUangHarian = useTanggalTerpilih(etape, 'tanpaUangHarianDates', listHari, onUbah)
+  const uangHarian60 = useTanggalTerpilih(etape, 'uangHarian60Dates', listHari, onUbah)
   const jmlFullboard = fullboard.jumlah
   const jmlBiasa = listHari.length - jmlFullboard
   const jmlTanpaUangHarian = tanpaUangHarian.jumlah
+  const jmlUangHarian60 = uangHarian60.jumlah
+  const isDalamKota = !!etape.dalamKota8Jam && listHari.length === 1
+  const tarifHarian = isDalamKota ? tarifDalamKota : tarifLuarKota
+  const tarif60 = tarifHarian !== undefined ? Math.round(tarifHarian * 0.6) : null
 
   const semuaFullboard = fullboard.buka && jmlFullboard > 0 && jmlFullboard === listHari.length
   const defaultMalam = hari ? (semuaFullboard ? 0 : Math.max(hari - 1, 0)) : 0
@@ -390,6 +395,37 @@ export function PenginapanEtapeKartu({
             <DasarAturan judul="Uang harian ditanggung pihak lain">
               <p>PMK 113/PMK.05/2012: Dalam hal komponen biaya perjalanan dinas (termasuk uang harian) telah ditanggung oleh pihak lain/penyelenggara, biaya tersebut tidak dibebankan lagi pada DIPA pengirim guna menghindari pembayaran ganda (double-funding).</p>
             </DasarAturan>
+            </BagianTanggal>
+          ) : null}
+
+          {listHari.length > 0 ? (
+            <BagianTanggal
+              judul="Uang harian 60% (Lumpsum 60%)"
+              chip={`${jmlUangHarian60} dari ${listHari.length} hari (60%)`}
+              petunjuk="Pilih tanggal yang mendapatkan uang harian 60% (mis. transpor lokal riil / tugas multi-lokasi / penugasan khusus SBM):"
+              gaya="indigo"
+              akhiranTerpilih="(60%)"
+              listHari={listHari}
+              tanggal={uangHarian60}
+            >
+              {jmlUangHarian60 > 0 ? (
+                <div className="grid gap-2">
+                  <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <InfoIcon className="size-3.5 shrink-0 text-indigo-600 dark:text-indigo-400" aria-hidden />
+                    <span>
+                      <strong>{jmlUangHarian60} hari</strong> uang harian dibayarkan <strong>60%</strong>
+                      {tarif60 !== null ? ` (${rupiah(tarif60)}/hari)` : ''}.
+                    </span>
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-0.5 flex items-start gap-1.5 text-xs font-medium text-warning-foreground">
+                  <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> Belum ada tanggal yang dipilih. Klik tombol tanggal di atas untuk menandai hari yang mendapatkan uang harian 60%.
+                </p>
+              )}
+              <DasarAturan judul="Uang Harian 60% SBM">
+                <p>Lampiran SBM Kemenkeu & Ketentuan Perjalanan Dinas: Uang harian dibayarkan sebesar 60% dari tarif normal antara lain untuk perjalanan dinas dalam kota lebih dari satu lokasi dengan transpor lokal riil, atau penugasan dinas singkat sesuai ketentuan SBM.</p>
+              </DasarAturan>
             </BagianTanggal>
           ) : null}
 

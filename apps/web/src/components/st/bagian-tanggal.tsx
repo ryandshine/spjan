@@ -17,6 +17,12 @@ const GAYA = {
       'border-amber-400 bg-amber-50 text-amber-900 shadow-sm hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-200',
     centang: 'text-amber-600 dark:text-amber-400',
   },
+  indigo: {
+    chipAda: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300',
+    tombolAktif:
+      'border-indigo-400 bg-indigo-50 text-indigo-900 shadow-sm hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-200',
+    centang: 'text-indigo-600 dark:text-indigo-400',
+  },
 } as const
 
 /**
