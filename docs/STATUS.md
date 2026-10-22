@@ -1,7 +1,21 @@
 # Status SPJAN
 
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
-Terakhir diperbarui: 2026-10-20 (fitur "isi naskah ST dari surat undangan" selesai dibuat, belum di-commit).
+Terakhir diperbarui: 2026-10-22 (refactoring alur navigasi tombol bawah, kontekstualisasi pesan pagu, dan badge kelengkapan pelaksana SPJ).
+
+## Refactoring Navigasi dan UX/UI Editor SPJ (2026-10-22, belum di-commit)
+
+- **Alur linier tombol aksi bawah (`NavigasiLangkah`)**:
+  - Di Tahap 2 (Pelaksana), tombol bawah kini bergerak linier antar sub-tab:
+    - Tab "Perjalanan" → "Lanjut ke Penginapan" (kembali: "Sebelumnya: Data Surat Tugas" / Pelaksana sebelumnya).
+    - Tab "Penginapan" → "Lanjut ke Rincian Biaya" (kembali: "Sebelumnya: Perjalanan"). Tidak lagi melompati Biaya.
+    - Tab "Biaya" → "Lanjut ke Bukti & Usulan" (pindah ke Tahap 3) serta tombol opsional "Lanjut ke Pelaksana X" bila ada personel berikutnya (kembali: "Sebelumnya: Penginapan").
+- **Kontekstualisasi peringatan/pagu SBM**:
+  - Peringatan selisih biaya tiket transport (mis. "Tiket PP melebihi pagu SBM...") dipisahkan berdasarkan domain: HANYA tampil di sub-tab "Perjalanan" (di bawah Tujuan Perjalanan) dan ringkasan akhir tab "Biaya", dan dihilangkan dari sub-tab "Penginapan".
+- **Penyesuaian indikator kelengkapan personel**:
+  - Badge di samping nama pelaksana pada header kartu (`PelaksanaCard`) dan daftar samping/baris (`DaftarPelaksanaSt`) diubah dari "Lengkap" menjadi **"Data Pelaksana Lengkap"** untuk memperjelas bahwa kelengkapan tersebut adalah untuk data personel bersangkutan, bukan keseluruhan dokumen SPJ.
+- Lulus `npm run lint` & `npm run build` monorepo serta seluruh unit test (188 api, 39 web, 143 shared).
+
 
 ## Perapian kode web (2026-10-21, belum di-commit)
 

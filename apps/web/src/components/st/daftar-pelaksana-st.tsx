@@ -58,7 +58,7 @@ export function DaftarPelaksanaSt({
                   </span>
                   <span className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1">
                     <span className="text-xs text-muted-foreground tabular-nums">{hasil[j] ? rupiah(hasil[j].total) : '-'}</span>
-                    {bergalat ? <Badge variant="warning">Ada galat</Badge> : perlu ? <Badge variant="warning">Perlu diperiksa</Badge> : <Badge variant="success">Lengkap</Badge>}
+                    {bergalat ? <Badge variant="warning">Ada galat</Badge> : perlu ? <Badge variant="warning">Perlu diperiksa</Badge> : <Badge variant="success">Data Pelaksana Lengkap</Badge>}
                   </span>
                 </button>
               </li>

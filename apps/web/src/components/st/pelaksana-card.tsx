@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PlusIcon, Trash2Icon } from 'lucide-react'
+import { InfoIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import {
   etapeKosong,
   type PegawaiDto,
@@ -64,6 +64,12 @@ export function PelaksanaCard({
   const cfg = p.status ? sbm.statusKonfigurasi[p.status] : undefined
 
   const jumlahPeringatan = hasil?.peringatan.length ?? 0
+  const isCatatanTransportTiket = (c: string) => {
+    const t = c.toLowerCase()
+    return t.includes('tiket') || t.includes('rute') || t.includes('transport') || t.includes('taksi')
+  }
+  const catatanTransport = (hasil?.catatan ?? []).filter(isCatatanTransportTiket)
+
   const itemBagian: TabItem<BagianPelaksana>[] = [
     { kunci: 'perjalanan', label: 'Perjalanan', galat: adaGalat },
     { kunci: 'penginapan', label: 'Penginapan' },
@@ -82,7 +88,11 @@ export function PelaksanaCard({
         <div className="flex shrink-0 items-center gap-2">
           {hasil ? (
             <>
-              {jumlahPeringatan > 0 ? <Badge variant="warning">{jumlahPeringatan} perlu diperiksa</Badge> : <Badge variant="success">Lengkap</Badge>}
+              {jumlahPeringatan > 0 ? (
+                <Badge variant="warning">{jumlahPeringatan} perlu diperiksa</Badge>
+              ) : (
+                <Badge variant="success">Data Pelaksana Lengkap</Badge>
+              )}
               <span className="text-sm font-medium tabular-nums" title={hasil.terbilang}>
                 {rupiah(hasil.total)}
               </span>
@@ -126,6 +136,20 @@ export function PelaksanaCard({
                 </div>
               </BlokForm>
 
+              {/* Peringatan & Catatan Pagu Tiket / Transportasi untuk Perjalanan */}
+              {catatanTransport.length > 0 ? (
+                <div className="rounded-lg border bg-muted/30 px-4 py-3">
+                  <p className="mb-1 text-xs font-semibold text-foreground/80 flex items-center gap-1.5">
+                    <InfoIcon className="size-3.5 text-primary" aria-hidden />
+                    Catatan Pagu &amp; Ketentuan Tiket Transportasi
+                  </p>
+                  <ul className="grid gap-0.5 text-xs leading-snug text-muted-foreground">
+                    {catatanTransport.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           </KelompokIsian>
         </TabPanel>
@@ -147,6 +171,20 @@ export function PelaksanaCard({
                 </BlokForm>
               ) : null}
 
+              {/* Ringkasan akhir seluruh catatan & pagu biaya pelaksana */}
+              {hasil && hasil.catatan.length > 0 ? (
+                <section aria-label="Catatan hitungan pelaksana" className="rounded-lg bg-muted/40 px-4 py-3">
+                  <p className="mb-1 text-xs font-semibold text-foreground/80 flex items-center gap-1.5">
+                    <InfoIcon className="size-3.5 text-primary" aria-hidden />
+                    Ringkasan Catatan &amp; Pagu Biaya Pelaksana
+                  </p>
+                  <ul className="grid gap-0.5 text-xs leading-snug text-muted-foreground">
+                    {hasil.catatan.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
             </div>
           </KelompokIsian>
         </TabPanel>
@@ -172,16 +210,6 @@ export function PelaksanaCard({
             </div>
           </KelompokIsian>
         </TabPanel>
-
-        {hasil && hasil.catatan.length > 0 ? (
-          <section aria-label="Catatan hitungan pelaksana" className="rounded-lg bg-muted/40 px-4 py-3">
-            <ul className="grid gap-0.5 text-xs leading-snug text-muted-foreground">
-              {hasil.catatan.map((c, i) => (
-                <li key={i}>{c}</li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
       </CardContent>
 
       <Dialog open={dialogHapus} onOpenChange={setDialogHapus}>

@@ -29,7 +29,7 @@ import { KartuPejabatSt } from '@/components/st/kartu-pejabat-st'
 import { DaftarPelaksanaSt } from '@/components/st/daftar-pelaksana-st'
 import { KelompokIsian } from '@/components/st/kelompok-isian'
 import { LangkahSt, type LangkahItem } from '@/components/st/langkah-st'
-import { NavigasiLangkah } from '@/components/st/navigasi-langkah'
+import { NavigasiLangkah, type NavigasiAksi } from '@/components/st/navigasi-langkah'
 import { RingkasanRingkas, RingkasanSt } from '@/components/st/ringkasan-st'
 import { TabPelaksanaSt } from '@/components/st/tab-pelaksana-st'
 import { UsulanHotelPanel } from '@/components/st/usulan-hotel-panel'
@@ -204,9 +204,131 @@ function Editor({
   if (id !== null) langkah.push({ kunci: 'bukti', label: 'Bukti & usulan', deskripsi: 'Lampiran dan usulan biaya' }, { kunci: 'laporan', label: 'Laporan', deskripsi: 'Laporan perjalanan dinas' })
 
   const modeLaporan = tab === 'laporan' && id !== null
-  const posisiLangkah = langkah.findIndex((l) => l.kunci === tab)
-  const sebelumnya = langkah[posisiLangkah - 1]
-  const berikutnya = langkah[posisiLangkah + 1]
+
+  // Navigasi linier antar langkah dan antar sub-tab pelaksana
+  let navSebelumnya: NavigasiAksi | null = null
+  let navBerikutnya: NavigasiAksi | null = null
+  let navEkstraBerikutnya: NavigasiAksi | null = null
+
+  if (tab === 'data') {
+    navBerikutnya = {
+      label: 'Lanjut ke Pelaksana',
+      onClick: () => {
+        setTab('pelaksana')
+        daftarPelaksana.setBagian('perjalanan')
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      },
+    }
+  } else if (tab === 'pelaksana') {
+    const aktifIdx = daftarPelaksana.aktif
+    const subBagian = daftarPelaksana.bagian
+    const jumlahPelaksana = st.pelaksana.length
+
+    if (subBagian === 'perjalanan') {
+      if (aktifIdx === 0) {
+        navSebelumnya = {
+          label: 'Sebelumnya: Data Surat Tugas',
+          onClick: () => {
+            setTab('data')
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          },
+        }
+      } else {
+        navSebelumnya = {
+          label: `Sebelumnya: Pelaksana ${aktifIdx} (Biaya)`,
+          onClick: () => {
+            daftarPelaksana.setAktif(aktifIdx - 1)
+            daftarPelaksana.setBagian('biaya')
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          },
+        }
+      }
+
+      navBerikutnya = {
+        label: 'Lanjut ke Penginapan',
+        onClick: () => {
+          daftarPelaksana.setBagian('penginapan')
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        },
+      }
+    } else if (subBagian === 'penginapan') {
+      navSebelumnya = {
+        label: 'Sebelumnya: Perjalanan',
+        onClick: () => {
+          daftarPelaksana.setBagian('perjalanan')
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        },
+      }
+
+      navBerikutnya = {
+        label: 'Lanjut ke Rincian Biaya',
+        onClick: () => {
+          daftarPelaksana.setBagian('biaya')
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        },
+      }
+    } else if (subBagian === 'biaya') {
+      navSebelumnya = {
+        label: 'Sebelumnya: Penginapan',
+        onClick: () => {
+          daftarPelaksana.setBagian('penginapan')
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        },
+      }
+
+      if (aktifIdx < jumlahPelaksana - 1) {
+        navEkstraBerikutnya = {
+          label: `Lanjut ke Pelaksana ${aktifIdx + 2}`,
+          variant: 'outline',
+          onClick: () => {
+            daftarPelaksana.setAktif(aktifIdx + 1)
+            daftarPelaksana.setBagian('perjalanan')
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          },
+        }
+      }
+
+      if (id !== null) {
+        navBerikutnya = {
+          label: 'Lanjut ke Bukti & Usulan',
+          onClick: () => {
+            setTab('bukti')
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          },
+        }
+      } else {
+        navBerikutnya = {
+          label: 'Simpan Surat Tugas',
+          onClick: () => void kirim(),
+        }
+      }
+    }
+  } else if (tab === 'bukti') {
+    navSebelumnya = {
+      label: 'Sebelumnya: Pelaksana (Rincian Biaya)',
+      onClick: () => {
+        setTab('pelaksana')
+        daftarPelaksana.setBagian('biaya')
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      },
+    }
+
+    navBerikutnya = {
+      label: 'Lanjut ke Laporan',
+      onClick: () => {
+        setTab('laporan')
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      },
+    }
+  } else if (tab === 'laporan') {
+    navSebelumnya = {
+      label: 'Sebelumnya: Bukti & Usulan',
+      onClick: () => {
+        setTab('bukti')
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      },
+    }
+  }
 
   // Isian pelaksana ada di langkah Pelaksana: buka langkah, pelaksana, dan sub-tabnya dulu supaya elemen terlihat sebelum difokuskan.
   const perbaikiIsian = (sasaranId: string, nomorPelaksana: number) => {
@@ -350,9 +472,9 @@ function Editor({
           </TabPanel>
 
           <NavigasiLangkah
-            sebelumnya={sebelumnya}
-            berikutnya={modeLaporan ? undefined : berikutnya}
-            onPilih={setTab}
+            sebelumnya={navSebelumnya}
+            berikutnya={modeLaporan ? null : navBerikutnya}
+            ekstraBerikutnya={modeLaporan ? null : navEkstraBerikutnya}
             tampilSimpan={!modeLaporan && bolehUbah && !dikunci}
             menyimpan={simpan.isPending}
             simpanNonaktif={!kotor && id !== null}
