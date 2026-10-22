@@ -1,20 +1,33 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   AlertCircleIcon,
+  BedDoubleIcon,
   CheckCircle2Icon,
+  CheckCheckIcon,
+  CheckIcon,
   ClockIcon,
   ExternalLinkIcon,
   FileIcon,
   ImageIcon,
+  ImagePlusIcon,
   Loader2Icon,
   Maximize2Icon,
+  PlaneIcon,
   RotateCcwIcon,
-  ImagePlusIcon,
+  SparklesIcon,
   Trash2Icon,
   UploadCloudIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { BATAS_BERKAS, type BerkasDto } from '@spjan/shared'
+import { useQueryClient } from '@tanstack/react-query'
+import {
+  BATAS_BERKAS,
+  type BerkasDto,
+  type BiayaPayload,
+  type PelaksanaPayload,
+  type UsulanHotelItem,
+  type UsulanTransportItem,
+} from '@spjan/shared'
 
 import { ChipJenisBerkas } from '@/components/st/chip-jenis-berkas'
 import { HapusBerkasDialog } from '@/components/st/hapus-berkas-dialog'
@@ -38,13 +51,16 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { api } from '@/lib/api'
-import { formatUkuran, pesanGalat, tanggalPendek } from '@/lib/format'
+import { formatUkuran, pesanGalat, rupiah, tanggalPendek } from '@/lib/format'
 import { kompresGambar } from '@/lib/gambar'
 import { useSeretLepas } from '@/lib/use-seret-lepas'
 import {
   useDaftarBerkas,
   useUbahJenisBerkas,
   useUlangiEkstraksiBerkas,
+  useUpdateUsulanBerkas,
+  useUsulanHotelSt,
+  useUsulanTransportSt,
 } from '@/lib/queries'
 
 function ikonBerkas(mime: string) {
@@ -54,18 +70,47 @@ function ikonBerkas(mime: string) {
   return <FileIcon className="size-4 text-amber-600" />
 }
 
-export function BuktiPanel({ stId }: { stId: number }) {
+export function BuktiPanel({
+  stId,
+  pelaksanaList = [],
+  onTerapkanHotel,
+  onTerapkanTransport,
+}: {
+  stId: number
+  pelaksanaList?: PelaksanaPayload[]
+  onTerapkanHotel?: (pelaksanaIdx: number, etapeIdx: number, usulan: UsulanHotelItem) => Promise<void> | void
+  onTerapkanTransport?: (pelaksanaIdx: number, biaya: BiayaPayload, usulan: UsulanTransportItem) => Promise<void> | void
+}) {
+  const qc = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [sedangUnggah, setSedangUnggah] = useState(false)
   const [berkasAkanDihapus, setBerkasAkanDihapus] = useState<BerkasDto | null>(null)
   const [previewFoto, setPreviewFoto] = useState<BerkasDto | null>(null)
+  const [pilihanPelaksana, setPilihanPelaksana] = useState<Record<string, number>>({})
 
   const { data: semuaBerkas, isLoading, refetch } = useDaftarBerkas(stId)
+  const { data: usulanHotelList } = useUsulanHotelSt(stId)
+  const { data: usulanTransportList } = useUsulanTransportSt(stId)
   const ulangi = useUlangiEkstraksiBerkas()
   const ubahJenis = useUbahJenisBerkas()
+  const updateUsulan = useUpdateUsulanBerkas()
 
   // Foto dokumentasi punya panel sendiri dan tidak ikut hitungan biaya.
   const daftarBerkas = (semuaBerkas ?? []).filter((b) => b.jenis !== 'dokumentasi' && b.jenis !== 'laporan')
+
+  const adaProsesAi = daftarBerkas.some(
+    (b) => b.ekstraksi?.status === 'antre' || b.ekstraksi?.status === 'berjalan',
+  )
+  const prevAdaProsesRef = useRef(adaProsesAi)
+
+  // Otomatis sinkronkan usulan hotel dan transport saat pembacaan AI selesai tanpa perlu refresh manual
+  useEffect(() => {
+    if (prevAdaProsesRef.current && !adaProsesAi) {
+      qc.invalidateQueries({ queryKey: ['st', stId] })
+      qc.invalidateQueries({ queryKey: ['berkas'] })
+    }
+    prevAdaProsesRef.current = adaProsesAi
+  }, [adaProsesAi, qc, stId])
 
   const seret = useSeretLepas((files) => void prosesUnggah(files))
 
@@ -118,6 +163,8 @@ export function BuktiPanel({ stId }: { stId: number }) {
     if (sukses > 0) {
       toast.success(`${sukses} berkas berhasil diunggah. Berkas akan diproses otomatis.`)
       void refetch()
+      qc.invalidateQueries({ queryKey: ['berkas'] })
+      qc.invalidateQueries({ queryKey: ['st', stId] })
     }
     if (gagal > 0) {
       toast.error(`${gagal} berkas gagal diunggah. Periksa format dan ukuran berkas.`)
@@ -145,9 +192,130 @@ export function BuktiPanel({ stId }: { stId: number }) {
     }
   }
 
-  const adaProsesAi = daftarBerkas.some(
-    (b) => b.ekstraksi?.status === 'antre' || b.ekstraksi?.status === 'berjalan'
-  )
+  async function handleKonfirmasiHotel(item: UsulanHotelItem, targetIdx: number) {
+    try {
+      if (onTerapkanHotel) {
+        const etapeIdx = item.etapeIndex >= 0 ? item.etapeIndex : 0
+        await onTerapkanHotel(targetIdx, etapeIdx, item)
+      }
+      const pelaksanaTerpilih = pelaksanaList[targetIdx]
+      const pelaksanaId = pelaksanaTerpilih && 'id' in pelaksanaTerpilih ? (pelaksanaTerpilih as { id?: number }).id ?? null : null
+      await updateUsulan.mutateAsync({
+        id: item.berkasId,
+        payload: {
+          usulanStatus: 'diterapkan',
+          pelaksanaId,
+        },
+      })
+      qc.invalidateQueries({ queryKey: ['berkas'] })
+      qc.invalidateQueries({ queryKey: ['st', stId] })
+      toast.success(`Biaya hotel "${item.ekstraksi.namaHotel}" dikonfirmasi untuk ${pelaksanaTerpilih?.nama || 'pelaksana'}.`)
+    } catch (err) {
+      toast.error(`Gagal mengonfirmasi hotel: ${pesanGalat(err)}`)
+    }
+  }
+
+  async function handleBatalHotel(item: UsulanHotelItem) {
+    try {
+      await updateUsulan.mutateAsync({
+        id: item.berkasId,
+        payload: {
+          usulanStatus: 'menunggu',
+          pelaksanaId: null,
+        },
+      })
+      qc.invalidateQueries({ queryKey: ['berkas'] })
+      qc.invalidateQueries({ queryKey: ['st', stId] })
+      toast.info(`Status bukti hotel "${item.ekstraksi.namaHotel}" dikembalikan ke antrean.`)
+    } catch (err) {
+      toast.error(`Gagal membatalkan status: ${pesanGalat(err)}`)
+    }
+  }
+
+  async function handleKonfirmasiTransport(item: UsulanTransportItem, targetIdx: number) {
+    try {
+      const pelaksanaTerpilih = pelaksanaList[targetIdx]
+      const pelaksanaId = pelaksanaTerpilih && 'id' in pelaksanaTerpilih ? (pelaksanaTerpilih as { id?: number }).id ?? null : null
+      const biayaBaru: BiayaPayload = {
+        jenis: item.jenisBiaya,
+        uraian: item.uraianBiaya,
+        qty: item.qty || 1,
+        satuan: item.satuan || 'tiket',
+        tarif: item.tarifRiil,
+        keterangan: item.keterangan || item.namaBerkas,
+        etapeIndex: item.etapeIndex >= 0 ? item.etapeIndex : null,
+        provinsi: item.provinsi,
+      }
+      if (onTerapkanTransport) {
+        await onTerapkanTransport(targetIdx, biayaBaru, item)
+      }
+      if (item.jumlahPenerima <= 1) {
+        await updateUsulan.mutateAsync({
+          id: item.berkasId,
+          payload: {
+            usulanStatus: 'diterapkan',
+            pelaksanaId,
+          },
+        })
+      }
+      qc.invalidateQueries({ queryKey: ['berkas'] })
+      qc.invalidateQueries({ queryKey: ['st', stId] })
+      toast.success(`Biaya "${item.uraianBiaya}" (${rupiah(item.tarifRiil)}) dikonfirmasi untuk ${pelaksanaTerpilih?.nama || 'pelaksana'}.`)
+    } catch (err) {
+      toast.error(`Gagal mengonfirmasi tiket: ${pesanGalat(err)}`)
+    }
+  }
+
+  async function handleBatalTransport(item: UsulanTransportItem) {
+    try {
+      await updateUsulan.mutateAsync({
+        id: item.berkasId,
+        payload: {
+          usulanStatus: 'menunggu',
+          pelaksanaId: null,
+        },
+      })
+      qc.invalidateQueries({ queryKey: ['berkas'] })
+      qc.invalidateQueries({ queryKey: ['st', stId] })
+      toast.info(`Status tiket "${item.uraianBiaya}" dikembalikan ke antrean.`)
+    } catch (err) {
+      toast.error(`Gagal membatalkan status: ${pesanGalat(err)}`)
+    }
+  }
+
+  // Hitung jumlah bukti yang siap dikonfirmasi per nama
+  const hotelBelumKonfirmasi = (usulanHotelList ?? []).filter((u) => u.usulanStatus === 'menunggu')
+  const transportBelumKonfirmasi = (usulanTransportList ?? []).filter((u) => u.usulanStatus === 'menunggu')
+  const totalBelumKonfirmasi = hotelBelumKonfirmasi.length + transportBelumKonfirmasi.length
+
+  const hotelCocok = hotelBelumKonfirmasi.filter((u) => u.pelaksanaIndex >= 0)
+  const transportCocok = transportBelumKonfirmasi.filter((u) => u.pelaksanaIndex >= 0)
+  const totalCocok = hotelCocok.length + transportCocok.length
+
+  async function handleKonfirmasiSemuaCocok() {
+    let sukses = 0
+    for (const h of hotelCocok) {
+      try {
+        await handleKonfirmasiHotel(h, h.pelaksanaIndex)
+        sukses++
+      } catch {
+        // continue
+      }
+    }
+    for (const t of transportCocok) {
+      try {
+        await handleKonfirmasiTransport(t, t.pelaksanaIndex)
+        sukses++
+      } catch {
+        // continue
+      }
+    }
+    if (sukses > 0) {
+      toast.success(`${sukses} bukti pengeluaran berhasil dikonfirmasi ke masing-masing personel.`)
+      qc.invalidateQueries({ queryKey: ['berkas'] })
+      qc.invalidateQueries({ queryKey: ['st', stId] })
+    }
+  }
 
   return (
     <Card>
@@ -194,6 +362,34 @@ export function BuktiPanel({ stId }: { stId: number }) {
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Banner Konfirmasi Per Nama */}
+        {totalBelumKonfirmasi > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/10 p-3.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <SparklesIcon className="size-5 text-primary shrink-0" aria-hidden />
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {totalBelumKonfirmasi} Bukti Pengeluaran Siap Dikonfirmasi Per Nama
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Periksa nama personel yang tertera di kolom konfirmasi sebelum melanjutkan ke tahap rincian biaya.
+                </p>
+              </div>
+            </div>
+            {totalCocok > 0 && (
+              <Button
+                size="sm"
+                onClick={() => void handleKonfirmasiSemuaCocok()}
+                disabled={updateUsulan.isPending}
+                className="gap-1.5"
+              >
+                <CheckCheckIcon className="size-4" />
+                Konfirmasi Semua yang Cocok Nama ({totalCocok})
+              </Button>
+            )}
+          </div>
+        )}
+
         <div
           {...seret.props}
           className={`flex min-h-16 items-center gap-3 rounded-lg border border-dashed px-4 py-3 transition-colors ${
@@ -209,153 +405,319 @@ export function BuktiPanel({ stId }: { stId: number }) {
           </div>
         </div>
 
-    {/* Tabel Berkas */}
-    {isLoading ? (
-      <p className="py-4 text-center text-sm text-muted-foreground">Memuat daftar berkas...</p>
-    ) : daftarBerkas.length === 0 ? (
-      <p className="py-4 text-center text-xs text-muted-foreground">Belum ada berkas.</p>
-    ) : (
-      <div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nama Berkas / Keterangan</TableHead>
-              <TableHead className="w-36">Jenis</TableHead>
-              <TableHead className="w-40">Status Baca</TableHead>
-              <TableHead className="w-28 text-right">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {daftarBerkas.map((b) => {
-              const status = b.ekstraksi?.status
-              const isGambar = b.mime.startsWith('image/')
-              return (
-                <TableRow key={b.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2.5">
-                      {isGambar ? (
-                        <button
-                          type="button"
-                          onClick={() => setPreviewFoto(b)}
-                          className="relative size-9 shrink-0 overflow-hidden rounded border bg-muted group/thumb"
-                          title="Klik untuk memperbesar"
-                        >
-                          <img
-                            src={`/api/berkas/${b.id}/isi`}
-                            alt={b.namaAsli}
-                            className="h-full w-full object-cover"
-                          />
-                        </button>
-                      ) : (
-                        ikonBerkas(b.mime)
-                      )}
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-medium text-sm text-foreground [overflow-wrap:anywhere]">
-                          {b.namaAsli}
-                        </span>
-                        {b.keterangan ? (
-                          <span className="text-xs text-foreground/80 italic [overflow-wrap:anywhere]">
-                            &ldquo;{b.keterangan}&rdquo;
-                          </span>
-                        ) : null}
-                        <span className="text-xs text-muted-foreground">
-                          {tanggalPendek(b.createdAt.slice(0, 10))} · {formatUkuran(b.ukuran)}
-                        </span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <ChipJenisBerkas jenis={b.jenis} />
-                  </TableCell>
-                  <TableCell>
-                    {status === 'antre' && (
-                      <Badge variant="warning" className="text-xs">
-                        <ClockIcon className="mr-1 size-3 animate-pulse" /> Antre
-                      </Badge>
-                    )}
-                    {status === 'berjalan' && (
-                      <Badge variant="default" className="text-xs">
-                        <Loader2Icon className="mr-1 size-3 animate-spin" /> Membaca...
-                      </Badge>
-                    )}
-                    {status === 'selesai' && (
-                      <Badge variant="success" className="text-xs">
-                        <CheckCircle2Icon className="mr-1 size-3" /> Selesai
-                      </Badge>
-                    )}
-                    {status === 'gagal' && (
-                      <Badge
-                        variant="destructive"
-                        className="text-xs cursor-help"
-                        title={b.ekstraksi?.galat ?? 'Ekstraksi gagal'}
-                      >
-                        <AlertCircleIcon className="mr-1 size-3" /> Gagal
-                      </Badge>
-                    )}
-                    {!status && (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {isGambar && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Pratinjau gambar"
-                          onClick={() => setPreviewFoto(b)}
-                        >
-                          <Maximize2Icon className="size-4 text-sky-600" />
-                        </Button>
-                      )}
-                      <a
-                        href={`/api/berkas/${b.id}/isi`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={buttonVariants({ variant: 'ghost', size: 'icon' })}
-                        title="Buka dokumen asli di tab baru"
-                      >
-                        <ExternalLinkIcon className="size-4" />
-                      </a>
-                      {status === 'gagal' && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Ulangi pembacaan berkas"
-                          disabled={ulangi.isPending}
-                          onClick={() => void tanganiUlangi(b.id)}
-                        >
-                          <RotateCcwIcon className="size-4 text-amber-600" />
-                        </Button>
-                      )}
-                      {isGambar && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Ini foto kegiatan, pindahkan ke Foto Dokumentasi"
-                          disabled={ubahJenis.isPending}
-                          onClick={() => void pindahKeDokumentasi(b)}
-                        >
-                          <ImagePlusIcon className="size-4 text-sky-600" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Hapus berkas"
-                        onClick={() => setBerkasAkanDihapus(b)}
-                      >
-                        <Trash2Icon className="size-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
+        {/* Tabel Berkas */}
+        {isLoading ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">Memuat daftar berkas...</p>
+        ) : daftarBerkas.length === 0 ? (
+          <p className="py-4 text-center text-xs text-muted-foreground">Belum ada berkas.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[200px]">Nama Berkas / Keterangan</TableHead>
+                  <TableHead className="w-28">Jenis</TableHead>
+                  <TableHead className="w-28">Status Baca</TableHead>
+                  <TableHead className="min-w-[300px]">Pelaksana &amp; Konfirmasi Nama</TableHead>
+                  <TableHead className="w-24 text-right">Aksi</TableHead>
                 </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-      </div>
-    )}
+              </TableHeader>
+              <TableBody>
+                {daftarBerkas.map((b) => {
+                  const status = b.ekstraksi?.status
+                  const isGambar = b.mime.startsWith('image/')
+                  const hotelItem = usulanHotelList?.find((u) => u.berkasId === b.id)
+                  const transportItems = usulanTransportList?.filter((u) => u.berkasId === b.id) ?? []
+
+                  return (
+                    <TableRow key={b.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2.5">
+                          {isGambar ? (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewFoto(b)}
+                              className="relative size-9 shrink-0 overflow-hidden rounded border bg-muted group/thumb"
+                              title="Klik untuk memperbesar"
+                            >
+                              <img
+                                src={`/api/berkas/${b.id}/isi`}
+                                alt={b.namaAsli}
+                                className="h-full w-full object-cover"
+                              />
+                            </button>
+                          ) : (
+                            ikonBerkas(b.mime)
+                          )}
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-medium text-sm text-foreground [overflow-wrap:anywhere]">
+                              {b.namaAsli}
+                            </span>
+                            {b.keterangan ? (
+                              <span className="text-xs text-foreground/80 italic [overflow-wrap:anywhere]">
+                                &ldquo;{b.keterangan}&rdquo;
+                              </span>
+                            ) : null}
+                            <span className="text-xs text-muted-foreground">
+                              {tanggalPendek(b.createdAt.slice(0, 10))} · {formatUkuran(b.ukuran)}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <ChipJenisBerkas jenis={b.jenis} />
+                      </TableCell>
+                      <TableCell>
+                        {status === 'antre' && (
+                          <Badge variant="warning" className="text-xs">
+                            <ClockIcon className="mr-1 size-3 animate-pulse" /> Antre
+                          </Badge>
+                        )}
+                        {status === 'berjalan' && (
+                          <Badge variant="default" className="text-xs">
+                            <Loader2Icon className="mr-1 size-3 animate-spin" /> Membaca...
+                          </Badge>
+                        )}
+                        {status === 'selesai' && (
+                          <Badge variant="success" className="text-xs">
+                            <CheckCircle2Icon className="mr-1 size-3" /> Selesai
+                          </Badge>
+                        )}
+                        {status === 'gagal' && (
+                          <Badge
+                            variant="destructive"
+                            className="text-xs cursor-help"
+                            title={b.ekstraksi?.galat ?? 'Ekstraksi gagal'}
+                          >
+                            <AlertCircleIcon className="mr-1 size-3" /> Gagal
+                          </Badge>
+                        )}
+                        {!status && (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+
+                      {/* Kolom Konfirmasi Pelaksana Per Nama */}
+                      <TableCell>
+                        {status === 'antre' || status === 'berjalan' ? (
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Loader2Icon className="size-3.5 animate-spin text-primary" />
+                            <span>Sedang membaca nama &amp; nominal...</span>
+                          </div>
+                        ) : status === 'gagal' ? (
+                          <span className="text-xs text-destructive">Ekstraksi gagal</span>
+                        ) : hotelItem ? (
+                          <div className="flex flex-col gap-1.5 py-0.5">
+                            <div className="text-xs">
+                              <span className="font-semibold text-foreground flex items-center gap-1">
+                                <BedDoubleIcon className="size-3 text-muted-foreground" />
+                                {hotelItem.ekstraksi.namaHotel || 'Hotel'} ({rupiah(hotelItem.tarifRiilPerMalam)}/mlm)
+                              </span>
+                              <div className="text-muted-foreground text-[11px] mt-0.5">
+                                {hotelItem.ekstraksi.tamu ? (
+                                  <span>
+                                    Tamu di bill: <strong className="text-foreground">{hotelItem.ekstraksi.tamu}</strong>
+                                  </span>
+                                ) : (
+                                  <span className="italic">Nama tamu tidak tertera di bill</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {hotelItem.usulanStatus === 'diterapkan' ? (
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <Badge variant="success" className="text-[11px] gap-1">
+                                  <CheckCircle2Icon className="size-3" />
+                                  Dikonfirmasi: {pelaksanaList[hotelItem.pelaksanaIndex]?.nama || hotelItem.pelaksanaNama || 'Pelaksana'}
+                                </Badge>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+                                  onClick={() => void handleBatalHotel(hotelItem)}
+                                >
+                                  Ubah
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {pelaksanaList.length > 0 ? (
+                                  <select
+                                    value={pilihanPelaksana[`hotel-${hotelItem.berkasId}`] ?? (hotelItem.pelaksanaIndex >= 0 ? hotelItem.pelaksanaIndex : 0)}
+                                    onChange={(e) =>
+                                      setPilihanPelaksana((prev) => ({
+                                        ...prev,
+                                        [`hotel-${hotelItem.berkasId}`]: Number(e.target.value),
+                                      }))
+                                    }
+                                    className="h-7 rounded border bg-background px-2 text-xs text-foreground focus:ring-1 focus:ring-primary max-w-[180px]"
+                                  >
+                                    {pelaksanaList.map((p, idx) => (
+                                      <option key={idx} value={idx}>
+                                        {idx + 1}. {p.nama || `Pelaksana ${idx + 1}`}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : null}
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  disabled={pelaksanaList.length === 0 || updateUsulan.isPending}
+                                  className="h-7 text-xs px-2.5 gap-1"
+                                  onClick={() => {
+                                    const targetIdx =
+                                      pilihanPelaksana[`hotel-${hotelItem.berkasId}`] ??
+                                      (hotelItem.pelaksanaIndex >= 0 ? hotelItem.pelaksanaIndex : 0)
+                                    void handleKonfirmasiHotel(hotelItem, targetIdx)
+                                  }}
+                                >
+                                  <CheckIcon className="size-3.5" />
+                                  Konfirmasi
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        ) : transportItems.length > 0 ? (
+                          <div className="flex flex-col gap-2 py-0.5">
+                            {transportItems.map((tItem, tIdx) => {
+                              const itemKey = `transport-${tItem.berkasId}-${tIdx}`
+                              const isDiterapkan = tItem.usulanStatus === 'diterapkan'
+                              const terpilihIdx =
+                                pilihanPelaksana[itemKey] ?? (tItem.pelaksanaIndex >= 0 ? tItem.pelaksanaIndex : 0)
+                              return (
+                                <div key={itemKey} className="flex flex-col gap-1 border-b last:border-b-0 pb-1.5 last:pb-0">
+                                  <div className="text-xs">
+                                    <span className="font-semibold text-foreground flex items-center gap-1">
+                                      <PlaneIcon className="size-3 text-muted-foreground" />
+                                      {tItem.uraianBiaya} ({rupiah(tItem.tarifRiil)})
+                                    </span>
+                                    <div className="text-muted-foreground text-[11px] mt-0.5">
+                                      {tItem.pelaksanaNama ? (
+                                        <span>
+                                          Penumpang di tiket: <strong className="text-foreground">{tItem.pelaksanaNama}</strong>
+                                        </span>
+                                      ) : (
+                                        <span className="italic">Nama penumpang tidak tertera</span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {isDiterapkan ? (
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <Badge variant="success" className="text-[11px] gap-1">
+                                        <CheckCircle2Icon className="size-3" />
+                                        Dikonfirmasi: {pelaksanaList[tItem.pelaksanaIndex]?.nama || tItem.pelaksanaNama || 'Pelaksana'}
+                                      </Badge>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+                                        onClick={() => void handleBatalTransport(tItem)}
+                                      >
+                                        Ubah
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      {pelaksanaList.length > 0 ? (
+                                        <select
+                                          value={terpilihIdx}
+                                          onChange={(e) =>
+                                            setPilihanPelaksana((prev) => ({
+                                              ...prev,
+                                              [itemKey]: Number(e.target.value),
+                                            }))
+                                          }
+                                          className="h-7 rounded border bg-background px-2 text-xs text-foreground focus:ring-1 focus:ring-primary max-w-[180px]"
+                                        >
+                                          {pelaksanaList.map((p, idx) => (
+                                            <option key={idx} value={idx}>
+                                              {idx + 1}. {p.nama || `Pelaksana ${idx + 1}`}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      ) : null}
+                                      <Button
+                                        size="sm"
+                                        variant="default"
+                                        disabled={pelaksanaList.length === 0 || updateUsulan.isPending}
+                                        className="h-7 text-xs px-2.5 gap-1"
+                                        onClick={() => void handleKonfirmasiTransport(tItem, terpilihIdx)}
+                                      >
+                                        <CheckIcon className="size-3.5" />
+                                        Konfirmasi
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">Umum / Tanpa usulan biaya otomatis</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {isGambar && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Pratinjau gambar"
+                              onClick={() => setPreviewFoto(b)}
+                            >
+                              <Maximize2Icon className="size-4 text-sky-600" />
+                            </Button>
+                          )}
+                          <a
+                            href={`/api/berkas/${b.id}/isi`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={buttonVariants({ variant: 'ghost', size: 'icon' })}
+                            title="Buka dokumen asli di tab baru"
+                          >
+                            <ExternalLinkIcon className="size-4" />
+                          </a>
+                          {status === 'gagal' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Ulangi pembacaan berkas"
+                              disabled={ulangi.isPending}
+                              onClick={() => void tanganiUlangi(b.id)}
+                            >
+                              <RotateCcwIcon className="size-4 text-amber-600" />
+                            </Button>
+                          )}
+                          {isGambar && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Ini foto kegiatan, pindahkan ke Foto Dokumentasi"
+                              disabled={ubahJenis.isPending}
+                              onClick={() => void pindahKeDokumentasi(b)}
+                            >
+                              <ImagePlusIcon className="size-4 text-sky-600" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Hapus berkas"
+                            onClick={() => setBerkasAkanDihapus(b)}
+                          >
+                            <Trash2Icon className="size-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </CardContent>
 
       <HapusBerkasDialog

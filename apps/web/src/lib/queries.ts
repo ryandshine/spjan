@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
+  BerkasDto,
   BuatPenggunaPayload,
   GantiPasswordPayload,
   JenisBerkas,
@@ -225,18 +226,32 @@ export function useDaftarBerkas(stId: number | null) {
 }
 
 export function useUsulanHotelSt(stId: number | null) {
+  const qc = useQueryClient()
   return useQuery({
     queryKey: ['st', stId, 'usulan-hotel'] as const,
     queryFn: () => api.suratTugas.usulanHotel(stId as number),
     enabled: stId !== null,
+    refetchInterval: () => {
+      if (stId === null) return false
+      const list = qc.getQueryData<BerkasDto[]>(['berkas', 'list', stId])
+      const adaProses = list?.some((b) => b.ekstraksi?.status === 'antre' || b.ekstraksi?.status === 'berjalan')
+      return adaProses ? 2000 : false
+    },
   })
 }
 
 export function useUsulanTransportSt(stId: number | null) {
+  const qc = useQueryClient()
   return useQuery({
     queryKey: ['st', stId, 'usulan-transport'] as const,
     queryFn: () => api.suratTugas.usulanTransport(stId as number),
     enabled: stId !== null,
+    refetchInterval: () => {
+      if (stId === null) return false
+      const list = qc.getQueryData<BerkasDto[]>(['berkas', 'list', stId])
+      const adaProses = list?.some((b) => b.ekstraksi?.status === 'antre' || b.ekstraksi?.status === 'berjalan')
+      return adaProses ? 2000 : false
+    },
   })
 }
 

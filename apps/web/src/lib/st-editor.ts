@@ -1,4 +1,11 @@
-import type { BiayaPayload, PegawaiDto, SumberDana, SuratTugasPayload, UsulanHotelItem } from '@spjan/shared'
+import {
+  etapeKosong,
+  type BiayaPayload,
+  type PegawaiDto,
+  type SumberDana,
+  type SuratTugasPayload,
+  type UsulanHotelItem,
+} from '@spjan/shared'
 
 import type { PetaGalat } from '@/lib/validasi'
 
@@ -24,18 +31,33 @@ export function terapkanHotelKeEtape(
 ): SuratTugasPayload {
   return {
     ...st,
-    pelaksana: st.pelaksana.map((p, i) =>
-      i !== pelaksanaIdx
-        ? p
-        : {
-            ...p,
-            etape: p.etape.map((e, j) =>
-              j !== etapeIdx
-                ? e
-                : { ...e, hotelNama: usulan.ekstraksi.namaHotel, hotelTarif: usulan.tarifRiilPerMalam, malamOverride: usulan.malam },
-            ),
-          },
-    ),
+    pelaksana: st.pelaksana.map((p, i) => {
+      if (i !== pelaksanaIdx) return p
+      if (p.etape.length === 0) {
+        const base = etapeKosong()
+        return {
+          ...p,
+          etape: [
+            {
+              ...base,
+              kota: usulan.kota || '',
+              provinsi: usulan.provinsi || '',
+              hotelNama: usulan.ekstraksi.namaHotel,
+              hotelTarif: usulan.tarifRiilPerMalam,
+              malamOverride: usulan.malam,
+            },
+          ],
+        }
+      }
+      return {
+        ...p,
+        etape: p.etape.map((e, j) =>
+          j !== etapeIdx
+            ? e
+            : { ...e, hotelNama: usulan.ekstraksi.namaHotel, hotelTarif: usulan.tarifRiilPerMalam, malamOverride: usulan.malam },
+        ),
+      }
+    }),
   }
 }
 

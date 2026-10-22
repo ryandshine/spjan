@@ -9,10 +9,12 @@ import {
   payloadDariDto,
   stKosong,
   toSpjInput,
+  type BiayaPayload,
   type PengaturanPayload,
   type Sbm,
   type SumberDana,
   type SuratTugasPayload,
+  type UsulanHotelItem,
 } from '@spjan/shared'
 
 import { PageHeader } from '@/components/page-header'
@@ -54,6 +56,8 @@ import {
 import {
   sesuaikanKodeAkun,
   tabBergalat,
+  tambahBiayaKePelaksana,
+  terapkanHotelKeEtape,
 } from '@/lib/st-editor'
 import { bagianUntukSasaran, lompatKeIsian } from '@/lib/periksa'
 import { useSlotSidebar } from '@/lib/slot-sidebar'
@@ -135,6 +139,24 @@ function Editor({
   const pilihPelaksana = (i: number) => {
     setTab('pelaksana')
     daftarPelaksana.setAktif(i)
+  }
+
+  async function terapkanUsulanHotel(pelaksanaIdx: number, etapeIdx: number, usulan: UsulanHotelItem) {
+    const stBaru = terapkanHotelKeEtape(st, pelaksanaIdx, etapeIdx, usulan)
+    setSt(stBaru)
+    if (id !== null) {
+      await simpan.mutateAsync({ id, payload: stBaru })
+      tandaiTersimpan(stBaru)
+    }
+  }
+
+  async function terapkanUsulanTransport(pelaksanaIdx: number, biaya: BiayaPayload) {
+    const stBaru = tambahBiayaKePelaksana(st, pelaksanaIdx, biaya)
+    setSt(stBaru)
+    if (id !== null) {
+      await simpan.mutateAsync({ id, payload: stBaru })
+      tandaiTersimpan(stBaru)
+    }
   }
 
   async function kirim() {
@@ -485,7 +507,12 @@ function Editor({
               <Tabs gaya="segmen" item={itemSubBukti} aktif={subBukti} onPilih={setSubBukti} idAwal="st-bukti" label="Bagian bukti dan dokumentasi" />
               <KelompokIsian terkunci={terkunci}>
                 <TabPanel idAwal="st-bukti" kunci="bukti" aktif={subBukti === 'bukti'}>
-                  <BuktiPanel stId={id} />
+                  <BuktiPanel
+                    stId={id}
+                    pelaksanaList={st.pelaksana}
+                    onTerapkanHotel={terapkanUsulanHotel}
+                    onTerapkanTransport={terapkanUsulanTransport}
+                  />
                 </TabPanel>
                 <TabPanel idAwal="st-bukti" kunci="foto" aktif={subBukti === 'foto'}>
                   <FotoDokumentasiPanel stId={id} />
