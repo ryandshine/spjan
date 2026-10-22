@@ -130,35 +130,46 @@ export default function NaskahStListPage() {
     },
     {
       judul: '',
-      sel: (b) => (
-        <div className="flex justify-end gap-1">
-          <a
-            href={`/api/naskah-st/${b.id}/docx`}
-            download
-            className={buttonVariants({ variant: 'outline', size: 'sm' })}
-            title="Unduh format DOCX resmi (siap upload Srikandi/Word)"
-          >
-            <FileDownIcon className="size-3.5" /> DOCX
-          </a>
-          <Link
-            to={`/st-naskah/${b.id}`}
-            className={buttonVariants({ variant: 'ghost', size: 'icon' })}
-            title="Edit naskah Surat Tugas"
-          >
-            <PencilIcon className="size-3.5" />
-          </Link>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Hapus ST ${b.nomor}`}
-            disabled={!boleh(b)}
-            onClick={() => setTargetHapus(b)}
-            title={!boleh(b) ? 'Hanya pembuat atau admin yang boleh menghapus' : 'Hapus ST'}
-          >
-            <Trash2Icon className="size-3.5 text-destructive" />
-          </Button>
-        </div>
-      ),
+      sel: (b) => {
+        const tglMentah = b.tanggalMulai
+        let tgl = new Date().toISOString().slice(0, 10)
+        if (tglMentah) {
+          const m = String(tglMentah).match(/\d{4}-\d{2}-\d{2}/)
+          if (m) tgl = m[0]
+        }
+        const nomorClean = (b.nomor || 'Draft').trim().replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+        const namaFile = `${tgl}_Surat_Tugas_${nomorClean}.docx`
+
+        return (
+          <div className="flex justify-end gap-1">
+            <a
+              href={`/api/naskah-st/${b.id}/docx`}
+              download={namaFile}
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
+              title="Unduh format DOCX resmi (siap upload Srikandi/Word)"
+            >
+              <FileDownIcon className="size-3.5" /> DOCX
+            </a>
+            <Link
+              to={`/st-naskah/${b.id}`}
+              className={buttonVariants({ variant: 'ghost', size: 'icon' })}
+              title="Edit naskah Surat Tugas"
+            >
+              <PencilIcon className="size-3.5" />
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Hapus ST ${b.nomor}`}
+              disabled={!boleh(b)}
+              onClick={() => setTargetHapus(b)}
+              title={!boleh(b) ? 'Hanya pembuat atau admin yang boleh menghapus' : 'Hapus ST'}
+            >
+              <Trash2Icon className="size-3.5 text-destructive" />
+            </Button>
+          </div>
+        )
+      },
     },
   ]
 

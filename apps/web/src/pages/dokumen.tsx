@@ -17,7 +17,7 @@ import { pesanGalat } from '@/lib/format'
 import { useDaftarBerkas, useHasilSuratTugas, useLaporan } from '@/lib/queries'
 import { unduhBlob } from '@/lib/unduh'
 import { cn } from '@/lib/utils'
-import { siapkanDokumen } from '@/pdf/data'
+import { siapkanDokumen, type DataDokumen } from '@/pdf/data'
 import { daftarkanFont } from '@/pdf/fonts'
 import { SpjDocument, type JenisDokumen } from '@/pdf/spj-document'
 
@@ -55,6 +55,52 @@ function ItemSegmen({ aktif, className, ...props }: { aktif: boolean } & React.C
 }
 
 const FOTO_KOSONG: FotoDokumentasi[] = []
+
+function buatNamaFileDokumen(d: DataDokumen, terpilih: Pilihan): string {
+  const tglMentah = d.st.tanggal || d.st.tanggalSpj
+  let tgl = new Date().toISOString().slice(0, 10)
+  if (tglMentah) {
+    const m = String(tglMentah).match(/\d{4}-\d{2}-\d{2}/)
+    if (m) tgl = m[0]
+  }
+
+  const nomorSt = (d.st.nomor || 'ST').trim().replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+
+  let namaPersonil = ''
+  if (terpilih.indeks !== undefined && d.pelaksana[terpilih.indeks]) {
+    const pel = d.pelaksana[terpilih.indeks]
+    if (pel?.nama) {
+      namaPersonil = pel.nama.trim().replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+    }
+  }
+
+  let labelDok = 'Dokumen'
+  switch (terpilih.jenis) {
+    case 'sptb':
+      labelDok = 'SPTB'
+      break
+    case 'spd':
+      labelDok = namaPersonil ? `SPD_${namaPersonil}` : 'SPD'
+      break
+    case 'rincian':
+      labelDok = namaPersonil ? `Rincian_Biaya_${namaPersonil}` : 'Rincian_Biaya'
+      break
+    case 'kuitansi':
+      labelDok = namaPersonil ? `Kuitansi_${namaPersonil}` : 'Kuitansi'
+      break
+    case 'dpr':
+      labelDok = namaPersonil ? `DPR_${namaPersonil}` : 'DPR'
+      break
+    case 'laporan':
+      labelDok = 'Laporan_Perjalanan_Dinas'
+      break
+    case 'semua':
+      labelDok = 'Semua_Berkas_SPJ'
+      break
+  }
+
+  return `${tgl}_${labelDok}_${nomorSt}.pdf`
+}
 
 export default function DokumenPage() {
   const { id: idParam } = useParams()
@@ -195,7 +241,7 @@ export default function DokumenPage() {
   function unduh() {
     const blob = blobTerakhir.current
     if (!blob || !d || !terpilih) return
-    unduhBlob(blob, `${terpilih.jenis === 'laporan' ? 'Laporan' : 'SPJ'}-${d.st.nomor.replace(/[^A-Za-z0-9]+/g, '-')}-${terpilih.kunci.replace(':', '-')}.pdf`)
+    unduhBlob(blob, buatNamaFileDokumen(d, terpilih))
   }
 
   if (hasil.isError) return <Alert variant="destructive">{pesanGalat(hasil.error)}</Alert>

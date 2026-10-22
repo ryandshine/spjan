@@ -1,7 +1,26 @@
 # Status SPJAN
 
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
-Terakhir diperbarui: 2026-10-22 (refactoring alur navigasi tombol bawah, kontekstualisasi pesan pagu, dan badge kelengkapan pelaksana SPJ).
+Terakhir diperbarui: 2026-10-22 (standardisasi penamaan file unduhan dokumen SPJ dan naskah ST dengan tanggal dan jenis dokumen).
+
+## Penamaan File Unduhan Dokumen & Naskah ST (2026-10-22, belum di-commit)
+
+- **Standardisasi format nama file unduhan**:
+  - **Dokumen SPJ (`apps/web/src/pages/dokumen.tsx`)**:
+    - Format: `{YYYY-MM-DD}_{JenisDokumen}_{NamaPelaksana?}_{NomorST}.pdf`
+    - Contoh hasil:
+      - SPTB: `2026-10-05_SPTB_ST_123_BPPS_2026.pdf`
+      - SPD: `2026-10-05_SPD_Dwiki_Faiz_Sarvianto_ST_123_BPPS_2026.pdf`
+      - Kuitansi: `2026-10-05_Kuitansi_Dwiki_Faiz_Sarvianto_ST_123_BPPS_2026.pdf`
+      - Rincian Biaya: `2026-10-05_Rincian_Biaya_Dwiki_Faiz_Sarvianto_ST_123_BPPS_2026.pdf`
+      - DPR: `2026-10-05_DPR_Dwiki_Faiz_Sarvianto_ST_123_BPPS_2026.pdf`
+      - Laporan Perjalanan Dinas: `2026-10-05_Laporan_Perjalanan_Dinas_ST_123_BPPS_2026.pdf`
+      - Semua Berkas SPJ: `2026-10-05_Semua_Berkas_SPJ_ST_123_BPPS_2026.pdf`
+  - **Naskah Surat Tugas DOCX (`apps/api/src/routes/naskah-st.ts`, `st-naskah-editor.tsx`, `st-naskah-list.tsx`)**:
+    - Format: `{YYYY-MM-DD}_Surat_Tugas_{NomorST}.docx` (atau jika draft: `{YYYY-MM-DD}_Surat_Tugas_Draft_{Lokasi}.docx`).
+    - Pratinjau: `{YYYY-MM-DD}_Pratinjau_Surat_Tugas_{NomorST}.docx`.
+- Lulus `npm run lint` dan seluruh unit test.
+
 
 ## Refactoring Navigasi dan UX/UI Editor SPJ (2026-10-22, belum di-commit)
 

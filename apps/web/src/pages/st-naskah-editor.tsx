@@ -203,7 +203,16 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
     try {
       setSedangUnduh(true)
       const blob = await api.naskahSt.docx(form, stId)
-      unduhBlob(blob, `Surat-Tugas-${(form.nomor || 'Draft').replace(/[^A-Za-z0-9._-]+/g, '_')}.docx`)
+      const tglMentah = form.tanggalMulai || form.tanggal
+      let tgl = new Date().toISOString().slice(0, 10)
+      if (tglMentah) {
+        const m = String(tglMentah).match(/\d{4}-\d{2}-\d{2}/)
+        if (m) tgl = m[0]
+      }
+      const nomorClean = (form.nomor || 'Draft').trim().replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+      const lokasiClean = form.lokasiTugas ? `_${form.lokasiTugas.trim().replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '')}` : ''
+      const namaFile = `${tgl}_Surat_Tugas_${nomorClean}${form.nomor ? '' : lokasiClean}.docx`
+      unduhBlob(blob, namaFile)
       toast.success('Berkas DOCX berhasil diunduh.')
     } catch (err) {
       toast.error(pesanGalat(err))

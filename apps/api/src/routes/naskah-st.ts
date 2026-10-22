@@ -126,7 +126,15 @@ export async function naskahStRoutes(app: FastifyInstance, opts: { db: Db; klien
     if (!st) throw notFound("Naskah surat tugas");
 
     const docxBuffer = await generateNaskahStDocx(st);
-    const namaFile = `Surat-Tugas-${(st.nomor || "Draft").replace(/[^A-Za-z0-9._-]+/g, "_")}.docx`;
+    const tglMentah = st.tanggalMulai || st.tanggal;
+    let tgl = new Date().toISOString().slice(0, 10);
+    if (tglMentah) {
+      const m = String(tglMentah).match(/\d{4}-\d{2}-\d{2}/);
+      if (m) tgl = m[0];
+    }
+    const nomorClean = (st.nomor || "Draft").trim().replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    const lokasiClean = st.lokasiTugas ? `_${st.lokasiTugas.trim().replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "")}` : "";
+    const namaFile = `${tgl}_Surat_Tugas_${nomorClean}${st.nomor ? "" : lokasiClean}.docx`;
 
     return reply
       .header("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
@@ -138,9 +146,18 @@ export async function naskahStRoutes(app: FastifyInstance, opts: { db: Db; klien
   app.post("/preview-docx", async (req, reply) => {
     const payload = NaskahStPayloadSchema.parse(req.body);
     const docxBuffer = await generateNaskahStDocx(payload);
+    const tglMentah = payload.tanggalMulai || payload.tanggal;
+    let tgl = new Date().toISOString().slice(0, 10);
+    if (tglMentah) {
+      const m = String(tglMentah).match(/\d{4}-\d{2}-\d{2}/);
+      if (m) tgl = m[0];
+    }
+    const nomorClean = (payload.nomor || "Draft").trim().replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    const lokasiClean = payload.lokasiTugas ? `_${payload.lokasiTugas.trim().replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "")}` : "";
+    const namaFile = `${tgl}_Pratinjau_Surat_Tugas_${nomorClean}${payload.nomor ? "" : lokasiClean}.docx`;
     return reply
       .header("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-      .header("Content-Disposition", 'attachment; filename="Pratinjau-Surat-Tugas.docx"')
+      .header("Content-Disposition", `attachment; filename="${namaFile}"`)
       .send(docxBuffer);
   });
 
