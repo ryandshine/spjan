@@ -9,7 +9,6 @@ import {
 
 import { BiayaBaris } from '@/components/st/biaya-form'
 import { BlokForm } from '@/components/st/blok-form'
-import { WidgetBuktiTransport } from '@/components/st/widget-bukti-transport'
 import { MenuAksi } from '@/components/ui/menu-aksi'
 import { rupiah } from '@/lib/format'
 import {
@@ -28,10 +27,6 @@ export function BlokTransportasi({
   provinsi,
   provinsiKedudukan,
   onUbah,
-  stId,
-  pelaksanaIdx,
-  pelaksanaNama,
-  pelaksanaId,
   terkunci = false,
 }: {
   p: PelaksanaPayload
@@ -40,10 +35,6 @@ export function BlokTransportasi({
   provinsi: string[]
   provinsiKedudukan?: string | null
   onUbah: (fn: (p: PelaksanaPayload) => PelaksanaPayload) => void
-  stId?: number | null
-  pelaksanaIdx?: number
-  pelaksanaNama?: string
-  pelaksanaId?: number | null
   terkunci?: boolean
 }) {
   const indeks = indeksBarisTransport(p.biaya)
@@ -61,20 +52,6 @@ export function BlokTransportasi({
 
   return (
     <BlokForm judul="Transportasi">
-      {stId !== undefined && stId !== null ? (
-        <div className="mb-4">
-          <WidgetBuktiTransport
-            stId={stId}
-            pelaksanaIdx={pelaksanaIdx ?? 0}
-            pelaksanaNama={pelaksanaNama ?? p.nama ?? ''}
-            pelaksanaId={pelaksanaId ?? null}
-            terkunci={terkunci}
-            onTambahBiaya={async (biaya) => {
-              tambahBiaya(biaya)
-            }}
-          />
-        </div>
-      ) : null}
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full min-w-[56rem] table-fixed border-collapse text-sm">
           <colgroup>
@@ -131,20 +108,22 @@ export function BlokTransportasi({
         </table>
       </div>
       <div className="mt-3 flex items-center justify-between">
-        <MenuAksi
-          label="Tambah biaya"
-          teks="Tambah Biaya"
-          item={[
-            { label: 'Tiket Pergi', onPilih: () => tambahDariMenu('TIKET_PERGI') },
-            { label: 'Tiket Kembali', onPilih: () => tambahDariMenu('TIKET_KEMBALI') },
-            { label: 'Taksi Asal (tempat kedudukan - bandara)', onPilih: () => tambahDariMenu('TAKSI_KEDUDUKAN') },
-            { label: 'Taksi Tujuan (bandara - kota tujuan)', onPilih: () => tambahDariMenu('TAKSI_TERMINAL') },
-            { label: 'Transport Jakarta - sekitarnya (PP)', onPilih: () => tambahDariMenu('TRANSPORT_JAKARTA_SEKITAR') },
-            { label: 'BBM Kendaraan (PP)', onPilih: () => tambahDariMenu('BBM_KENDARAAN') },
-            { label: 'E-Toll (PP)', onPilih: () => tambahDariMenu('TOL_ETOLL') },
-            { label: 'Biaya Riil Lainnya', onPilih: () => tambahDariMenu('LAINNYA') },
-          ]}
-        />
+        {!terkunci ? (
+          <MenuAksi
+            label="Tambah biaya"
+            teks="Tambah Biaya"
+            item={[
+              { label: 'Tiket Pergi', onPilih: () => tambahDariMenu('TIKET_PERGI') },
+              { label: 'Tiket Kembali', onPilih: () => tambahDariMenu('TIKET_KEMBALI') },
+              { label: 'Taksi Asal (tempat kedudukan - bandara)', onPilih: () => tambahDariMenu('TAKSI_KEDUDUKAN') },
+              { label: 'Taksi Tujuan (bandara - kota tujuan)', onPilih: () => tambahDariMenu('TAKSI_TERMINAL') },
+              { label: 'Transport Jakarta - sekitarnya (PP)', onPilih: () => tambahDariMenu('TRANSPORT_JAKARTA_SEKITAR') },
+              { label: 'BBM Kendaraan (PP)', onPilih: () => tambahDariMenu('BBM_KENDARAAN') },
+              { label: 'E-Toll (PP)', onPilih: () => tambahDariMenu('TOL_ETOLL') },
+              { label: 'Biaya Riil Lainnya', onPilih: () => tambahDariMenu('LAINNYA') },
+            ]}
+          />
+        ) : <div />}
         <p className="text-sm font-semibold text-foreground">
           Subtotal Transportasi: <span className="font-mono tabular-nums">{rupiah(hasil?.totalTransport ?? 0)}</span>
         </p>

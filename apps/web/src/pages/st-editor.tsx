@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { FileTextIcon } from 'lucide-react'
@@ -51,10 +51,14 @@ import {
   useSbm,
   useSimpanSuratTugas,
   useSuratTugas,
+  useUpdateUsulanBerkas,
+  useUsulanHotelSt,
+  useUsulanTransportSt,
   useVersiSbm,
 } from '@/lib/queries'
 import {
   sesuaikanKodeAkun,
+  sinkronkanSemuaUsulanOtomatis,
   tabBergalat,
   tambahBiayaKePelaksana,
   terapkanHotelKeEtape,
@@ -158,6 +162,57 @@ function Editor({
       tandaiTersimpan(stBaru)
     }
   }
+
+  const { data: usulanHotelList } = useUsulanHotelSt(id)
+  const { data: usulanTransportList } = useUsulanTransportSt(id)
+  const updateUsulan = useUpdateUsulanBerkas()
+  const sedangSinkronRef = useRef<Set<number>>(new Set())
+
+  // Sinkronisasi otomatis (Auto-Fill): saat berkas tiket & hotel selesai dibaca OCR
+  // dan cocok dengan nama pelaksana di ST, langsung masukkan ke formulir rincian pelaksana.
+  useEffect(() => {
+    if (id === null || !usulanHotelList || !usulanTransportList) return
+
+    const hotelMenunggu = usulanHotelList.filter(
+      (h) => h.usulanStatus === 'menunggu' && h.pelaksanaIndex >= 0 && !sedangSinkronRef.current.has(h.berkasId),
+    )
+    const transportMenunggu = usulanTransportList.filter(
+      (t) => t.usulanStatus === 'menunggu' && t.pelaksanaIndex >= 0 && !sedangSinkronRef.current.has(t.berkasId),
+    )
+
+    if (hotelMenunggu.length === 0 && transportMenunggu.length === 0) return
+
+    for (const h of hotelMenunggu) sedangSinkronRef.current.add(h.berkasId)
+    for (const t of transportMenunggu) sedangSinkronRef.current.add(t.berkasId)
+
+    void (async () => {
+      try {
+        const { stBaru, hotelBerkasIds, transportBerkasIds } = sinkronkanSemuaUsulanOtomatis(
+          st,
+          hotelMenunggu,
+          transportMenunggu,
+        )
+
+        const totalDiterapkan = hotelBerkasIds.length + transportBerkasIds.length
+        if (totalDiterapkan === 0) return
+
+        setSt(stBaru)
+        await simpan.mutateAsync({ id, payload: stBaru })
+        tandaiTersimpan(stBaru)
+
+        for (const bId of [...hotelBerkasIds, ...transportBerkasIds]) {
+          await updateUsulan.mutateAsync({
+            id: bId,
+            payload: { usulanStatus: 'diterapkan' },
+          })
+        }
+
+        toast.success(`${totalDiterapkan} bukti pengeluaran otomatis dimasukkan ke rincian pelaksana.`)
+      } catch (err) {
+        console.error('Gagal sinkronisasi otomatis berkas:', err)
+      }
+    })()
+  }, [id, usulanHotelList, usulanTransportList, st, simpan, updateUsulan])
 
   async function kirim() {
     const cek = SuratTugasPayloadSchema.safeParse(st)
@@ -549,7 +604,6 @@ function Editor({
               onUbah={daftarPelaksana.ubah}
               onHapus={daftarPelaksana.hapus}
               onTambah={daftarPelaksana.tambah}
-              stId={id}
             />
           </TabPanel>
 

@@ -41,11 +41,19 @@ export function WidgetBuktiTransport({
     return null
   }
 
-  // Tampilkan usulan tiket/transport yang terdeteksi untuk pelaksana ini atau belum terikat
+  // Tampilkan HANYA usulan tiket/transport yang cocok untuk pelaksana ini,
+  // atau usulan umum tanpa nama penumpang yang belum diterapkan.
   const usulanRelevan = usulanList.filter((u) => {
-    const cocokPosisi = u.pelaksanaIndex === pelaksanaIdx
-    const belumTerikat = u.pelaksanaIndex === -1 || u.pelaksanaId === null || u.pelaksanaId === pelaksanaId
-    return cocokPosisi || belumTerikat
+    // 1. Usulan cocok dengan pelaksana ini:
+    if (u.pelaksanaIndex === pelaksanaIdx) {
+      return true
+    }
+    // 2. Usulan cocok dengan pelaksana lain -> jangan pernah tampilkan di kartu pelaksana ini
+    if (u.pelaksanaIndex >= 0 && u.pelaksanaIndex !== pelaksanaIdx) {
+      return false
+    }
+    // 3. Usulan umum (tanpa nama penumpang yang cocok) yang belum diterapkan:
+    return u.pelaksanaIndex === -1 && u.usulanStatus !== 'diterapkan'
   })
 
   if (usulanRelevan.length === 0) {

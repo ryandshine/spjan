@@ -40,7 +40,6 @@ export function PelaksanaCard({
   galat,
   onUbah,
   onHapus,
-  stId,
 }: {
   nomor: number
   /** Sub-tab yang sedang dibuka; dipegang pemanggil supaya "perlu dilengkapi" bisa membukanya. */
@@ -58,13 +57,11 @@ export function PelaksanaCard({
   galat?: PetaGalat
   onUbah: (fn: (p: PelaksanaPayload) => PelaksanaPayload) => void
   onHapus: () => void
-  stId?: number | null
 }) {
   const [dialogHapus, setDialogHapus] = useState(false)
   const adaGalat = !!galat && Object.keys(galat).length > 0
   const id = (k: string) => `pel-${nomor}-${k}`
   const cfg = p.status ? sbm.statusKonfigurasi[p.status] : undefined
-  const pelaksanaId = p && 'id' in p ? ((p as { id?: number }).id ?? null) : null
 
   const jumlahPeringatan = hasil?.peringatan.length ?? 0
   const isCatatanTransportTiket = (c: string) => {
@@ -167,10 +164,6 @@ export function PelaksanaCard({
                 provinsi={provinsi}
                 provinsiKedudukan={provinsiKedudukan}
                 onUbah={onUbah}
-                stId={stId}
-                pelaksanaIdx={nomor - 1}
-                pelaksanaNama={p.nama}
-                pelaksanaId={pelaksanaId}
                 terkunci={terkunci}
               />
 
@@ -219,11 +212,6 @@ export function PelaksanaCard({
                     sbm={sbm}
                     peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
                     onUbah={(patch) => onUbah((x) => ubahEtape(x, i, patch, sbm))}
-                    stId={stId}
-                    pelaksanaIdx={nomor - 1}
-                    pelaksanaNama={p.nama}
-                    pelaksanaId={pelaksanaId}
-                    terkunci={terkunci}
                   />
                 ))}
               </BlokForm>

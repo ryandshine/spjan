@@ -26,7 +26,6 @@ export function TabPelaksanaSt({
   onUbah,
   onHapus,
   onTambah,
-  stId,
 }: {
   pelaksana: PelaksanaPayload[]
   kunci: string[]
@@ -45,7 +44,6 @@ export function TabPelaksanaSt({
   onUbah: (indeks: number, fn: (p: PelaksanaPayload) => PelaksanaPayload) => void
   onHapus: (indeks: number) => void
   onTambah: () => void
-  stId?: number | null
 }) {
   const i = Math.min(aktif, pelaksana.length - 1)
   const p = pelaksana[i]
@@ -81,7 +79,6 @@ export function TabPelaksanaSt({
           terkunci={terkunci}
           onUbah={(fn) => onUbah(i, fn)}
           onHapus={() => onHapus(i)}
-          stId={stId}
         />
       ) : (
         <p className="hidden rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground md:block">

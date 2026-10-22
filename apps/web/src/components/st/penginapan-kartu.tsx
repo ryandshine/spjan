@@ -24,7 +24,6 @@ import {
 import { BagianTanggal } from '@/components/st/bagian-tanggal'
 import { DasarAturan } from '@/components/st/dasar-aturan'
 import { RupiahInput } from '@/components/st/rupiah-input'
-import { WidgetBuktiHotel } from '@/components/st/widget-bukti-hotel'
 import { Button } from '@/components/ui/button'
 import { Istilah } from '@/components/ui/istilah'
 import { Label } from '@/components/ui/label'
@@ -46,11 +45,6 @@ export function PenginapanEtapeKartu({
   sbm,
   peringatan,
   onUbah,
-  stId,
-  pelaksanaIdx,
-  pelaksanaNama,
-  pelaksanaId,
-  terkunci = false,
 }: {
   idAwal: string
   nomor: number
@@ -60,11 +54,6 @@ export function PenginapanEtapeKartu({
   sbm?: Sbm
   peringatan: Peringatan[]
   onUbah: (patch: Partial<EtapePayload>) => void
-  stId?: number | null
-  pelaksanaIdx?: number
-  pelaksanaNama?: string
-  pelaksanaId?: number | null
-  terkunci?: boolean
 }) {
   const { hari, malam } = ringkasEtape(etape)
   const peringatanKode = (kode: string) => peringatan.find((w) => w.kode === kode)?.pesan
@@ -99,23 +88,6 @@ export function PenginapanEtapeKartu({
   return (
     <div className="grid gap-4 border-t pt-5 first:border-t-0 first:pt-0">
       <h4 className="text-base font-semibold">{judulBaris}</h4>
-      {stId !== undefined && stId !== null ? (
-        <WidgetBuktiHotel
-          stId={stId}
-          pelaksanaIdx={pelaksanaIdx ?? 0}
-          etapeIdx={nomor - 1}
-          pelaksanaNama={pelaksanaNama ?? ''}
-          pelaksanaId={pelaksanaId ?? null}
-          terkunci={terkunci}
-          onTerapkan={(usulan) => {
-            onUbah({
-              hotelNama: usulan.ekstraksi.namaHotel,
-              hotelTarif: usulan.tarifRiilPerMalam,
-              malamOverride: usulan.malam,
-            })
-          }}
-        />
-      ) : null}
       {tanpaMenginap ? (
         <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
           <BedDoubleIcon className="size-4 shrink-0" aria-hidden />

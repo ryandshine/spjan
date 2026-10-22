@@ -3,7 +3,6 @@ import {
   AlertCircleIcon,
   BedDoubleIcon,
   CheckCircle2Icon,
-  CheckCheckIcon,
   CheckIcon,
   ClockIcon,
   ExternalLinkIcon,
@@ -14,7 +13,6 @@ import {
   Maximize2Icon,
   PlaneIcon,
   RotateCcwIcon,
-  SparklesIcon,
   Trash2Icon,
   UploadCloudIcon,
 } from 'lucide-react'
@@ -283,39 +281,10 @@ export function BuktiPanel({
     }
   }
 
-  // Hitung jumlah bukti yang siap dikonfirmasi per nama
-  const hotelBelumKonfirmasi = (usulanHotelList ?? []).filter((u) => u.usulanStatus === 'menunggu')
-  const transportBelumKonfirmasi = (usulanTransportList ?? []).filter((u) => u.usulanStatus === 'menunggu')
-  const totalBelumKonfirmasi = hotelBelumKonfirmasi.length + transportBelumKonfirmasi.length
-
-  const hotelCocok = hotelBelumKonfirmasi.filter((u) => u.pelaksanaIndex >= 0)
-  const transportCocok = transportBelumKonfirmasi.filter((u) => u.pelaksanaIndex >= 0)
-  const totalCocok = hotelCocok.length + transportCocok.length
-
-  async function handleKonfirmasiSemuaCocok() {
-    let sukses = 0
-    for (const h of hotelCocok) {
-      try {
-        await handleKonfirmasiHotel(h, h.pelaksanaIndex)
-        sukses++
-      } catch {
-        // continue
-      }
-    }
-    for (const t of transportCocok) {
-      try {
-        await handleKonfirmasiTransport(t, t.pelaksanaIndex)
-        sukses++
-      } catch {
-        // continue
-      }
-    }
-    if (sukses > 0) {
-      toast.success(`${sukses} bukti pengeluaran berhasil dikonfirmasi ke masing-masing personel.`)
-      qc.invalidateQueries({ queryKey: ['berkas'] })
-      qc.invalidateQueries({ queryKey: ['st', stId] })
-    }
-  }
+  // Hitung jumlah bukti yang nama di dokumennya tidak cocok dengan pelaksana mana pun
+  const hotelUnmatched = (usulanHotelList ?? []).filter((u) => u.usulanStatus === 'menunggu' && u.pelaksanaIndex < 0)
+  const transportUnmatched = (usulanTransportList ?? []).filter((u) => u.usulanStatus === 'menunggu' && u.pelaksanaIndex < 0)
+  const totalUnmatched = hotelUnmatched.length + transportUnmatched.length
 
   return (
     <Card>
@@ -362,31 +331,13 @@ export function BuktiPanel({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Banner Konfirmasi Per Nama */}
-        {totalBelumKonfirmasi > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/10 p-3.5">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <SparklesIcon className="size-5 text-primary shrink-0" aria-hidden />
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  {totalBelumKonfirmasi} Bukti Pengeluaran Siap Dikonfirmasi Per Nama
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Periksa nama personel yang tertera di kolom konfirmasi sebelum melanjutkan ke tahap rincian biaya.
-                </p>
-              </div>
-            </div>
-            {totalCocok > 0 && (
-              <Button
-                size="sm"
-                onClick={() => void handleKonfirmasiSemuaCocok()}
-                disabled={updateUsulan.isPending}
-                className="gap-1.5"
-              >
-                <CheckCheckIcon className="size-4" />
-                Konfirmasi Semua yang Cocok Nama ({totalCocok})
-              </Button>
-            )}
+        {/* Notifikasi jika ada berkas yang namanya tidak cocok dengan pelaksana */}
+        {totalUnmatched > 0 && (
+          <div className="flex items-center gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
+            <AlertCircleIcon className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>
+              Ada <strong>{totalUnmatched} berkas</strong> yang nama di dokumennya belum cocok dengan nama pelaksana ST. Silakan tentukan pelaksana pada baris berkas di bawah.
+            </span>
           </div>
         )}
 
@@ -526,54 +477,63 @@ export function BuktiPanel({
 
                             {hotelItem.usulanStatus === 'diterapkan' ? (
                               <div className="flex flex-wrap items-center gap-1.5">
-                                <Badge variant="success" className="text-[11px] gap-1">
+                                <Badge variant="success" className="text-[11px] gap-1 font-normal">
                                   <CheckCircle2Icon className="size-3" />
-                                  Dikonfirmasi: {pelaksanaList[hotelItem.pelaksanaIndex]?.nama || hotelItem.pelaksanaNama || 'Pelaksana'}
+                                  Diterapkan untuk: <strong className="font-semibold">{pelaksanaList[hotelItem.pelaksanaIndex]?.nama || hotelItem.pelaksanaNama || 'Pelaksana'}</strong>
                                 </Badge>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
                                   onClick={() => void handleBatalHotel(hotelItem)}
+                                  title="Ubah pelaksana penginapan"
                                 >
                                   Ubah
                                 </Button>
                               </div>
+                            ) : hotelItem.pelaksanaIndex >= 0 ? (
+                              <Badge variant="outline" className="text-[11px] gap-1 text-muted-foreground">
+                                <Loader2Icon className="size-3 animate-spin text-primary" />
+                                Menerapkan ke {pelaksanaList[hotelItem.pelaksanaIndex]?.nama || hotelItem.pelaksanaNama}...
+                              </Badge>
                             ) : (
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                {pelaksanaList.length > 0 ? (
-                                  <select
-                                    value={pilihanPelaksana[`hotel-${hotelItem.berkasId}`] ?? (hotelItem.pelaksanaIndex >= 0 ? hotelItem.pelaksanaIndex : 0)}
-                                    onChange={(e) =>
-                                      setPilihanPelaksana((prev) => ({
-                                        ...prev,
-                                        [`hotel-${hotelItem.berkasId}`]: Number(e.target.value),
-                                      }))
-                                    }
-                                    className="h-7 rounded border bg-background px-2 text-xs text-foreground focus:ring-1 focus:ring-primary max-w-[180px]"
+                              <div className="flex flex-col gap-1">
+                                <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                                  <AlertCircleIcon className="size-3" /> Tamu tidak cocok pelaksana ST
+                                </span>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  {pelaksanaList.length > 0 ? (
+                                    <select
+                                      value={pilihanPelaksana[`hotel-${hotelItem.berkasId}`] ?? 0}
+                                      onChange={(e) =>
+                                        setPilihanPelaksana((prev) => ({
+                                          ...prev,
+                                          [`hotel-${hotelItem.berkasId}`]: Number(e.target.value),
+                                        }))
+                                      }
+                                      className="h-7 rounded border bg-background px-2 text-xs text-foreground focus:ring-1 focus:ring-primary max-w-[180px]"
+                                    >
+                                      {pelaksanaList.map((p, idx) => (
+                                        <option key={idx} value={idx}>
+                                          {idx + 1}. {p.nama || `Pelaksana ${idx + 1}`}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : null}
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    disabled={pelaksanaList.length === 0 || updateUsulan.isPending}
+                                    className="h-7 text-xs px-2.5 gap-1"
+                                    onClick={() => {
+                                      const targetIdx = pilihanPelaksana[`hotel-${hotelItem.berkasId}`] ?? 0
+                                      void handleKonfirmasiHotel(hotelItem, targetIdx)
+                                    }}
                                   >
-                                    {pelaksanaList.map((p, idx) => (
-                                      <option key={idx} value={idx}>
-                                        {idx + 1}. {p.nama || `Pelaksana ${idx + 1}`}
-                                      </option>
-                                    ))}
-                                  </select>
-                                ) : null}
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  disabled={pelaksanaList.length === 0 || updateUsulan.isPending}
-                                  className="h-7 text-xs px-2.5 gap-1"
-                                  onClick={() => {
-                                    const targetIdx =
-                                      pilihanPelaksana[`hotel-${hotelItem.berkasId}`] ??
-                                      (hotelItem.pelaksanaIndex >= 0 ? hotelItem.pelaksanaIndex : 0)
-                                    void handleKonfirmasiHotel(hotelItem, targetIdx)
-                                  }}
-                                >
-                                  <CheckIcon className="size-3.5" />
-                                  Konfirmasi
-                                </Button>
+                                    <CheckIcon className="size-3.5" />
+                                    Terapkan
+                                  </Button>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -604,49 +564,60 @@ export function BuktiPanel({
 
                                   {isDiterapkan ? (
                                     <div className="flex flex-wrap items-center gap-1.5">
-                                      <Badge variant="success" className="text-[11px] gap-1">
+                                      <Badge variant="success" className="text-[11px] gap-1 font-normal">
                                         <CheckCircle2Icon className="size-3" />
-                                        Dikonfirmasi: {pelaksanaList[tItem.pelaksanaIndex]?.nama || tItem.pelaksanaNama || 'Pelaksana'}
+                                        Diterapkan untuk: <strong className="font-semibold">{pelaksanaList[tItem.pelaksanaIndex]?.nama || tItem.pelaksanaNama || 'Pelaksana'}</strong>
                                       </Badge>
                                       <Button
                                         variant="ghost"
                                         size="sm"
                                         className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
                                         onClick={() => void handleBatalTransport(tItem)}
+                                        title="Ubah pelaksana tiket"
                                       >
                                         Ubah
                                       </Button>
                                     </div>
+                                  ) : tItem.pelaksanaIndex >= 0 ? (
+                                    <Badge variant="outline" className="text-[11px] gap-1 text-muted-foreground">
+                                      <Loader2Icon className="size-3 animate-spin text-primary" />
+                                      Menerapkan ke {pelaksanaList[tItem.pelaksanaIndex]?.nama || tItem.pelaksanaNama}...
+                                    </Badge>
                                   ) : (
-                                    <div className="flex flex-wrap items-center gap-1.5">
-                                      {pelaksanaList.length > 0 ? (
-                                        <select
-                                          value={terpilihIdx}
-                                          onChange={(e) =>
-                                            setPilihanPelaksana((prev) => ({
-                                              ...prev,
-                                              [itemKey]: Number(e.target.value),
-                                            }))
-                                          }
-                                          className="h-7 rounded border bg-background px-2 text-xs text-foreground focus:ring-1 focus:ring-primary max-w-[180px]"
+                                    <div className="flex flex-col gap-1">
+                                      <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                                        <AlertCircleIcon className="size-3" /> Penumpang tidak cocok pelaksana ST
+                                      </span>
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        {pelaksanaList.length > 0 ? (
+                                          <select
+                                            value={terpilihIdx}
+                                            onChange={(e) =>
+                                              setPilihanPelaksana((prev) => ({
+                                                ...prev,
+                                                [itemKey]: Number(e.target.value),
+                                              }))
+                                            }
+                                            className="h-7 rounded border bg-background px-2 text-xs text-foreground focus:ring-1 focus:ring-primary max-w-[180px]"
+                                          >
+                                            {pelaksanaList.map((p, idx) => (
+                                              <option key={idx} value={idx}>
+                                                {idx + 1}. {p.nama || `Pelaksana ${idx + 1}`}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        ) : null}
+                                        <Button
+                                          size="sm"
+                                          variant="default"
+                                          disabled={pelaksanaList.length === 0 || updateUsulan.isPending}
+                                          className="h-7 text-xs px-2.5 gap-1"
+                                          onClick={() => void handleKonfirmasiTransport(tItem, terpilihIdx)}
                                         >
-                                          {pelaksanaList.map((p, idx) => (
-                                            <option key={idx} value={idx}>
-                                              {idx + 1}. {p.nama || `Pelaksana ${idx + 1}`}
-                                            </option>
-                                          ))}
-                                        </select>
-                                      ) : null}
-                                      <Button
-                                        size="sm"
-                                        variant="default"
-                                        disabled={pelaksanaList.length === 0 || updateUsulan.isPending}
-                                        className="h-7 text-xs px-2.5 gap-1"
-                                        onClick={() => void handleKonfirmasiTransport(tItem, terpilihIdx)}
-                                      >
-                                        <CheckIcon className="size-3.5" />
-                                        Konfirmasi
-                                      </Button>
+                                          <CheckIcon className="size-3.5" />
+                                          Terapkan
+                                        </Button>
+                                      </div>
                                     </div>
                                   )}
                                 </div>

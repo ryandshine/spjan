@@ -31,11 +31,19 @@ export function WidgetBuktiHotel({
     return null
   }
 
-  // Tampilkan usulan yang cocok untuk pelaksana & etape ini, atau semua usulan yang belum diterapkan
+  // Tampilkan HANYA usulan hotel yang cocok untuk pelaksana & etape ini,
+  // atau usulan umum tanpa nama tamu yang belum diterapkan.
   const usulanRelevan = usulanList.filter((u) => {
-    const cocokPosisi = u.pelaksanaIndex === pelaksanaIdx && u.etapeIndex === etapeIdx
-    const belumTerikat = u.pelaksanaIndex === -1 || u.pelaksanaId === null || u.pelaksanaId === pelaksanaId
-    return cocokPosisi || belumTerikat
+    // 1. Usulan cocok dengan pelaksana dan etape ini:
+    if (u.pelaksanaIndex === pelaksanaIdx && u.etapeIndex === etapeIdx) {
+      return true
+    }
+    // 2. Usulan cocok dengan pelaksana lain atau etape lain -> jangan pernah tampilkan di sini
+    if (u.pelaksanaIndex >= 0 && (u.pelaksanaIndex !== pelaksanaIdx || u.etapeIndex !== etapeIdx)) {
+      return false
+    }
+    // 3. Usulan umum (tanpa nama tamu yang cocok) yang belum diterapkan:
+    return u.pelaksanaIndex === -1 && u.usulanStatus !== 'diterapkan'
   })
 
   if (usulanRelevan.length === 0) {

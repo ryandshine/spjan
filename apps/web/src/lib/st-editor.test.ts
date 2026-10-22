@@ -1,11 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { biayaKosong, pelaksanaKosong, stKosong, type PegawaiDto, type SuratTugasPayload } from '@spjan/shared'
+import {
+  biayaKosong,
+  pelaksanaKosong,
+  stKosong,
+  type PegawaiDto,
+  type SuratTugasPayload,
+  type UsulanHotelItem,
+  type UsulanTransportItem,
+} from '@spjan/shared'
 
 import {
   cariPegawaiPejabat,
   pejabatDariPegawai,
   rincianTotal,
   sesuaikanKodeAkun,
+  sinkronkanSemuaUsulanOtomatis,
+  sudahAdaBiayaTiket,
   tabBergalat,
   tambahBiayaKePelaksana,
 } from './st-editor'
@@ -99,5 +109,118 @@ describe('rincianTotal', () => {
 
   it('mengembalikan nol untuk daftar kosong', () => {
     expect(rincianTotal([]).every((r) => r.nilai === 0)).toBe(true)
+  })
+})
+
+describe('sinkronkanSemuaUsulanOtomatis', () => {
+  const usulanTiket = (sebagian: Partial<UsulanTransportItem>): UsulanTransportItem => ({
+    berkasId: 10,
+    namaBerkas: 'tiket_riandi.pdf',
+    kategoriBerkas: 'tiket',
+    ekstraksi: {
+      maskapai: 'Garuda Indonesia',
+      nomorPenerbangan: 'GA 600',
+      asal: 'Jakarta (CGK)',
+      tujuan: 'Manado (MDC)',
+      tanggal: '2026-09-12',
+      penumpang: 'Riandi Eko Priantoro',
+      tarif: 4645946,
+      nomorTiket: '126-2134567890',
+      kodeBooking: 'ABCDEF',
+      jam: '08:00',
+      arah: 'pergi',
+      daftarPenumpang: ['Riandi Eko Priantoro'],
+      basisTarif: 'total',
+    },
+    usulanStatus: 'menunggu',
+    jumlahPenerima: 1,
+    pelaksanaId: null,
+    pelaksanaIndex: 0,
+    etapeIndex: 0,
+    pelaksanaNama: 'Riandi Eko Priantoro',
+    jenisBiaya: 'TIKET_PERGI',
+    uraianBiaya: 'Tiket Pesawat Jakarta (CGK) - Manado (MDC) (GA 600)',
+    tarifRiil: 4645946,
+    qty: 1,
+    satuan: 'orang',
+    provinsi: 'Sulawesi Utara',
+    keterangan: 'Tgl: 2026-09-12 · tiket_riandi.pdf',
+    peringatan: [],
+    ...sebagian,
+  })
+
+  const usulanHotel = (sebagian: Partial<UsulanHotelItem>): UsulanHotelItem => ({
+    berkasId: 20,
+    namaBerkas: 'bill_hotel.pdf',
+    ekstraksi: {
+      namaHotel: 'Hotel Ibis Manado',
+      nomorInvoice: null,
+      tamu: 'Riandi Eko Priantoro',
+      checkIn: '2026-09-12',
+      checkOut: '2026-09-15',
+      jumlahMalam: 3,
+      tarifPerMalam: 650000,
+      totalBiaya: 1950000,
+    },
+    usulanStatus: 'menunggu',
+    pelaksanaId: null,
+    pelaksanaIndex: 0,
+    etapeIndex: 0,
+    pelaksanaNama: 'Riandi Eko Priantoro',
+    kota: 'Manado',
+    provinsi: 'Sulawesi Utara',
+    malam: 3,
+    tarifRiilPerMalam: 650000,
+    totalRiil: 1950000,
+    plafonSbmPerMalam: 800000,
+    statusPlafon: 'sesuai',
+    selisihPlafon: 0,
+    peringatan: [],
+    ...sebagian,
+  })
+
+  it('otomatis memasukkan biaya tiket ke pelaksana yang cocok tanpa duplikasi', () => {
+    const st = stDenganPelaksana(1)
+    const t = usulanTiket({})
+    const res = sinkronkanSemuaUsulanOtomatis(st, [], [t])
+    expect(res.transportBerkasIds).toContain(10)
+    expect(res.stBaru.pelaksana[0]?.biaya).toHaveLength(1)
+    expect(res.stBaru.pelaksana[0]?.biaya[0]?.tarif).toBe(4645946)
+
+    // Jika disinkronkan lagi, tidak menambah baris duplikat
+    const res2 = sinkronkanSemuaUsulanOtomatis(res.stBaru, [], [t])
+    expect(res2.stBaru.pelaksana[0]?.biaya).toHaveLength(1)
+  })
+
+  it('otomatis mengisi penginapan etape pada pelaksana yang cocok', () => {
+    const st = stDenganPelaksana(1)
+    const h = usulanHotel({})
+    const res = sinkronkanSemuaUsulanOtomatis(st, [h], [])
+    expect(res.hotelBerkasIds).toContain(20)
+    expect(res.stBaru.pelaksana[0]?.etape[0]?.hotelNama).toBe('Hotel Ibis Manado')
+    expect(res.stBaru.pelaksana[0]?.etape[0]?.hotelTarif).toBe(650000)
+    expect(res.stBaru.pelaksana[0]?.etape[0]?.malamOverride).toBe(3)
+  })
+
+  it('mengabaikan berkas yang statusnya bukan menunggu atau pelaksanaIndex < 0', () => {
+    const st = stDenganPelaksana(1)
+    const tSudah = usulanTiket({ usulanStatus: 'diterapkan' })
+    const tTanpaNama = usulanTiket({ pelaksanaIndex: -1 })
+    const res = sinkronkanSemuaUsulanOtomatis(st, [], [tSudah, tTanpaNama])
+    expect(res.transportBerkasIds).toHaveLength(0)
+    expect(res.stBaru.pelaksana[0]?.biaya).toHaveLength(0)
+  })
+
+  it('sudahAdaBiayaTiket mendeteksi kesamaan nomor tiket atau nama berkas', () => {
+    const t = usulanTiket({})
+    const biayaList = [
+      {
+        ...biayaKosong('TIKET_PERGI'),
+        keterangan: 'Tgl: 2026-09-12 · tiket_riandi.pdf',
+        tarif: 4645946,
+      },
+    ]
+    expect(sudahAdaBiayaTiket(biayaList, t)).toBe(true)
+    expect(sudahAdaBiayaTiket([], t)).toBe(false)
   })
 })
