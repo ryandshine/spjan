@@ -611,6 +611,7 @@ function Editor({
               pegawai={daftarPegawai}
               provinsi={provinsi}
               provinsiKedudukan={pengaturan.provinsiKedudukan}
+              kotaKedudukan={pengaturan.kotaKedudukan}
               peta={peta}
               terkunci={terkunci}
               aktif={daftarPelaksana.aktif}

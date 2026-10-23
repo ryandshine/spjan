@@ -54,6 +54,8 @@ interface PelRow {
   pegawai_id: number | null;
   no_spd: string | null;
   tanggal_spd: string | null;
+  kota_kedudukan: string | null;
+  provinsi_kedudukan: string | null;
   nama: string;
   nip: string;
   jabatan: string;
@@ -140,6 +142,8 @@ export async function getSuratTugas(db: Db, id: number): Promise<SuratTugasDto |
       status: p.status_kode,
       noSpd: p.no_spd,
       tanggalSpd: p.tanggal_spd ? String(p.tanggal_spd).slice(0, 10) : null,
+      kotaKedudukan: p.kota_kedudukan ?? undefined,
+      provinsiKedudukan: p.provinsi_kedudukan ?? undefined,
       etape: etape
         .filter((e) => e.pelaksana_id === p.id)
         .map((e) => ({
@@ -179,9 +183,9 @@ export async function getSuratTugas(db: Db, id: number): Promise<SuratTugasDto |
 async function sisipkanPelaksana(client: PoolClient, stId: number, pelaksana: SuratTugasPayload["pelaksana"]): Promise<void> {
   for (const [i, p] of pelaksana.entries()) {
     const { rows } = await client.query<{ id: number }>(
-      `insert into pelaksana (st_id, urutan, pegawai_id, no_spd, tanggal_spd, nama, nip, jabatan, instansi, pangkat_golongan, status_kode)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id`,
-      [stId, i, p.pegawaiId ?? null, p.noSpd ?? null, p.tanggalSpd ?? null, p.nama, p.nip, p.jabatan, p.instansi?.trim() || INSTANSI_BAWAAN, p.pangkatGolongan?.trim() ?? "", p.status],
+      `insert into pelaksana (st_id, urutan, pegawai_id, no_spd, tanggal_spd, nama, nip, jabatan, instansi, pangkat_golongan, status_kode, kota_kedudukan, provinsi_kedudukan)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning id`,
+      [stId, i, p.pegawaiId ?? null, p.noSpd ?? null, p.tanggalSpd ?? null, p.nama, p.nip, p.jabatan, p.instansi?.trim() || INSTANSI_BAWAAN, p.pangkatGolongan?.trim() ?? "", p.status, p.kotaKedudukan?.trim() || null, p.provinsiKedudukan?.trim() || null],
     );
     const pelId = (rows[0] as { id: number }).id;
     for (const [j, e] of p.etape.entries()) {

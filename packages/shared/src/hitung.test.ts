@@ -912,3 +912,19 @@ describe("hitungSpj - paket pertemuan / fullboard", () => {
   });
 });
 
+
+describe("hitungSpj - kedudukan per pelaksana", () => {
+  it("pelaksana dari provinsi lain memakai kedudukannya sendiri; yang kosong ikut Pengaturan", () => {
+    const makassar: PelaksanaInput = { ...resa, kotaKedudukan: "Makassar", provinsiKedudukan: "SULAWESI SELATAN" };
+    const [a, b] = hitungSpj(spj([makassar, resa]), SBM_2026).pelaksana;
+    expect(a!.kotaKedudukan).toBe("Makassar");
+    expect(a!.rute).toBe("Makassar - Denpasar");
+    expect(a!.transport.map((r) => r.uraian)).toEqual([
+      "Tiket Pesawat Makassar ke Denpasar",
+      "Tiket Pesawat Denpasar ke Makassar",
+      "Taksi dari tempat kedudukan - Bandara Makassar (PP)",
+    ]);
+    expect(b!.kotaKedudukan).toBe("Jakarta");
+    expect(b!.transport[0]!.uraian).toBe("Tiket Pesawat Jakarta ke Denpasar");
+  });
+});

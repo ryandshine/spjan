@@ -39,6 +39,7 @@ export function PelaksanaCard({
   pegawai,
   provinsi,
   provinsiKedudukan,
+  kotaKedudukan,
   galat,
   onUbah,
   onHapus,
@@ -54,7 +55,9 @@ export function PelaksanaCard({
   sbm: Sbm
   pegawai: PegawaiDto[]
   provinsi: string[]
+  /** Kedudukan bawaan dari Pengaturan; tiap pelaksana boleh menimpanya. */
   provinsiKedudukan?: string | null
+  kotaKedudukan?: string | null
   /** Galat validasi per kolom untuk pelaksana ini (kunci relatif: nama, nip, etape.0.kota, ...). */
   galat?: PetaGalat
   onUbah: (fn: (p: PelaksanaPayload) => PelaksanaPayload) => void
@@ -139,7 +142,16 @@ export function PelaksanaCard({
         <TabPanel idAwal={`pel-${nomor}-bagian`} kunci="perjalanan" aktif={bagian === 'perjalanan'}>
           <KelompokIsian terkunci={terkunci}>
             <div className="grid gap-5">
-              <BlokIdentitasPelaksana nomor={nomor} p={p} hasil={hasil} pegawai={pegawai} galat={galat} onUbah={onUbah} />
+              <BlokIdentitasPelaksana
+                nomor={nomor}
+                p={p}
+                hasil={hasil}
+                pegawai={pegawai}
+                provinsi={provinsi}
+                kedudukanDasar={{ kota: kotaKedudukan ?? '', provinsi: provinsiKedudukan ?? '' }}
+                galat={galat}
+                onUbah={onUbah}
+              />
 
               <BlokForm judul="Tujuan Perjalanan">
                 {p.etape.map((e, i) => (
@@ -190,7 +202,7 @@ export function PelaksanaCard({
                 hasil={hasil}
                 sbm={sbm}
                 provinsi={provinsi}
-                provinsiKedudukan={provinsiKedudukan}
+                provinsiKedudukan={p.provinsiKedudukan?.trim() || provinsiKedudukan}
                 onUbah={onUbah}
                 terkunci={terkunci}
               />

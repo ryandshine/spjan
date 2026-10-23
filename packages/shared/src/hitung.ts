@@ -384,7 +384,13 @@ function jumlah(baris: BarisBiaya[]): number {
   return baris.reduce((s, r) => s + r.jumlah, 0);
 }
 
-function hitungPelaksana(p: PelaksanaInput, input: SpjInput, sbm: Sbm): PelaksanaHasil {
+function hitungPelaksana(p: PelaksanaInput, inputDasar: SpjInput, sbm: Sbm): PelaksanaHasil {
+  // Kedudukan bisa berbeda per pelaksana (mis. berangkat dari provinsi lain); kosong = ikut Pengaturan.
+  const input: SpjInput = {
+    ...inputDasar,
+    kotaKedudukan: p.kotaKedudukan?.trim() || inputDasar.kotaKedudukan,
+    provinsiKedudukan: p.provinsiKedudukan?.trim() || inputDasar.provinsiKedudukan,
+  };
   const peringatan: Peringatan[] = [];
   const catatan: string[] = [];
   if (!p.status) peringatan.push({ kode: "STATUS_PEGAWAI_KOSONG", pesan: "Status/golongan pegawai belum dipilih." });
@@ -535,6 +541,7 @@ function urutanBiayaTransport(jenis: JenisBiaya): number {
     noSpd: (p.noSpd ?? "").trim(),
     tanggalSpd: p.tanggalSpd ?? null,
     teksTanggalSpd: p.tanggalSpd ? tanggalIndonesia(p.tanggalSpd) : "",
+    kotaKedudukan: input.kotaKedudukan,
     rute,
     transport,
     uangHarian,

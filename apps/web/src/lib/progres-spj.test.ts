@@ -53,6 +53,7 @@ describe('hitungProgresSpj', () => {
       noSpd: 'SPD/01',
       tanggalSpd: '2026-10-01',
       teksTanggalSpd: '1 Oktober 2026',
+      kotaKedudukan: 'Jakarta',
       rute: 'Jakarta - Bandung',
       total: 1000000,
       totalUangHarian: 500000,

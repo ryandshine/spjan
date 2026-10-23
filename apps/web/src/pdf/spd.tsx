@@ -363,7 +363,7 @@ export function SpdPage({
         <View style={s.barisTanpaBawah} wrap={false}>
           <Text style={s.kolNo}>6</Text>
           <Text style={s.kolLabel}>a.  Tempat Berangkat</Text>
-          <Text style={s.kolIsi}>{pp.kotaKedudukan || 'Jakarta'}</Text>
+          <Text style={s.kolIsi}>{p.kotaKedudukan || pp.kotaKedudukan || 'Jakarta'}</Text>
         </View>
         <View style={s.baris} wrap={false}>
           <Text style={s.kolNo} />

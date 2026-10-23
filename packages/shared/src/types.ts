@@ -131,6 +131,9 @@ export interface PelaksanaInput {
   noSpd?: string | null;
   /** YYYY-MM-DD */
   tanggalSpd?: string | null;
+  /** Kedudukan pelaksana; kosong = pakai kedudukan di SpjInput. */
+  kotaKedudukan?: string | null;
+  provinsiKedudukan?: string | null;
   etape: EtapeInput[];
   biaya: BiayaInput[];
 }
@@ -183,6 +186,8 @@ export interface PelaksanaHasil {
   noSpd: string;
   tanggalSpd: string | null;
   teksTanggalSpd: string;
+  /** Kota kedudukan yang dipakai menghitung pelaksana ini (kedudukan sendiri atau dari Pengaturan). */
+  kotaKedudukan: string;
   rute: string;
   transport: BarisBiaya[];
   uangHarian: BarisBiaya[];

@@ -29,6 +29,8 @@ export function BlokIdentitasPelaksana({
   p,
   hasil,
   pegawai,
+  provinsi,
+  kedudukanDasar,
   galat,
   onUbah,
 }: {
@@ -36,6 +38,9 @@ export function BlokIdentitasPelaksana({
   p: PelaksanaPayload
   hasil: PelaksanaHasil | undefined
   pegawai: PegawaiDto[]
+  provinsi: string[]
+  /** Tempat kedudukan dari Pengaturan, dipakai bila pelaksana tidak mengisi sendiri. */
+  kedudukanDasar: { kota: string; provinsi: string }
   galat?: PetaGalat
   onUbah: (fn: (p: PelaksanaPayload) => PelaksanaPayload) => void
 }) {
@@ -103,6 +108,45 @@ export function BlokIdentitasPelaksana({
               {STATUS_KODE.map((k) => (
                 <option key={k} value={k}>
                   {STATUS_LABEL[k]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field
+            label="Kota tempat kedudukan"
+            htmlFor={id('kota-kedudukan')}
+            mode="otomatis"
+            otomatisAktif={!p.kotaKedudukan}
+            onKembaliOtomatis={() => onUbah((x) => ({ ...x, kotaKedudukan: null }))}
+            hint={`Kota asal berangkat. Otomatis: ${kedudukanDasar.kota || '-'} (Pengaturan).`}
+          >
+            <Input
+              id={id('kota-kedudukan')}
+              placeholder={kedudukanDasar.kota}
+              value={p.kotaKedudukan ?? ''}
+              onChange={(e) => onUbah((x) => ({ ...x, kotaKedudukan: e.target.value || null }))}
+            />
+          </Field>
+          <Field
+            label="Provinsi tempat kedudukan"
+            htmlFor={id('prov-kedudukan')}
+            mode="otomatis"
+            otomatisAktif={!p.provinsiKedudukan}
+            onKembaliOtomatis={() => onUbah((x) => ({ ...x, provinsiKedudukan: null }))}
+            hint={`Dipakai untuk pagu taksi asal. Otomatis: ${kedudukanDasar.provinsi || '-'} (Pengaturan).`}
+          >
+            <Select
+              id={id('prov-kedudukan')}
+              value={p.provinsiKedudukan ?? ''}
+              onChange={(e) => onUbah((x) => ({ ...x, provinsiKedudukan: e.target.value || null }))}
+            >
+              <option value="">- ikut Pengaturan -</option>
+              {p.provinsiKedudukan && !provinsi.includes(p.provinsiKedudukan) ? (
+                <option value={p.provinsiKedudukan}>{p.provinsiKedudukan}</option>
+              ) : null}
+              {provinsi.map((k) => (
+                <option key={k} value={k}>
+                  {k}
                 </option>
               ))}
             </Select>

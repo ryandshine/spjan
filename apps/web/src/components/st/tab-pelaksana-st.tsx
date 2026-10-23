@@ -17,6 +17,7 @@ export function TabPelaksanaSt({
   pegawai,
   provinsi,
   provinsiKedudukan,
+  kotaKedudukan,
   peta,
   terkunci,
   aktif,
@@ -34,6 +35,7 @@ export function TabPelaksanaSt({
   pegawai: PegawaiDto[]
   provinsi: string[]
   provinsiKedudukan: string
+  kotaKedudukan: string
   peta: PetaGalat
   terkunci: boolean
   /** Indeks pelaksana yang sedang dibuka. */
@@ -75,6 +77,7 @@ export function TabPelaksanaSt({
           pegawai={pegawai}
           provinsi={provinsi}
           provinsiKedudukan={provinsiKedudukan}
+          kotaKedudukan={kotaKedudukan}
           galat={cakupanGalat(peta, `pelaksana.${i}`)}
           terkunci={terkunci}
           onUbah={(fn) => onUbah(i, fn)}
