@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { AiGalat } from "../ai/klien.js";
 import { PNG_1X1, pdfSederhana } from "../test-support/helpers.js";
-import { bacaIsi } from "./baca-berkas.js";
+import { bacaIsi, rapatkanTeks } from "./baca-berkas.js";
 
 describe("bacaIsi", () => {
   it("gambar: diteruskan sebagai base64 tanpa teks", async () => {
@@ -36,5 +36,9 @@ describe("bacaIsi", () => {
     const galat = await bacaIsi("application/pdf", Buffer.from("%PDF-1.4\nini bukan pdf yang sah sama sekali")).catch((e) => e);
     expect(galat).toBeInstanceOf(AiGalat);
     expect(galat).toMatchObject({ kode: "BERKAS_TIDAK_TERBACA" });
+  });
+  it("rapatkanTeks: padding kolom dan baris kosong berlebih dirapatkan, isi dan batas kolom tetap", () => {
+    const masuk = "Kamar        Deluxe          850.000   \n\n\n\n\nTotal    1.700.000\n";
+    expect(rapatkanTeks(masuk)).toBe("Kamar  Deluxe  850.000\n\nTotal  1.700.000");
   });
 });

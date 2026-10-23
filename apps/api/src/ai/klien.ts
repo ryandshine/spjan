@@ -9,6 +9,8 @@ export interface PermintaanAi {
   /** JSON Schema untuk keluaran terstruktur. */
   skema?: object;
   timeoutMs?: number;
+  /** Batas token keluaran (`num_predict`); pagar agar jawaban yang melantur tidak berjalan sampai timeout. */
+  maksToken?: number;
 }
 
 export interface KlienAi {

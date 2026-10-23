@@ -88,4 +88,20 @@ describe("klienOllama", () => {
     const baseUrl = await mulai((_req, res) => res.end(JSON.stringify({ lain: 1 })));
     expect(await klienOllama.chat({ baseUrl, model: "m", prompt: "p" }).catch((e) => e)).toMatchObject({ kode: "HASIL_TIDAK_VALID" });
   });
+  it("maksToken dikirim sebagai num_predict; tanpa maksToken kunci itu tidak ada", async () => {
+    const diterima: Record<string, { options?: Record<string, unknown> }> = {};
+    const baseUrl = await mulai((req, res) => {
+      let body = "";
+      req.on("data", (c) => (body += c));
+      req.on("end", () => {
+        const b = JSON.parse(body) as { options?: Record<string, unknown>; messages: { content: string }[] };
+        diterima[b.messages[0]!.content] = b;
+        res.end(JSON.stringify({ message: { content: "ok" }, prompt_eval_count: 12, eval_count: 3, done_reason: "stop" }));
+      });
+    });
+    await klienOllama.chat({ baseUrl, model: "m", prompt: "dengan", maksToken: 512 });
+    await klienOllama.chat({ baseUrl, model: "m", prompt: "tanpa" });
+    expect(diterima["dengan"]?.options).toEqual({ temperature: 0, num_predict: 512 });
+    expect(diterima["tanpa"]?.options).toEqual({ temperature: 0 });
+  });
 });

@@ -45,6 +45,7 @@ export async function ekstrakTransport(
       prompt,
       gambar,
       skema: SKEMA_EKSTRAKSI_TRANSPORT,
+      maksToken: 4096,
     });
     try {
       const parsed = HasilEkstraksiTransportSchema.parse(uraikanJsonAi(balasan));

@@ -9,6 +9,18 @@ import { AiGalat } from "../ai/klien.js";
 
 const jalankan = promisify(execFile);
 
+/**
+ * Rapatkan teks hasil `pdftotext -layout`: spasi berderet (padding kolom) dan baris kosong berlebih menghabiskan token
+ * tanpa menambah isi. Dua spasi tetap dipertahankan supaya batas kolom masih terbaca.
+ */
+export function rapatkanTeks(teks: string): string {
+  return teks
+    .replace(/[ \t]+$/gm, "")
+    .replace(/[ \t]{3,}/g, "  ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export interface IsiBerkas {
   teks: string;
   /** Gambar base64 (tanpa prefiks data:). */
@@ -17,7 +29,8 @@ export interface IsiBerkas {
 
 const BATAS_TEKS = 12_000;
 const MIN_TEKS_PDF = 50;
-const MAKS_HALAMAN_GAMBAR = 3;
+// Semua ekstraktor hanya memakai gambar pertama, jadi cukup render halaman pertama.
+const MAKS_HALAMAN_GAMBAR = 1;
 
 export async function bacaIsi(mime: MimeBerkas, data: Buffer): Promise<IsiBerkas> {
   if (mime !== "application/pdf") return { teks: "", gambar: [data.toString("base64")] };
@@ -32,7 +45,7 @@ export async function bacaIsi(mime: MimeBerkas, data: Buffer): Promise<IsiBerkas
         maxBuffer: 20 * 1024 * 1024,
         timeout: 30_000,
       });
-      teks = stdout.trim();
+      teks = rapatkanTeks(stdout);
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") {
         throw new AiGalat("GALAT_INTERNAL", "Utilitas sistem pembaca PDF (pdftotext) tidak ditemukan.");

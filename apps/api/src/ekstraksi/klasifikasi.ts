@@ -33,7 +33,9 @@ export async function klasifikasiBerkas(
       model,
       prompt,
       skema: SKEMA_KLASIFIKASI,
-      ...(pakaiGambar ? { gambar: isi.gambar } : {}),
+      maksToken: 2048,
+      // Jenis dokumen cukup terlihat dari halaman pertama.
+      ...(pakaiGambar ? { gambar: [isi.gambar[0]!] } : {}),
     });
     try {
       return { model, hasil: HasilKlasifikasiSchema.parse(uraikanJsonAi(balasan)) };

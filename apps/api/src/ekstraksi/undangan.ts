@@ -39,7 +39,7 @@ export async function ekstrakUndangan(
   let prompt = promptDasar;
 
   for (let percobaan = 0; percobaan < 2; percobaan += 1) {
-    const balasan = await klien.chat({ baseUrl: konf.llmUrl, model, prompt, gambar, skema: SKEMA_EKSTRAKSI_UNDANGAN });
+    const balasan = await klien.chat({ baseUrl: konf.llmUrl, model, prompt, gambar, skema: SKEMA_EKSTRAKSI_UNDANGAN, maksToken: 4096 });
     try {
       return { model, hasil: HasilEkstraksiUndanganSchema.parse(uraikanJsonAi(balasan)) };
     } catch (error) {

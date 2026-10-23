@@ -63,8 +63,18 @@ const tambah = (data: Buffer, nama = "x") => tambahBerkas(pool, store, { stId: n
 const ekstraksiTerakhir = async (berkasId: number) =>
   (await pool.query("select * from ekstraksi where berkas_id = $1 order by id desc limit 1", [berkasId])).rows[0];
 
-afterEach(() => {
+/** Surat tugas kosong untuk menautkan berkas; membuat versi SBM minimal bila belum ada. */
+const buatSuratTugas = async (nomor: string): Promise<number> => {
+  await pool.query("insert into sbm_versi (tahun_anggaran, dasar_hukum, aktif, data) values (2026, 'uji-worker', false, '{}') on conflict do nothing");
+  const versi = ((await pool.query("select id from sbm_versi order by id limit 1")).rows[0] as { id: number }).id;
+  return ((await pool.query("insert into surat_tugas (nomor, tanggal, versi_sbm_id) values ($1, '2026-09-08', $2) returning id", [nomor, versi])).rows[0] as { id: number }).id;
+};
+
+afterEach(async () => {
   vi.restoreAllMocks();
+  // Versi SBM sementara milik tes ini tidak boleh tersisa: tes SBM menghitung jumlah versi.
+  await pool.query("truncate surat_tugas restart identity cascade");
+  await pool.query("delete from sbm_versi where dasar_hukum = 'uji-worker'");
 });
 
 describe("worker ekstraksi", () => {
@@ -212,5 +222,50 @@ describe("worker ekstraksi", () => {
     }
     await worker.henti();
     expect((await ekstraksiTerakhir(berkas.id)).status).toBe("selesai");
+  });
+  it("isi berkas yang sama persis di surat tugas lain memakai hasil lama tanpa memanggil model", async () => {
+    const buatSt = buatSuratTugas
+    const stA = await buatSt("ST-A");
+    const stB = await buatSt("ST-B");
+    const data = pngUnik();
+    const a = (await tambahBerkas(pool, store, { stId: stA, namaAsli: "inv.png", data, jenis: "hotel" })).dto;
+    const klienA = klienPalsu(() => hotelDetail);
+    await bikinWorker({ db: pool, store, klien: klienA, paralel: 1 }).jalankanSekali();
+    expect(klienA.panggilan).toHaveLength(1);
+    expect((await ekstraksiTerakhir(a.id)).status).toBe("selesai");
+
+    const b = (await tambahBerkas(pool, store, { stId: stB, namaAsli: "inv-salinan.png", data, jenis: "hotel" })).dto;
+    const klienB = klienPalsu(() => {
+      throw new Error("model tidak boleh dipanggil");
+    });
+    await bikinWorker({ db: pool, store, klien: klienB, paralel: 1 }).jalankanSekali();
+    expect(klienB.panggilan).toHaveLength(0);
+    const e = await ekstraksiTerakhir(b.id);
+    expect(e.status).toBe("selesai");
+    expect(e.hasil).toEqual((await ekstraksiTerakhir(a.id)).hasil);
+    expect(e.model).toBe((await ekstraksiTerakhir(a.id)).model);
+  });
+
+  it("jenis berbeda atau model berubah: tidak memakai hasil lama", async () => {
+    const buatSt = buatSuratTugas
+    const stA = await buatSt("ST-A");
+    const stB = await buatSt("ST-B");
+    const data = pngUnik();
+    await tambahBerkas(pool, store, { stId: stA, namaAsli: "x.png", data, jenis: "hotel" });
+    await bikinWorker({ db: pool, store, klien: klienPalsu(() => hotelDetail), paralel: 1 }).jalankanSekali();
+
+    // Berkas yang sama dipilih sebagai tiket: harus diekstrak sebagai tiket, bukan memakai hasil hotel.
+    await tambahBerkas(pool, store, { stId: stB, namaAsli: "x2.png", data, jenis: "tiket" });
+    const klienTiket = klienPalsu(() => tiketDetail);
+    await bikinWorker({ db: pool, store, klien: klienTiket, paralel: 1 }).jalankanSekali();
+    expect(klienTiket.panggilan).toHaveLength(1);
+
+    // Model diganti: hasil lama dari model lain tidak dipakai.
+    await saveModelAi(pool, { llmUrl: "http://x:1", modelTeks: "m-baru", modelGambar: "m-gambar-baru" });
+    const stC = await buatSt("ST-C");
+    await tambahBerkas(pool, store, { stId: stC, namaAsli: "x3.png", data, jenis: "hotel" });
+    const klienBaru = klienPalsu(() => hotelDetail);
+    await bikinWorker({ db: pool, store, klien: klienBaru, paralel: 1 }).jalankanSekali();
+    expect(klienBaru.panggilan).toHaveLength(1);
   });
 });

@@ -5,6 +5,7 @@ import type { BerkasStore } from "../berkas/store.js";
 import type { Db } from "../db.js";
 import { konfigurasiAi } from "../repositories/model-ai.js";
 import { bacaIsi, type IsiBerkas } from "./baca-berkas.js";
+import { cariHasilSama } from "./pakai-ulang.js";
 import { klasifikasiBerkas } from "./klasifikasi.js";
 import { ekstrakSt } from "./st.js";
 import { ekstrakHotel } from "./hotel.js";
@@ -105,9 +106,11 @@ export function bikinWorker(opsi: WorkerOpsi) {
       const data = await store.get(berkas.sha256).catch(() => {
         throw new AiGalat("BERKAS_TIDAK_TERBACA", "Isi berkas tidak ada di penyimpanan.");
       });
-      const isi = await bacaIsi(berkas.mime, data);
       const konf = await konfigurasiAi(db);
-      const hasil = await ekstrak({ berkas, isi, konf, klien });
+      // Isi berkas yang sama persis sudah pernah diekstrak: pakai hasilnya, tanpa membaca ulang dan tanpa memanggil model.
+      const dipakaiUlang = await cariHasilSama(db, berkas, konf);
+      if (dipakaiUlang) console.log(`[ekstraksi] berkas=${k.berkasId} memakai hasil berkas identik (tanpa panggilan model)`);
+      const hasil = dipakaiUlang ?? (await ekstrak({ berkas, isi: await bacaIsi(berkas.mime, data), konf, klien }));
       model = hasil.model;
       if ("connect" in db && typeof (db as any).connect === "function") {
         const client = await (db as any).connect();

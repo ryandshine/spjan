@@ -41,6 +41,7 @@ export async function ekstrakSt(
       model,
       prompt,
       skema: SKEMA_EKSTRAKSI_ST,
+      maksToken: 8192,
     });
     try {
       const parsed = HasilEkstraksiStSchema.parse(uraikanJsonAi(balasan));

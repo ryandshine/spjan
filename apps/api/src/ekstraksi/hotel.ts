@@ -47,6 +47,7 @@ export async function ekstrakHotel(
       prompt,
       gambar,
       skema: SKEMA_EKSTRAKSI_HOTEL,
+      maksToken: 4096,
     });
     try {
       const parsed = HasilEkstraksiHotelSchema.parse(uraikanJsonAi(balasan));

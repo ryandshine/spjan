@@ -58,6 +58,7 @@ export async function ekstrakTiket(
       prompt,
       gambar,
       skema: SKEMA_EKSTRAKSI_TIKET,
+      maksToken: 4096,
     });
     try {
       const parsed = HasilEkstraksiTiketSchema.parse(uraikanJsonAi(balasan));
