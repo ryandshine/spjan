@@ -26,6 +26,7 @@ import {
   getSuratTugas,
   hapusLunakSt,
   listSuratTugas,
+  muatSuratTugas,
   replaceSuratTugas,
 } from "../repositories/surat-tugas.js";
 
@@ -35,12 +36,14 @@ const PostQuerySchema = z.object({ berkasId: z.coerce.number().int().positive().
 export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; store: BerkasStore }): Promise<void> {
   app.get("/", async (req) => {
     const [daftar, pengaturan] = await Promise.all([listSuratTugas(opts.db, penggunaAktif(req)), getPengaturan(opts.db)]);
-    const sbmPerVersi = new Map<number, Awaited<ReturnType<typeof getVersiSbm>>>();
+    const daftarSt = await muatSuratTugas(opts.db, daftar.map((r) => r.id));
+    const stPerId = new Map(daftarSt.map((st) => [st.id, st]));
+    const versi = await Promise.all([...new Set(daftarSt.map((st) => st.versiSbmId))].map(async (id) => [id, await getVersiSbm(opts.db, id)] as const));
+    const sbmPerVersi = new Map(versi);
     const hasil: SuratTugasRingkasDto[] = [];
     for (const ringkas of daftar) {
-      const st = await getSuratTugas(opts.db, ringkas.id);
+      const st = stPerId.get(ringkas.id);
       if (!st) continue;
-      if (!sbmPerVersi.has(st.versiSbmId)) sbmPerVersi.set(st.versiSbmId, await getVersiSbm(opts.db, st.versiSbmId));
       const sbm = sbmPerVersi.get(st.versiSbmId);
       // Versi SBM yang hilang tidak boleh membuat seluruh daftar gagal; baris itu tampil tanpa angka.
       const spj = sbm ? hitungSpj(toSpjInput(st, pengaturan), sbm.data) : null;

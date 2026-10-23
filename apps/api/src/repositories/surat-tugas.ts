@@ -94,90 +94,121 @@ interface BiayaRow {
   pengeluaran_riil: boolean | null;
 }
 
+/** Kelompokkan baris menurut kunci, urutan baris tetap. */
+function kelompokkan<T>(baris: T[], kunci: (r: T) => number): Map<number, T[]> {
+  const peta = new Map<number, T[]>();
+  for (const r of baris) {
+    const k = kunci(r);
+    const isi = peta.get(k);
+    if (isi) isi.push(r);
+    else peta.set(k, [r]);
+  }
+  return peta;
+}
+
+/**
+ * Muat beberapa surat tugas (belum terhapus) beserta pelaksana, etape, dan biaya dengan 4 query,
+ * berapa pun jumlahnya. Urutan hasil mengikuti `ids`; id yang tidak ada dilewati.
+ */
+export async function muatSuratTugas(db: Db, ids: number[]): Promise<SuratTugasDto[]> {
+  if (ids.length === 0) return [];
+  const [stRows, pelRows, etapeRows, biayaRows] = await Promise.all([
+    db.query<StRow & { pembuat_nama: string | null }>(
+      `select st.*, u.nama as pembuat_nama from surat_tugas st left join users u on u.id = st.dibuat_oleh
+        where st.id = any($1::bigint[]) and st.dihapus_pada is null`,
+      [ids],
+    ),
+    db.query<PelRow & { st_id: number }>("select * from pelaksana where st_id = any($1::bigint[]) order by st_id, urutan", [ids]),
+    db.query<EtapeRow>(
+      `select e.* from etape e join pelaksana p on p.id = e.pelaksana_id where p.st_id = any($1::bigint[]) order by e.pelaksana_id, e.urutan`,
+      [ids],
+    ),
+    db.query<BiayaRow>(
+      `select b.* from biaya b join pelaksana p on p.id = b.pelaksana_id where p.st_id = any($1::bigint[]) order by b.pelaksana_id, b.urutan`,
+      [ids],
+    ),
+  ]);
+  const stPerId = new Map(stRows.rows.map((r) => [r.id, r]));
+  const pelPerSt = kelompokkan(pelRows.rows, (r) => r.st_id);
+  const etapePerPel = kelompokkan(etapeRows.rows, (r) => r.pelaksana_id);
+  const biayaPerPel = kelompokkan(biayaRows.rows, (r) => r.pelaksana_id);
+  const hasil: SuratTugasDto[] = [];
+  for (const id of ids) {
+    const st = stPerId.get(id);
+    if (!st) continue;
+    const pembuat = st.pembuat_nama ?? null;
+    const pel = pelPerSt.get(id) ?? [];
+    hasil.push({
+      id: st.id,
+      versiSbmId: st.versi_sbm_id,
+      status: st.status,
+      dikunciPada: st.dikunci_pada?.toISOString() ?? null,
+      dibukaPada: st.dibuka_pada?.toISOString() ?? null,
+      jumlahDibuka: st.jumlah_dibuka,
+      dibuatOleh: st.dibuat_oleh,
+      dibuatOlehNama: pembuat,
+      createdAt: st.created_at.toISOString(),
+      updatedAt: st.updated_at.toISOString(),
+      nomor: st.nomor,
+      tanggal: st.tanggal,
+      tanggalSpj: st.tanggal_spj,
+      kodeAkun: st.kode_akun,
+      catatan: st.catatan,
+      tahunAnggaran: st.tahun_anggaran ?? null,
+      sumberDana: (st.sumber_dana as "RM" | "PNBP") ?? "RM",
+      pjNama: st.pj_nama ?? null,
+      pjNip: st.pj_nip ?? null,
+      pjJabatan: st.pj_jabatan ?? null,
+      pelaksana: pel.map((p) => ({
+        pegawaiId: p.pegawai_id,
+        nama: p.nama,
+        nip: p.nip,
+        jabatan: p.jabatan,
+        instansi: p.instansi,
+        pangkatGolongan: p.pangkat_golongan,
+        status: p.status_kode,
+        noSpd: p.no_spd,
+        tanggalSpd: p.tanggal_spd ? String(p.tanggal_spd).slice(0, 10) : null,
+        kotaKedudukan: p.kota_kedudukan ?? undefined,
+        provinsiKedudukan: p.provinsi_kedudukan ?? undefined,
+        etape: (etapePerPel.get(p.id) ?? [])
+          .map((e) => ({
+            provinsi: e.provinsi,
+            kota: e.kota,
+            kegiatan: e.kegiatan,
+            berangkat: e.berangkat ?? "",
+            pulang: e.pulang ?? "",
+            malamOverride: e.malam_override,
+            hotelNama: e.hotel_nama,
+            hotelTarif: e.hotel_tarif,
+            dinasJabatan: e.dinas_jabatan,
+            fullboardDates: e.fullboard_dates ?? [],
+            hotel30Persen: e.hotel_30_persen ?? false,
+            hotel30Dates: e.hotel_30_dates ?? [],
+            dalamKota8Jam: e.dalam_kota_8_jam ?? false,
+            tanpaUangHarianDates: e.tanpa_uang_harian_dates ?? [],
+            uangHarian60Dates: e.uang_harian_60_dates ?? [],
+          })),
+        biaya: (biayaPerPel.get(p.id) ?? [])
+          .map((b) => ({
+            jenis: b.jenis,
+            provinsi: b.provinsi,
+            uraian: b.uraian && (b.jenis === "TIKET_PERGI" || b.jenis === "TIKET_KEMBALI") ? normalkanUraianTiket(b.uraian) : b.uraian,
+            qty: b.qty,
+            satuan: b.satuan,
+            tarif: b.tarif,
+            keterangan: b.keterangan,
+            etapeIndex: b.etape_urutan,
+            pengeluaranRiil: b.pengeluaran_riil ?? false,
+          })),
+      })),
+    });
+  }
+  return hasil;
+}
+
 export async function getSuratTugas(db: Db, id: number): Promise<SuratTugasDto | null> {
-  const st = (await db.query<StRow>("select * from surat_tugas where id = $1 and dihapus_pada is null", [id])).rows[0];
-  if (!st) return null;
-  const pembuat = st.dibuat_oleh === null ? null : ((await db.query<{ nama: string }>("select nama from users where id = $1", [st.dibuat_oleh])).rows[0]?.nama ?? null);
-  const pel = (await db.query<PelRow>("select * from pelaksana where st_id = $1 order by urutan", [id])).rows;
-  const etape = (
-    await db.query<EtapeRow>(
-      `select e.* from etape e join pelaksana p on p.id = e.pelaksana_id where p.st_id = $1 order by e.pelaksana_id, e.urutan`,
-      [id],
-    )
-  ).rows;
-  const biaya = (
-    await db.query<BiayaRow>(
-      `select b.* from biaya b join pelaksana p on p.id = b.pelaksana_id where p.st_id = $1 order by b.pelaksana_id, b.urutan`,
-      [id],
-    )
-  ).rows;
-  return {
-    id: st.id,
-    versiSbmId: st.versi_sbm_id,
-    status: st.status,
-    dikunciPada: st.dikunci_pada?.toISOString() ?? null,
-    dibukaPada: st.dibuka_pada?.toISOString() ?? null,
-    jumlahDibuka: st.jumlah_dibuka,
-    dibuatOleh: st.dibuat_oleh,
-    dibuatOlehNama: pembuat,
-    createdAt: st.created_at.toISOString(),
-    updatedAt: st.updated_at.toISOString(),
-    nomor: st.nomor,
-    tanggal: st.tanggal,
-    tanggalSpj: st.tanggal_spj,
-    kodeAkun: st.kode_akun,
-    catatan: st.catatan,
-    tahunAnggaran: st.tahun_anggaran ?? null,
-    sumberDana: (st.sumber_dana as "RM" | "PNBP") ?? "RM",
-    pjNama: st.pj_nama ?? null,
-    pjNip: st.pj_nip ?? null,
-    pjJabatan: st.pj_jabatan ?? null,
-    pelaksana: pel.map((p) => ({
-      pegawaiId: p.pegawai_id,
-      nama: p.nama,
-      nip: p.nip,
-      jabatan: p.jabatan,
-      instansi: p.instansi,
-      pangkatGolongan: p.pangkat_golongan,
-      status: p.status_kode,
-      noSpd: p.no_spd,
-      tanggalSpd: p.tanggal_spd ? String(p.tanggal_spd).slice(0, 10) : null,
-      kotaKedudukan: p.kota_kedudukan ?? undefined,
-      provinsiKedudukan: p.provinsi_kedudukan ?? undefined,
-      etape: etape
-        .filter((e) => e.pelaksana_id === p.id)
-        .map((e) => ({
-          provinsi: e.provinsi,
-          kota: e.kota,
-          kegiatan: e.kegiatan,
-          berangkat: e.berangkat ?? "",
-          pulang: e.pulang ?? "",
-          malamOverride: e.malam_override,
-          hotelNama: e.hotel_nama,
-          hotelTarif: e.hotel_tarif,
-          dinasJabatan: e.dinas_jabatan,
-          fullboardDates: e.fullboard_dates ?? [],
-          hotel30Persen: e.hotel_30_persen ?? false,
-          hotel30Dates: e.hotel_30_dates ?? [],
-          dalamKota8Jam: e.dalam_kota_8_jam ?? false,
-          tanpaUangHarianDates: e.tanpa_uang_harian_dates ?? [],
-          uangHarian60Dates: e.uang_harian_60_dates ?? [],
-        })),
-      biaya: biaya
-        .filter((b) => b.pelaksana_id === p.id)
-        .map((b) => ({
-          jenis: b.jenis,
-          provinsi: b.provinsi,
-          uraian: b.uraian && (b.jenis === "TIKET_PERGI" || b.jenis === "TIKET_KEMBALI") ? normalkanUraianTiket(b.uraian) : b.uraian,
-          qty: b.qty,
-          satuan: b.satuan,
-          tarif: b.tarif,
-          keterangan: b.keterangan,
-          etapeIndex: b.etape_urutan,
-          pengeluaranRiil: b.pengeluaran_riil ?? false,
-        })),
-    })),
-  };
+  return (await muatSuratTugas(db, [id]))[0] ?? null;
 }
 
 async function sisipkanPelaksana(client: PoolClient, stId: number, pelaksana: SuratTugasPayload["pelaksana"]): Promise<void> {

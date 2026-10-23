@@ -37,6 +37,21 @@ describe("surat tugas", () => {
     expect((await call("GET", `/api/surat-tugas/${id}`)).json().versiSbmId).toBe(versiSbmId);
   });
 
+  it("daftar memuat banyak surat tugas dengan isi yang sama seperti GET per id", async () => {
+    const buat = async (nomor: string) => (await call("POST", "/api/surat-tugas", { ...stResa, nomor })).json();
+    const a = await buat("ST-A");
+    const b = await buat("ST-B");
+    const hapus = await buat("ST-C");
+    expect((await call("DELETE", `/api/surat-tugas/${hapus.id}`, { password: "sandi-uji-12345" })).statusCode).toBe(204);
+    const daftar = (await call("GET", "/api/surat-tugas")).json();
+    expect(daftar.map((r: { id: number }) => r.id).sort()).toEqual([a.id, b.id].sort());
+    for (const r of daftar) {
+      expect(r.total).toBe(6_965_979);
+      expect(r.jumlahPelaksana).toBe(stResa.pelaksana.length);
+    }
+    expect((await call("GET", `/api/surat-tugas/${a.id}`)).json().pelaksana).toEqual(a.pelaksana);
+  });
+
   it("hasil memakai mesin hitung bersama: Resa total Rp6.965.979", async () => {
     const { id } = (await call("POST", "/api/surat-tugas", stResa)).json();
     const res = await call("GET", `/api/surat-tugas/${id}/hasil`);
