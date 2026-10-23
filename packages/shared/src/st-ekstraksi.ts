@@ -2,7 +2,7 @@ import { z } from "zod";
 import { SBM_2026 } from "./data/sbm-2026.js";
 import { INSTANSI_BAWAAN } from "./schemas.js";
 import type { BiayaPayload, PegawaiDto, PengaturanPayload, SuratTugasPayload } from "./schemas.js";
-import { cocokkanKotaJakartaSekitar, isKotaJabodetabek, provinsiDariKotaJabodetabek } from "./st-model.js";
+import { cocokkanKotaJakartaSekitar, isKotaJabodetabek, kedudukanJabodetabek, provinsiDariKotaJabodetabek } from "./st-model.js";
 import { norm, parseTanggal, selisihHari } from "./teks.js";
 import type { Sbm, StatusKode } from "./types.js";
 
@@ -91,7 +91,7 @@ export function petakanStKeUsulan(
   ekstraksi: HasilEkstraksiSt,
   masterPegawai: PegawaiDto[],
   daftarProvinsiSbm: string[],
-  pengaturan?: Pick<PengaturanPayload, "kodeAkunDefault"> | null,
+  pengaturan?: (Pick<PengaturanPayload, "kodeAkunDefault"> & Partial<Pick<PengaturanPayload, "kotaKedudukan">>) | null,
   sbmDetail?: Sbm | null,
 ): UsulanStHasil {
   const peringatan: string[] = [];
@@ -140,7 +140,8 @@ export function petakanStKeUsulan(
       const tAkhir = parseTanggal(et.tanggalKembali);
       const isSatuHari = tAwal && tAkhir && selisihHari(tAwal, tAkhir) === 0;
       const isJkt = isKotaJabodetabek(et.tujuan);
-      const dalamKota = isSatuHari && isJkt;
+      // Perjalanan dalam kota Jabodetabek hanya berlaku bila pelaksana berkedudukan di Jabodetabek (ST tidak memuat kedudukan, jadi pakai Pengaturan).
+      const dalamKota = isSatuHari && isJkt && kedudukanJabodetabek(pengaturan?.kotaKedudukan);
 
       // Standarisasi nama kota jika Jabodetabek
       const cocokTransport = isJkt ? cocokkanKotaJakartaSekitar(et.tujuan, sbm.transportJakarta) : null;

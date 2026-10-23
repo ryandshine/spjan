@@ -148,12 +148,13 @@ export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; sto
     await wajibBolehLihatSt(opts.db, req, id);
     const st = await getSuratTugas(opts.db, id);
     if (!st) throw notFound("Surat tugas");
-    const [berkasList, sbm] = await Promise.all([
+    const [berkasList, sbm, pengaturan] = await Promise.all([
       listBerkas(opts.db, id),
       getVersiSbm(opts.db, st.versiSbmId),
+      getPengaturan(opts.db),
     ]);
     if (!sbm) throw new HttpError(500, "SBM_HILANG", "Versi SBM yang di-pin surat tugas tidak ditemukan.");
-    return petakanTransportKeUsulan(berkasList, st, sbm.data);
+    return petakanTransportKeUsulan(berkasList, st, sbm.data, pengaturan.kotaKedudukan);
   });
 }
 

@@ -226,6 +226,13 @@ export function isKotaJabodetabek(namaKota: string | null | undefined): boolean 
   );
 }
 
+/** Kota kedudukan di Jakarta atau Jabodetabek; kosong dianggap Jakarta (kedudukan bawaan). */
+export function kedudukanJabodetabek(kota: string | null | undefined): boolean {
+  const s = (kota ?? "").trim();
+  if (!s) return true;
+  return s.toLowerCase().includes("jakarta") || isKotaJabodetabek(s);
+}
+
 /** Menentukan nama provinsi standar berdasarkan nama kota Jabodetabek. */
 export function provinsiDariKotaJabodetabek(namaKota: string | null | undefined): string | null {
   if (!namaKota) return null;

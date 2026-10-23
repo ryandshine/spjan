@@ -174,4 +174,25 @@ describe("st-ekstraksi", () => {
     expect(pel.biaya[0]?.tarif).toBe(258000);
     expect(pel.biaya[0]?.qty).toBe(2);
   });
+  it("perjalanan 1 hari ke Jabodetabek tidak dianggap dalam kota bila kedudukan di luar Jabodetabek", () => {
+    const raw: HasilEkstraksiSt = {
+      nomor: "ST.101/2026",
+      tanggal: "2026-10-06",
+      kegiatan: "Pelatihan di Tangerang",
+      pelaksana: [
+        {
+          nama: "Riandi Eko Priantoro",
+          nip: "198404212023211020",
+          jabatan: "Pranata Komputer",
+          etape: [{ tujuan: "Tanggerang", tanggalBerangkat: "2026-10-06", tanggalKembali: "2026-10-06" }],
+        },
+      ],
+    };
+    const usulan = petakanStKeUsulan(raw, MASTER_PEGAWAI, ["BANTEN", "JAWA BARAT", "D.K.I. JAKARTA"], { kodeAkunDefault: "", kotaKedudukan: "Makassar" });
+    const pel = usulan.payload.pelaksana[0]!;
+    expect(pel.etape[0]?.dalamKota8Jam).toBe(false);
+    expect(pel.biaya).toHaveLength(0);
+    const bogor = petakanStKeUsulan(raw, MASTER_PEGAWAI, ["BANTEN", "JAWA BARAT", "D.K.I. JAKARTA"], { kodeAkunDefault: "", kotaKedudukan: "Kota Bogor" });
+    expect(bogor.payload.pelaksana[0]!.etape[0]?.dalamKota8Jam).toBe(true);
+  });
 });

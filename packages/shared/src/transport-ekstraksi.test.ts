@@ -486,3 +486,94 @@ describe("petakanTransportKeUsulan", () => {
     expect(hasil[0]?.jumlahPenerima).toBe(2);
   });
 });
+
+describe("petakanTransportKeUsulan - kedudukan non-Jakarta", () => {
+  const stMakassar: SuratTugasPayload = {
+    nomor: "ST.300/2026",
+    tanggal: "2026-09-08",
+    tanggalSpj: null,
+    kodeAkun: "524111",
+    catatan: "",
+    pelaksana: [
+      {
+        nama: "Andi Baso",
+        nip: "198001012005011001",
+        jabatan: "Staf",
+        status: "ESELON_IV_GOL_III_II_I",
+        noSpd: null,
+        kotaKedudukan: "Makassar",
+        provinsiKedudukan: "SULAWESI SELATAN",
+        etape: [
+          {
+            provinsi: "D.K.I. JAKARTA",
+            kota: "Jakarta",
+            kegiatan: "Rakor",
+            berangkat: "2026-09-12",
+            pulang: "2026-09-14",
+            malamOverride: null,
+            hotelNama: null,
+            hotelTarif: null,
+            dinasJabatan: false,
+          },
+        ],
+        biaya: [],
+      },
+    ],
+  };
+
+  const tiket = (id: number, asal: string, tujuan: string, tanggal: string): BerkasDto => ({
+    id,
+    stId: 1,
+    pelaksanaId: null,
+    namaAsli: `tiket-${id}.pdf`,
+    mime: "application/pdf",
+    ukuran: 1000,
+    sha256: `sha${id}`,
+    jenis: "tiket",
+    createdAt: "2026-09-08T10:00:00.000Z",
+    keterangan: null,
+    ekstraksi: {
+      id,
+      berkasId: id,
+      status: "selesai",
+      model: "uji",
+      hasil: {
+        maskapai: "Garuda Indonesia",
+        kodeBooking: null,
+        nomorTiket: null,
+        penumpang: "Andi Baso",
+        asal,
+        tujuan,
+        tanggal,
+        nomorPenerbangan: null,
+        tarif: 2_000_000,
+        arah: "lainnya",
+      },
+      kodeGalat: null,
+      galat: null,
+      usulanStatus: "menunggu",
+      createdAt: "2026-09-08T10:00:00.000Z",
+      selesaiAt: "2026-09-08T10:00:03.000Z",
+    },
+  });
+
+  it("pelaksana berkedudukan di Makassar: Makassar ke Jakarta = pergi, Jakarta ke Makassar = kembali", () => {
+    const hasil = petakanTransportKeUsulan(
+      [tiket(1, "Makassar (UPG)", "Jakarta (CGK)", "2026-09-12"), tiket(2, "Jakarta (CGK)", "Makassar (UPG)", "2026-09-14")],
+      stMakassar,
+    );
+    expect(hasil.map((u) => u.jenisBiaya)).toEqual(["TIKET_PERGI", "TIKET_KEMBALI"]);
+  });
+
+  it("pelaksana tanpa kedudukan sendiri memakai kedudukan bawaan yang diberikan", () => {
+    const tanpa: SuratTugasPayload = { ...stMakassar, pelaksana: [{ ...stMakassar.pelaksana[0]!, kotaKedudukan: null, provinsiKedudukan: null }] };
+    const hasil = petakanTransportKeUsulan([tiket(1, "Makassar (UPG)", "Jakarta (CGK)", "2026-09-12")], tanpa, undefined, "Makassar");
+    expect(hasil[0]!.jenisBiaya).toBe("TIKET_PERGI");
+  });
+
+  it("tanpa kedudukan sama sekali tetap berperilaku lama (Jakarta)", () => {
+    const tanpa: SuratTugasPayload = { ...stMakassar, pelaksana: [{ ...stMakassar.pelaksana[0]!, kotaKedudukan: null, provinsiKedudukan: null }] };
+    const hasil = petakanTransportKeUsulan([tiket(1, "Jakarta (CGK)", "Makassar (UPG)", "2026-09-12")], tanpa);
+    expect(hasil[0]!.jenisBiaya).toBe("TIKET_PERGI");
+  });
+});

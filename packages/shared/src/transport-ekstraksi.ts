@@ -7,7 +7,7 @@ import type {
   SuratTugasPayload,
 } from "./schemas.js";
 import { bersihkanGelarNama } from "./st-ekstraksi.js";
-import { parseTanggal, selisihHari } from "./teks.js";
+import { norm, parseTanggal, selisihHari } from "./teks.js";
 import type { JenisBiaya, Sbm } from "./types.js";
 
 export const ArahTiketSchema = z.enum(["pergi", "kembali", "lainnya"]);
@@ -168,6 +168,12 @@ function cocokkanPelaksana(
   return { pelaksanaIndex: 0, etapeIndex: 0, pelaksanaId: pid };
 }
 
+/** Apakah teks asal/tujuan tiket menunjuk kota kedudukan (Jakarta juga dikenali lewat kode bandara CGK/HLP). */
+function cocokKedudukan(teks: string, kedudukan: string): boolean {
+  if (norm(kedudukan).includes("JAKARTA")) return /jakarta|cgk|hlp|soekarno/i.test(teks);
+  return norm(teks).includes(norm(kedudukan));
+}
+
 /**
  * Memetakan daftar berkas tiket dan bukti transport ke usulan biaya Surat Tugas.
  */
@@ -175,6 +181,8 @@ export function petakanTransportKeUsulan(
   daftarBerkas: BerkasDto[],
   st: SuratTugasDto | SuratTugasPayload,
   _sbm?: Sbm,
+  /** Kota kedudukan bawaan (Pengaturan); dipakai bila pelaksana tidak punya kedudukan sendiri. Kosong = Jakarta. */
+  kotaKedudukanDasar?: string | null,
 ): UsulanTransportItem[] {
   const usulan: UsulanTransportItem[] = [];
 
@@ -268,8 +276,9 @@ export function petakanTransportKeUsulan(
         if (isKeretaOrBus) {
           jenisBiaya = "KERETA_BUS_LAIN";
         } else {
-          const tujuanKeKedudukan = /jakarta|cgk|hlp|soekarno/i.test(t.tujuan);
-          const asalDariKedudukan = /jakarta|cgk|hlp|soekarno/i.test(t.asal);
+          const kedudukan = pelaksana.kotaKedudukan?.trim() || kotaKedudukanDasar?.trim() || "Jakarta";
+          const tujuanKeKedudukan = cocokKedudukan(t.tujuan, kedudukan);
+          const asalDariKedudukan = cocokKedudukan(t.asal, kedudukan);
 
           if (tujuanKeKedudukan && !asalDariKedudukan) {
             jenisBiaya = "TIKET_KEMBALI";
