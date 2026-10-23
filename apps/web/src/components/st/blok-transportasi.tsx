@@ -12,7 +12,6 @@ import {
 import { BiayaBaris } from '@/components/st/biaya-form'
 import { BlokForm } from '@/components/st/blok-form'
 import { Button } from '@/components/ui/button'
-import { MenuAksi } from '@/components/ui/menu-aksi'
 import { rupiah } from '@/lib/format'
 import {
   biayaPerTujuan,
@@ -21,6 +20,17 @@ import {
   tambahTransportJakartaSekitar,
   ubahBiaya,
 } from '@/lib/pelaksana-ubah'
+
+const PILIHAN_BIAYA = [
+  { jenis: 'TIKET_PERGI', label: 'Tiket Pergi' },
+  { jenis: 'TIKET_KEMBALI', label: 'Tiket Kembali' },
+  { jenis: 'TAKSI_KEDUDUKAN', label: 'Taksi Asal (tempat kedudukan - bandara)' },
+  { jenis: 'TAKSI_TERMINAL', label: 'Taksi Tujuan (bandara - kota tujuan)' },
+  { jenis: 'TRANSPORT_JAKARTA_SEKITAR', label: 'Transport Jakarta - sekitarnya (PP)' },
+  { jenis: 'BBM_KENDARAAN', label: 'BBM Kendaraan (PP)' },
+  { jenis: 'TOL_ETOLL', label: 'E-Toll (PP)' },
+  { jenis: 'LAINNYA', label: 'Biaya Riil Lainnya' },
+] as const
 
 /** Tabel biaya transportasi satu pelaksana beserta menu penambahnya. */
 export function BlokTransportasi({
@@ -117,20 +127,20 @@ export function BlokTransportasi({
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         {!terkunci ? (
           <div className="flex flex-wrap items-center gap-2">
-            <MenuAksi
-              label="Tambah biaya"
-              teks="Tambah Biaya (SBM)"
-              item={[
-                { label: 'Tiket Pergi', onPilih: () => tambahDariMenu('TIKET_PERGI') },
-                { label: 'Tiket Kembali', onPilih: () => tambahDariMenu('TIKET_KEMBALI') },
-                { label: 'Taksi Asal (tempat kedudukan - bandara)', onPilih: () => tambahDariMenu('TAKSI_KEDUDUKAN') },
-                { label: 'Taksi Tujuan (bandara - kota tujuan)', onPilih: () => tambahDariMenu('TAKSI_TERMINAL') },
-                { label: 'Transport Jakarta - sekitarnya (PP)', onPilih: () => tambahDariMenu('TRANSPORT_JAKARTA_SEKITAR') },
-                { label: 'BBM Kendaraan (PP)', onPilih: () => tambahDariMenu('BBM_KENDARAAN') },
-                { label: 'E-Toll (PP)', onPilih: () => tambahDariMenu('TOL_ETOLL') },
-                { label: 'Biaya Riil Lainnya', onPilih: () => tambahDariMenu('LAINNYA') },
-              ]}
-            />
+            {PILIHAN_BIAYA.map((o) => (
+              <Button
+                key={o.jenis}
+                type="button"
+                variant="outline"
+                size="sm"
+                title={o.label}
+                onClick={() => tambahDariMenu(o.jenis)}
+                className="gap-1.5 text-xs"
+              >
+                <PlusIcon className="size-3.5" aria-hidden />
+                {o.label}
+              </Button>
+            ))}
             <Button
               type="button"
               variant="outline"
