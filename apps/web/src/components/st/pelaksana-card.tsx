@@ -148,6 +148,7 @@ export function PelaksanaCard({
                 hasil={hasil}
                 pegawai={pegawai}
                 provinsi={provinsi}
+                sbm={sbm}
                 kedudukanDasar={{ kota: kotaKedudukan ?? '', provinsi: provinsiKedudukan ?? '' }}
                 galat={galat}
                 onUbah={onUbah}

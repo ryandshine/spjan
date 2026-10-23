@@ -7,10 +7,12 @@ import { PageHeader } from '@/components/page-header'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { InputKotaKedudukan } from '@/components/st/input-kota-kedudukan'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { pesanGalat } from '@/lib/format'
+import { peringatanKotaKedudukan } from '@/lib/saran-kota'
 import { usePengaturan, useSbm, useSimpanPengaturan, useVersiSbm } from '@/lib/queries'
 
 type Galat = Partial<Record<keyof PengaturanPayload, string>>
@@ -110,7 +112,6 @@ function FormPengaturan({ awal }: { awal: PengaturanPayload }) {
               {teks('pembuatDaftarNip', 'Pembuat daftar - NIP (opsional)', { opsional: true })}
             </Bagian>
             <Bagian judul="Tempat kedudukan">
-              {teks('kotaKedudukan', 'Kota tempat kedudukan', { wajib: true })}
               <Field label="Provinsi tempat kedudukan" htmlFor="provinsiKedudukan" error={galat.provinsiKedudukan} mode="wajib">
                 {provinsi.length > 0 ? (
                   <Select id="provinsiKedudukan" value={form.provinsiKedudukan} onChange={(e) => set('provinsiKedudukan', e.target.value)}>
@@ -124,6 +125,22 @@ function FormPengaturan({ awal }: { awal: PengaturanPayload }) {
                 ) : (
                   <Input id="provinsiKedudukan" value={form.provinsiKedudukan} onChange={(e) => set('provinsiKedudukan', e.target.value)} />
                 )}
+              </Field>
+              <Field
+                label="Kota tempat kedudukan"
+                htmlFor="kotaKedudukan"
+                error={galat.kotaKedudukan}
+                warning={peringatanKotaKedudukan(sbm.data?.data, form.provinsiKedudukan, form.kotaKedudukan)}
+                hint="Pilih dari saran sesuai provinsi, atau ketik sendiri."
+                mode="wajib"
+              >
+                <InputKotaKedudukan
+                  id="kotaKedudukan"
+                  value={form.kotaKedudukan}
+                  provinsi={form.provinsiKedudukan}
+                  sbm={sbm.data?.data}
+                  onChange={(kota) => set('kotaKedudukan', kota)}
+                />
               </Field>
             </Bagian>
             <div className="md:hidden">{tombolSimpan()}</div>

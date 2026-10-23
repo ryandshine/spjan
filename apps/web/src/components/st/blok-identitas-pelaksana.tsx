@@ -8,11 +8,13 @@ import {
   type PegawaiDto,
   type PelaksanaHasil,
   type PelaksanaPayload,
+  type Sbm,
   type StatusKode,
 } from '@spjan/shared'
 
 import { FormPegawai } from '@/components/pegawai-form'
 import { BlokForm } from '@/components/st/blok-form'
+import { InputKotaKedudukan } from '@/components/st/input-kota-kedudukan'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
@@ -21,6 +23,7 @@ import { InputTanggal } from '@/components/ui/input-tanggal'
 import { Select } from '@/components/ui/select'
 import { TextareaOtomatis } from '@/components/ui/textarea-otomatis'
 import { tanggalPanjang } from '@/lib/format'
+import { peringatanKotaKedudukan } from '@/lib/saran-kota'
 import type { PetaGalat } from '@/lib/validasi'
 
 /** Identitas satu pelaksana: pilihan dari daftar pegawai, nama, NIP, status SBM, dan data SPD. */
@@ -30,6 +33,7 @@ export function BlokIdentitasPelaksana({
   hasil,
   pegawai,
   provinsi,
+  sbm,
   kedudukanDasar,
   galat,
   onUbah,
@@ -39,6 +43,7 @@ export function BlokIdentitasPelaksana({
   hasil: PelaksanaHasil | undefined
   pegawai: PegawaiDto[]
   provinsi: string[]
+  sbm: Sbm
   /** Tempat kedudukan dari Pengaturan, dipakai bila pelaksana tidak mengisi sendiri. */
   kedudukanDasar: { kota: string; provinsi: string }
   galat?: PetaGalat
@@ -113,21 +118,6 @@ export function BlokIdentitasPelaksana({
             </Select>
           </Field>
           <Field
-            label="Kota tempat kedudukan"
-            htmlFor={id('kota-kedudukan')}
-            mode="otomatis"
-            otomatisAktif={!p.kotaKedudukan}
-            onKembaliOtomatis={() => onUbah((x) => ({ ...x, kotaKedudukan: null }))}
-            hint={`Kota asal berangkat. Otomatis: ${kedudukanDasar.kota || '-'} (Pengaturan).`}
-          >
-            <Input
-              id={id('kota-kedudukan')}
-              placeholder={kedudukanDasar.kota}
-              value={p.kotaKedudukan ?? ''}
-              onChange={(e) => onUbah((x) => ({ ...x, kotaKedudukan: e.target.value || null }))}
-            />
-          </Field>
-          <Field
             label="Provinsi tempat kedudukan"
             htmlFor={id('prov-kedudukan')}
             mode="otomatis"
@@ -150,6 +140,24 @@ export function BlokIdentitasPelaksana({
                 </option>
               ))}
             </Select>
+          </Field>
+          <Field
+            label="Kota tempat kedudukan"
+            htmlFor={id('kota-kedudukan')}
+            mode="otomatis"
+            otomatisAktif={!p.kotaKedudukan}
+            onKembaliOtomatis={() => onUbah((x) => ({ ...x, kotaKedudukan: null }))}
+            warning={peringatanKotaKedudukan(sbm, p.provinsiKedudukan || kedudukanDasar.provinsi, p.kotaKedudukan)}
+            hint={`Kota asal berangkat. Otomatis: ${kedudukanDasar.kota || '-'} (Pengaturan).`}
+          >
+            <InputKotaKedudukan
+              id={id('kota-kedudukan')}
+              value={p.kotaKedudukan ?? ''}
+              provinsi={p.provinsiKedudukan || kedudukanDasar.provinsi}
+              sbm={sbm}
+              placeholder={kedudukanDasar.kota}
+              onChange={(kota) => onUbah((x) => ({ ...x, kotaKedudukan: kota || null }))}
+            />
           </Field>
           <Field label="No. SPD" htmlFor={id('spd')} warning={peringatanKode('NO_SPD_KOSONG')} mode="wajib">
             <Input

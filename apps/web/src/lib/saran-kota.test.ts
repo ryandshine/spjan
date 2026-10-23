@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SBM_2026 } from '@spjan/shared'
 
-import { saranKota } from './saran-kota'
+import { peringatanKotaKedudukan, saranKota } from './saran-kota'
 
 describe('saranKota', () => {
   it('Jawa Barat: ibukota (Bandung) paling atas, lalu kab/kota SBM termasuk Kota Bogor, Kota Bekasi, Kota Depok', () => {
@@ -35,5 +35,18 @@ describe('saranKota', () => {
       const saran = saranKota(SBM_2026, prov)
       expect(new Set(saran).size).toBe(saran.length)
     }
+  })
+})
+
+describe('peringatanKotaKedudukan', () => {
+  it('tanpa peringatan bila kota kosong, ada di daftar (tanpa beda huruf), atau data belum tersedia', () => {
+    expect(peringatanKotaKedudukan(SBM_2026, 'BALI', '')).toBeUndefined()
+    expect(peringatanKotaKedudukan(SBM_2026, 'BALI', 'denpasar')).toBeUndefined()
+    expect(peringatanKotaKedudukan(undefined, 'BALI', 'Makassar')).toBeUndefined()
+    expect(peringatanKotaKedudukan(SBM_2026, '', 'Makassar')).toBeUndefined()
+  })
+
+  it('memberi peringatan bila kota tidak ada di daftar provinsinya', () => {
+    expect(peringatanKotaKedudukan(SBM_2026, 'BALI', 'Makassar')).toMatch(/tidak ada dalam daftar/)
   })
 })

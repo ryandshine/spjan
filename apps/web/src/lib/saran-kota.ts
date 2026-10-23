@@ -16,3 +16,12 @@ export function saranKota(sbm: Sbm | undefined, provinsi: string): string[] {
   const lainnya = [...new Set([...baris.map((r) => r.kabKota), ...dariJakarta])].filter((k) => !ibukota.includes(k)).sort((a, b) => a.localeCompare(b, 'id'))
   return [...ibukota, ...lainnya]
 }
+
+/** Pesan peringatan bila kota terisi tetapi tidak ada dalam daftar saran provinsinya; undefined bila wajar (kosong, atau daftar tidak tersedia). */
+export function peringatanKotaKedudukan(sbm: Sbm | undefined, provinsi: string, kota: string | null | undefined): string | undefined {
+  const nama = norm(kota ?? '')
+  if (!nama || !provinsi) return undefined
+  const daftar = saranKota(sbm, provinsi)
+  if (daftar.length === 0 || daftar.some((k) => norm(k) === nama)) return undefined
+  return 'Kota tidak ada dalam daftar provinsi ini; pastikan benar.'
+}
