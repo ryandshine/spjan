@@ -381,7 +381,7 @@ describe("hitungSpj - kasus emas", () => {
     expect(h.peringatan).toEqual([]);
     expect(h.rute).toBe("Jakarta - Kota Bogor");
     expect(h.totalUangHarian).toBe(170_000); // Jawa Barat dalam kota > 8 jam
-    expect(h.uangHarian[0]?.uraian).toBe("selama :");
+    expect(h.uangHarian[0]?.uraian).toBe("");
     expect(h.uangHarian[0]?.keterangan).toContain("Dalam kota (> 8 jam)/Prov. Jawa Barat Tanggal 15 Oktober 2026");
     expect(h.totalPenginapan).toBe(0); // 1 hari PP tidak ada penginapan
     expect(h.totalTransport).toBe(540_000); // 2 kali @ 270.000
@@ -561,7 +561,7 @@ describe("hitungSpj - paket pertemuan / fullboard", () => {
     // 2. Hari fullboard: 11 s.d. 12 September (2 hari @ 130.000 = 260.000)
     expect(h.uangHarian).toHaveLength(2);
     expect(h.uangHarian[0]!).toMatchObject({
-      uraian: "selama :",
+      uraian: "",
       qty: 2,
       satuan: "hari",
       tarif: 420_000,
@@ -633,7 +633,7 @@ describe("hitungSpj - paket pertemuan / fullboard", () => {
 
       expect(h.uangHarian).toHaveLength(1);
       expect(h.uangHarian[0]!).toMatchObject({
-        uraian: "selama :",
+        uraian: "",
         qty: 3,
         satuan: "hari",
         tarif: 420_000,
@@ -715,7 +715,7 @@ describe("hitungSpj - paket pertemuan / fullboard", () => {
       // 4 hari: 2 hari biasa (10-11) @ 420.000 = 840.000, 2 hari 60% (12-13) @ 252.000 = 504.000
       expect(h.uangHarian).toHaveLength(2);
       expect(h.uangHarian[0]!).toMatchObject({
-        uraian: "selama :",
+        uraian: "",
         qty: 2,
         satuan: "hari",
         tarif: 420_000,
@@ -723,7 +723,7 @@ describe("hitungSpj - paket pertemuan / fullboard", () => {
         keterangan: "Lumpsum/Prov. D.I. Yogyakarta Tanggal 10 s.d. 11 September 2026",
       });
       expect(h.uangHarian[1]!).toMatchObject({
-        uraian: "selama (60%) :",
+        uraian: "Uang harian (60%) :",
         qty: 2,
         satuan: "hari",
         tarif: 252_000,
@@ -755,7 +755,7 @@ describe("hitungSpj - paket pertemuan / fullboard", () => {
 
       expect(h.uangHarian).toHaveLength(1);
       expect(h.uangHarian[0]!).toMatchObject({
-        uraian: "selama (60%) :",
+        uraian: "Uang harian (60%) :",
         qty: 2,
         satuan: "hari",
         tarif: 252_000,

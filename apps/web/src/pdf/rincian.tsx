@@ -80,7 +80,7 @@ function Bagian({ no, judul, baris, jumlah, tanda }: { no: string; judul: string
       </Baris>
       {baris.map((b, i) => (
         <Baris key={i} jumlah={angka(b.jumlah)} ket={b.keterangan}>
-          <Uraian b={b} tanda={tanda && b.uraian !== 'selama :' && b.uraian !== 'Representasi selama :' && !b.uraian.startsWith('Uang saku')} />
+          <Uraian b={b} tanda={tanda && b.uraian !== '' && b.uraian !== 'Representasi :' && !b.uraian.startsWith('Uang saku')} />
         </Baris>
       ))}
       <Baris jumlah={strip(jumlah)}>

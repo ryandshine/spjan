@@ -215,7 +215,7 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
   hasil.uangHarian = [];
   if (tglFullboard.length === 0 && tglTanpaUangHarian.length === 0 && tglUangHarian60.length === 0) {
     hasil.uangHarian.push({
-      uraian: "selama :",
+      uraian: "",
       qty: hari,
       satuan: "hari",
       tarif: tarifHarian,
@@ -225,7 +225,7 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
   } else {
     if (tglBiasa.length > 0) {
       hasil.uangHarian.push({
-        uraian: "selama :",
+        uraian: "",
         qty: tglBiasa.length,
         satuan: "hari",
         tarif: tarifHarian,
@@ -238,7 +238,7 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
     if (tglUangHarian60.length > 0) {
       const tarif60 = Math.round(tarifHarian * 0.6);
       hasil.uangHarian.push({
-        uraian: "selama (60%) :",
+        uraian: "Uang harian (60%) :",
         qty: tglUangHarian60.length,
         satuan: "hari",
         tarif: tarif60,
@@ -265,7 +265,7 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
     const tarifRep = sbm.representasi[cfg.barisRepresentasi - 1]?.luarKota;
     if (tarifRep !== undefined) {
       hasil.representasi = {
-        uraian: "Representasi selama :",
+        uraian: "Representasi :",
         qty: hari,
         satuan: "hari",
         tarif: tarifRep,
