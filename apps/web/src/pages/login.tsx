@@ -54,7 +54,7 @@ export default function LoginPage() {
         <Card className="border-white/15 bg-background/95 shadow-2xl backdrop-blur-md">
           <CardHeader className="pb-4 text-center">
             <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl border border-border/60 bg-muted/50 p-2 shadow-inner">
-              <img src="/logo.png" alt="Logo SPJAN" className="size-10 object-contain drop-shadow-sm" />
+              <img src="/logo-spjan.png" alt="Logo SPJAN" className="size-10 object-contain drop-shadow-sm" />
             </div>
             <CardTitle className="text-xl font-bold tracking-tight">SPJAN</CardTitle>
             <p className="text-xs font-medium text-muted-foreground">Sistem Pertanggungjawaban Perjalanan Dinas</p>
