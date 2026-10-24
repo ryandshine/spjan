@@ -107,13 +107,23 @@
   }
 }
 
-/* Editor teks kaya Laporan (TipTap): tampilan mengikuti hasil cetak PDF. */
+/* Editor teks kaya Laporan (TipTap): tampilan proporsional dan nyaman disunting. */
 .editor-teks .tiptap {
-  min-height: 9rem;
-  padding: 0.75rem;
+  min-height: 30rem;
+  padding: 1rem 1.25rem;
   outline: none;
-  font-size: 0.875rem;
-  line-height: 1.55;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+.editor-teks-baca-saja .tiptap {
+  min-height: 6rem;
+  padding: 0.75rem;
+  font-size: 0.925rem;
+}
+@media (max-width: 640px) {
+  .editor-teks .tiptap {
+    min-height: 18rem;
+  }
 }
 .editor-teks .tiptap > * + * { margin-top: 0.5rem; }
 .editor-teks .tiptap p { text-align: justify; }

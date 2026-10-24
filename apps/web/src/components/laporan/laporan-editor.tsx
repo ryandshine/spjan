@@ -66,11 +66,18 @@ export function LaporanEditor({ stId, terkunci = false }: { stId: number; terkun
     setWaktuSimpan(jamId(new Date()))
   }
 
-  useEffect(() => {
-    if (!kotor || !draf) return
-    const t = window.setTimeout(() => simpanMutate(draf, { onSuccess: () => berhasilSimpan(draf) }), 1500)
-    return () => window.clearTimeout(t)
-  }, [draf, kotor, simpanMutate])
+  function lakukanSimpan() {
+    if (!draf || !kotor || isPending) return
+    simpanMutate(draf, {
+      onSuccess: () => {
+        berhasilSimpan(draf)
+        toast.success('Laporan berhasil disimpan.')
+      },
+      onError: (err) => {
+        toast.error(`Gagal menyimpan laporan: ${pesanGalat(err)}`)
+      },
+    })
+  }
 
   const adaYangBelumTersimpan = kotor || isPending
   useEffect(() => {
@@ -160,7 +167,13 @@ export function LaporanEditor({ stId, terkunci = false }: { stId: number; terkun
   const indeksAktif = isi.bagian.findIndex((b) => b.id === aktifId)
   const aktif = isi.bagian[indeksAktif]
 
-  const status: StatusSimpan = isError && !adaYangBelumTersimpan ? { jenis: 'gagal' } : adaYangBelumTersimpan ? { jenis: 'menyimpan' } : { jenis: 'tersimpan', waktu: waktuSimpan }
+  const status: StatusSimpan = isPending
+    ? { jenis: 'menyimpan' }
+    : isError
+      ? { jenis: 'gagal' }
+      : kotor
+        ? { jenis: 'kotor' }
+        : { jenis: 'tersimpan', waktu: waktuSimpan }
 
   return (
     <div>
@@ -168,9 +181,12 @@ export function LaporanEditor({ stId, terkunci = false }: { stId: number; terkun
         wajibSiap={ringkasan.wajibSiap}
         wajibTotal={ringkasan.wajibTotal}
         status={status}
+        kotor={kotor}
+        menyimpan={isPending}
         melihat={melihat}
+        onSimpan={lakukanSimpan}
         onLihatPdf={() => void lihatPdf()}
-        onCobaLagi={() => draf && simpanMutate(draf, { onSuccess: () => berhasilSimpan(draf) })}
+        onCobaLagi={lakukanSimpan}
       />
       {isError ? <p className="mb-3 text-xs text-destructive">{pesanGalat(error)}</p> : null}
 

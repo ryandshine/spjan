@@ -233,7 +233,7 @@ export function EditorTeks({
   })
   if (!editor) return null
   return (
-    <div className={cn('editor-teks overflow-hidden rounded-md', !bacaSaja && 'border bg-card')}>
+    <div className={cn('editor-teks overflow-hidden rounded-md', !bacaSaja && 'border bg-card', bacaSaja && 'editor-teks-baca-saja')}>
       {bacaSaja ? null : <Toolbar editor={editor} stId={stId} />}
       <EditorContent editor={editor} />
     </div>

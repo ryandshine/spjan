@@ -1,22 +1,32 @@
-import { Loader2Icon, TriangleAlertIcon, CheckCircle2Icon, FileTextIcon } from 'lucide-react'
+import { Loader2Icon, TriangleAlertIcon, CheckCircle2Icon, FileTextIcon, SaveIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
-export type StatusSimpan = { jenis: 'tersimpan'; waktu: string | null } | { jenis: 'menyimpan' } | { jenis: 'gagal' }
+export type StatusSimpan =
+  | { jenis: 'tersimpan'; waktu: string | null }
+  | { jenis: 'kotor' }
+  | { jenis: 'menyimpan' }
+  | { jenis: 'gagal' }
 
-/** Bar melekat: kemajuan penyusunan, satu indikator simpan otomatis, dan aksi utama Lihat PDF. */
+/** Bar melekat: kemajuan penyusunan, status simpan, dan aksi utama Simpan & Lihat PDF. */
 export function BarLaporan({
   wajibSiap,
   wajibTotal,
   status,
+  kotor,
+  menyimpan,
   melihat,
+  onSimpan,
   onLihatPdf,
   onCobaLagi,
 }: {
   wajibSiap: number
   wajibTotal: number
   status: StatusSimpan
+  kotor: boolean
+  menyimpan: boolean
   melihat: boolean
+  onSimpan: () => void
   onLihatPdf: () => void
   onCobaLagi: () => void
 }) {
@@ -41,16 +51,31 @@ export function BarLaporan({
                 Coba lagi
               </button>
             </span>
+          ) : status.jenis === 'kotor' ? (
+            <span className="inline-flex items-center gap-1 text-warning-foreground">
+              <span className="size-2 rounded-full bg-warning" aria-hidden /> Belum disimpan
+            </span>
           ) : (
             <span className="inline-flex items-center gap-1">
-              <CheckCircle2Icon className="size-3 text-success" /> Tersimpan otomatis{status.waktu ? ` · ${status.waktu}` : ''}
+              <CheckCircle2Icon className="size-3 text-success" /> Tersimpan{status.waktu ? ` · ${status.waktu}` : ''}
             </span>
           )}
         </p>
       </div>
-      <Button type="button" className="h-10" disabled={melihat} onClick={onLihatPdf}>
-        {melihat ? <Loader2Icon className="size-4 animate-spin" /> : <FileTextIcon className="size-4" />} Lihat PDF
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="default"
+          className="h-10 gap-1.5"
+          disabled={!kotor || menyimpan}
+          onClick={onSimpan}
+        >
+          {menyimpan ? <Loader2Icon className="size-4 animate-spin" /> : <SaveIcon className="size-4" />} Simpan
+        </Button>
+        <Button type="button" variant="outline" className="h-10 gap-1.5" disabled={melihat} onClick={onLihatPdf}>
+          {melihat ? <Loader2Icon className="size-4 animate-spin" /> : <FileTextIcon className="size-4" />} Lihat PDF
+        </Button>
+      </div>
     </div>
   )
 }
