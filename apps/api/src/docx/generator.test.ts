@@ -240,7 +240,7 @@ describe("generateNaskahStDocx", () => {
       expect(jarak).toBe("258");
     });
 
-    it("isi panjang: jarak mengecil agar tanda tangan dan tembusan tetap di halaman 1", async () => {
+    it("isi panjang: otomatis pindah ke lampiran agar tanda tangan cukup untuk QR 3x3 cm", async () => {
       const dasarPanjang = Array.from({ length: 6 }, (_, i) => `Dasar hukum ke-${i + 1} tentang pedoman pelaksanaan anggaran pendapatan dan belanja negara tahun anggaran 2026`);
       const buffer = await generateNaskahStDocx({
         nomor: "${nomor_naskah}", modeNomor: "srikandi", tanggal: null, tempatNaskah: "Jakarta",
@@ -252,13 +252,15 @@ describe("generateNaskahStDocx", () => {
       });
       const xml = (await (await JSZip.loadAsync(buffer)).file("word/document.xml")?.async("text")) ?? "";
       const sebelumTtd = new RegExp('<w:spacing w:before="(\\d+)"[^>]*/>(?:(?!</w:p>).)*\\$\\{ttd_pengirim\\}', "s").exec(xml)?.[1];
-      expect(sebelumTtd).toBe("516");
+      expect(Number(sebelumTtd)).toBeGreaterThanOrEqual(750);
+      expect(xml).toContain("DAFTAR TERLAMPIR");
+      expect(xml).toContain("Lampiran Surat Tugas");
     });
 
     it("isi ringan: ruang tanda tangan tetap lega", async () => {
       const xml = await buat(3);
       const sebelumTtd = new RegExp('<w:spacing w:before="(\\d+)"[^>]*/>(?:(?!</w:p>).)*\\$\\{ttd_pengirim\\}', "s").exec(xml)?.[1];
-      expect(sebelumTtd).toBe("774");
+      expect(sebelumTtd).toBe("850");
     });
 
     it("3 pelaksana tetap di badan surat tanpa lampiran", async () => {

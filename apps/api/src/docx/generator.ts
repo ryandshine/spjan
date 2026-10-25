@@ -9,6 +9,7 @@ import {
   hitungLamaHariSt,
   pakaiLampiranPelaksana,
   tanggalIndonesia,
+  evaluasiTataLetakSt,
   type NaskahStDto,
   type NaskahStPayload,
 } from "@spjan/shared";
@@ -88,6 +89,8 @@ interface OpsiParagraf {
   halamanBaru?: boolean;
   /** Satu tab stop kiri, diukur dari margin kiri halaman (bukan dari indentasi). */
   tabKiri?: number;
+  lineRule?: "exact" | "atLeast" | "auto";
+  line?: number;
 }
 
 function paragrafXml(isi: string, o: OpsiParagraf = {}): string {
@@ -95,12 +98,16 @@ function paragrafXml(isi: string, o: OpsiParagraf = {}): string {
     o.kiri || o.gantung
       ? `<w:ind w:left="${o.kiri ?? 0}"${o.gantung ? ` w:hanging="${o.gantung}"` : ""}/>`
       : "";
+  const lineAttr =
+    o.lineRule === "auto"
+      ? ""
+      : ` w:line="${o.line ?? SATU_BARIS}" w:lineRule="${o.lineRule ?? "exact"}"`;
   return (
     "<w:p><w:pPr>" +
     (o.tahanBersama ? "<w:keepNext/><w:keepLines/>" : "<w:keepLines/>") +
     (o.halamanBaru ? "<w:pageBreakBefore/>" : "") +
     (o.tabKiri ? `<w:tabs><w:tab w:val="left" w:pos="${o.tabKiri}"/></w:tabs>` : "") +
-    `<w:spacing w:before="${o.sebelum ?? 0}" w:after="${o.sesudah ?? 0}" w:line="${SATU_BARIS}" w:lineRule="exact"/>` +
+    `<w:spacing w:before="${o.sebelum ?? 0}" w:after="${o.sesudah ?? 0}"${lineAttr}/>` +
     ind +
     `<w:jc w:val="${o.jc ?? "left"}"/>` +
     "</w:pPr>" +
@@ -347,7 +354,9 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
     const jab = (pel.jabatan || "").trim().replace(/^\/\s*/, "");
     return jab ? `${pel.nama} / ${jab}` : pel.nama;
   });
-  const lampiran = pakaiLampiranPelaksana((data.pelaksana || []).length);
+  // Evaluasi tata letak otomatis: jamin ruang QR 3x3 cm, bila tidak cukup pindah ke lampiran (halaman 2).
+  const evaluasi = evaluasiTataLetakSt(data as NaskahStPayload);
+  const lampiran = evaluasi.lampiran;
   const untuk = [
     `Melaksanakan perjalanan dinas dalam rangka ${maksud} di ${lokasi};`,
     `Yang bersangkutan melaksanakan perintah tugas selama ${formatHariDenganTerbilang(lamaHari)} hari pada tanggal ${rentangTanggal};`,
@@ -355,14 +364,7 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
     `Biaya dibebankan kepada ${pembebanan}`,
   ];
   const tembusan = rapikanPenutup(data.tembusan || []);
-  // Jarak halaman 1 mengecil bertahap bila isi panjang, supaya tanda tangan dan tembusan tidak pindah halaman.
-  const jarak = pilihJarak({
-    menimbang,
-    dasar,
-    kepada: lampiran ? ["DAFTAR TERLAMPIR"] : kepada,
-    untuk,
-    tembusan,
-  });
+  const jarak = evaluasi.jarak;
 
   // Tanda tangan Direktur: baris tanggal (hanya di halaman 1) + jabatan, ruang TTE, nama, NIP.
   const tandaTanganXml = (denganTanggal: boolean, tahanKeBawah: boolean, j: JarakHalaman): string[] => [
@@ -374,7 +376,12 @@ export async function generateNaskahStDocx(data: NaskahStDto | NaskahStPayload):
       sebelum: denganTanggal ? 0 : SATU_BARIS,
       tahanBersama: true,
     }),
-    paragrafXml(runXml("${ttd_pengirim}"), { kiri: INDENT_TTD, sebelum: j.ruangTtd, tahanBersama: true }),
+    paragrafXml(runXml("${ttd_pengirim}"), {
+      kiri: INDENT_TTD,
+      sebelum: j.ruangTtd,
+      tahanBersama: true,
+      lineRule: "atLeast",
+    }),
     paragrafXml(runXml(data.penandatanganNama || ""), { kiri: INDENT_TTD, sebelum: j.ruangTtd, tahanBersama: true }),
     paragrafXml(runXml(data.penandatanganNip ? `NIP. ${data.penandatanganNip}` : ""), {
       kiri: INDENT_TTD,

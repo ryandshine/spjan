@@ -58,19 +58,20 @@ describe("pilihJarak (jarak halaman 1 mengecil agar tanda tangan dan tembusan te
     expect(JARAK_NORMAL.antarBlok).toBe(258);
   });
 
-  it("isi ST_CILOTO dengan 1 pelaksana: tanda tangan dan tembusan tetap muat di halaman 1", () => {
-    expect(taksirTinggi(sampel(1), pilihJarak(sampel(1)))).toBeLessThanOrEqual(KAPASITAS_HALAMAN);
+  it("isi ST_CILOTO dengan 1 pelaksana: tanda tangan dan tembusan tetap muat di halaman 1 dengan jarak antar blok dipertahankan", () => {
+    const j = pilihJarak(sampel(1));
+    expect(j.antarBlok).toBeGreaterThan(0);
+    expect(taksirTinggi(sampel(1), j)).toBeLessThanOrEqual(KAPASITAS_HALAMAN);
   });
 
-  it("isi ST_CILOTO dengan 3 pelaksana: jarak dikecilkan tetapi jarak antar blok dipertahankan", () => {
+  it("isi ST_CILOTO dengan 3 pelaksana: tanda tangan dan tembusan tetap muat di halaman 1 dengan jarak padat", () => {
     const j = pilihJarak(sampel(3));
     expect(j).not.toEqual(JARAK_NORMAL);
-    expect(j.antarBlok).toBeGreaterThan(0);
     expect(taksirTinggi(sampel(3), j)).toBeLessThanOrEqual(KAPASITAS_HALAMAN);
   });
 
   it("tembusan lebih banyak menuntut jarak lebih rapat", () => {
-    const banyak = sampel(3, ["Sekretaris Direktorat Jenderal Perhutanan Sosial;", "Direktur Jenderal Perhutanan Sosial dan Kemitraan Lingkungan;", "Kepala Biro Hukum;", "Yang Bersangkutan."]);
+    const banyak = sampel(1, ["Sekretaris Direktorat Jenderal Perhutanan Sosial;", "Direktur Jenderal Perhutanan Sosial dan Kemitraan Lingkungan;", "Kepala Biro Hukum;", "Yang Bersangkutan."]);
     expect(taksirTinggi(banyak, pilihJarak(banyak))).toBeLessThanOrEqual(KAPASITAS_HALAMAN);
     expect(taksirTinggi(banyak, pilihJarak(banyak))).toBeLessThan(taksirTinggi(banyak, JARAK_NORMAL));
   });

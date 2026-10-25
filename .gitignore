@@ -17,3 +17,5 @@ packages/*/node_modules
 apps/api/data/
 *.xlsx
 /*.pdf
+/*.png
+/Surat-Tugas-*.docx

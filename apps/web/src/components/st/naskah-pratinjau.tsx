@@ -49,7 +49,10 @@ function BlokTandaTangan({ form, tanggal }: { form: NaskahStPayload; tanggal?: s
         </p>
       ) : null}
       <p>{form.penandatanganJabatan || 'Direktur,'}</p>
-      <div className="h-16 flex items-center text-neutral-400 font-mono text-[11px]">{'${ttd_pengirim}'}</div>
+      <div className="w-[3cm] h-[3cm] my-1 border border-dashed border-neutral-300 rounded flex flex-col items-center justify-center text-neutral-400 font-mono text-[10px] leading-tight text-center bg-neutral-50/50">
+        <span>{'${ttd_pengirim}'}</span>
+        <span className="text-[9px] text-neutral-400 font-sans mt-0.5">(QR TTE 3×3 cm)</span>
+      </div>
       <p className="font-semibold">{form.penandatanganNama || PENANDATANGAN_CONTOH.nama}</p>
       <p>NIP. {form.penandatanganNip || PENANDATANGAN_CONTOH.nip}</p>
     </div>

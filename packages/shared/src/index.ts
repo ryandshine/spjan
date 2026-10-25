@@ -15,4 +15,5 @@ export * from "./laporan-susun.js";
 export * from "./laporan-dokumen.js";
 export * from "./naskah-st.js";
 export * from "./undangan-ekstraksi.js";
+export * from "./tata-letak-st.js";
 

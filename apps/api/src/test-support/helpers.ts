@@ -95,7 +95,7 @@ export const PNG_1X1 = Buffer.from(
 );
 
 /** PNG sah dengan isi berbeda untuk setiap n (byte tambahan setelah IEND diabaikan pembaca gambar). */
-export const pngUnik = (n: number): Buffer => Buffer.concat([PNG_1X1, Buffer.from([n % 256, Math.floor(n / 256)])]);
+export const pngUnik = (n: number = 0): Buffer => Buffer.concat([PNG_1X1, Buffer.from([n % 256, Math.floor(n / 256)])]);
 
 export function bodyMultipart(nama: string, isi: Buffer): { payload: Buffer; headers: { "content-type": string } } {
   const batas = `----spjantest${Math.random().toString(16).slice(2)}`;

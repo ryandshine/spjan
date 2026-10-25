@@ -18,7 +18,7 @@ import {
   formatHariDenganTerbilang,
   formatRentangWaktuSt,
   hitungLamaHariSt,
-  pakaiLampiranPelaksana,
+  evaluasiTataLetakSt,
   tanggalIndonesia,
   type NaskahStDto,
   type NaskahStPayload,
@@ -237,7 +237,8 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
 
   const rentangTanggalTeks = formatRentangWaktuSt(form.tanggalMulai, form.tanggalSelesai)
   const lamaHari = form.lamaHari || hitungLamaHariSt(form.tanggalMulai, form.tanggalSelesai)
-  const lampiran = pakaiLampiranPelaksana(form.pelaksana.length)
+  const evaluasiTataLetak = evaluasiTataLetakSt(form)
+  const lampiran = evaluasiTataLetak.lampiran
   const nomorPratinjau = form.modeNomor === 'srikandi' ? '${nomor_naskah}' : form.nomor || '${nomor_naskah}'
   const tanggalPratinjau =
     form.modeNomor === 'manual' && form.tanggal ? tanggalIndonesia(form.tanggal) : '${tanggal_naskah}'
@@ -650,13 +651,26 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
         {/* Kolom Kanan: Pratinjau Lembar Surat Resmi (A4 Standard Live Preview) */}
         <div className="space-y-3 lg:col-span-5 lg:sticky lg:top-4">
           <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Pratinjau Naskah Dinas (Live Preview)
+                Pratinjau Naskah Dinas
               </span>
-              <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                Standar Tata Naskah Dinas Kementerian (Kop Simetris Tengah & Margin 2cm)
-              </span>
+              {evaluasiTataLetak.alasanLampiran === 'kapasitas_halaman' ? (
+                <span
+                  className="text-[10px] font-medium text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800"
+                  title="Daftar pelaksana otomatis dipindah ke Lampiran agar ruang tanda tangan QR 3×3 cm aman"
+                >
+                  Lampiran Otomatis (QR 3×3 cm)
+                </span>
+              ) : evaluasiTataLetak.alasanLampiran === 'jumlah_pelaksana' ? (
+                <span className="text-[10px] font-medium text-blue-700 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-300 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800">
+                  Lampiran (&gt;3 Pelaksana)
+                </span>
+              ) : (
+                <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                  1 Halaman (QR 3×3 cm Cukup)
+                </span>
+              )}
             </div>
             <Button
               variant="outline"
