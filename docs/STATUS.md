@@ -1,7 +1,18 @@
 # Status SPJAN
 
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
-Terakhir diperbarui: 2026-10-22 (refactor alur tahapan stepper SPJ, OCR binding pelaksana, integrasi progress kelengkapan murni, dan navigasi bawah linier).
+Terakhir diperbarui: 2026-10-27 (perbaikan ekstraksi otomatis ST 3 lembar di awal dan penanganan tabel pelaksana gabungan baris).
+
+## Ekstraksi Surat Tugas Multi-Lembar (3 Lembar di Awal) & Normalisasi Etape (2026-10-27)
+
+- **Pembaca Berkas 3 Lembar di Awal (`apps/api/src/ekstraksi/baca-berkas.ts`)**:
+  - `pdftotext` kini membatasi konversi halaman dengan parameter `["-f", "1", "-l", "3"]` agar fokus membaca naskah penugasan & lampiran personil pada 3 lembar awal tanpa terganggu lampiran tambahan berlebih di lembar berikutnya.
+  - `pdftoppm` untuk dokumen PDF pindaian (scan) dikembalikan merender maksimal 3 lembar (`MAKS_HALAMAN_BACA = 3`).
+- **Penanganan Etape Baris Gabungan / Tabel Lampiran (`apps/api/src/ekstraksi/st.ts`)**:
+  - Pada format tabel lampiran dinas (seperti `ST.206.pdf`), kolom tanggal/tujuan sering kali digabung (merged cells) atau hanya ditulis pada personil pertama di kelompoknya, menyebabkan model AI mengembalikan `etape: []` untuk personil berikutnya sehingga gagal validasi Zod (`min(1)`).
+  - Ditambahkan instruksi ketat pada `PROMPT_ST` dan normalisasi fallback otomatis pada hasil JSON sebelum skema Zod: personil dengan etape kosong otomatis mewarisi etape/jadwal perjalanan dari baris sebelumnya atau nilai bawaan naskah utama Surat Tugas.
+  - Menambahkan dukungan pindaian gambar (`isi.gambar`) pada ekstraksi Surat Tugas dengan `modelGambar`.
+- Lulus seluruh pengujian unit (195 api, 47 web, 157 shared) dan verifikasi sukses langsung pada dokumen `ST.206.pdf`.
 
 ## Refactoring Alur Stepper & Binding OCR SPJ (2026-10-22, belum di-commit)
 

@@ -38,7 +38,7 @@ export const ekstraktorOtomatis: Ekstraktor = async ({ berkas, klien, konf, isi 
     return { model, hasil, jenis: "transport" };
   }
   const { model: mKlas, hasil: hKlas } = await klasifikasiBerkas(klien, konf, isi);
-  if (hKlas.jenis === "st" && isi.teks && isi.teks.trim().length > 0) {
+  if (hKlas.jenis === "st" && ((isi.teks && isi.teks.trim().length > 0) || isi.gambar.length > 0)) {
     const { model, hasil } = await ekstrakSt(klien, konf, isi);
     return { model, hasil, jenis: "st" };
   }

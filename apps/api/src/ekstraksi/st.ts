@@ -17,6 +17,10 @@ Baca dokumen Surat Tugas (ST) berikut dan ekstrak informasinya secara tepat ke d
   - jabatan: jabatan kedinasan (mis. "Kasubdit Pemantauan", "Surveyor Pemetaan", dll.) atau null
   - etape: daftar perjalanan orang tersebut, masing-masing dengan tujuan (kota/kabupaten/provinsi), tanggalBerangkat (YYYY-MM-DD), tanggalKembali (YYYY-MM-DD)
 
+PENTING:
+- Setiap pelaksana WAJIB memiliki minimal 1 etape.
+- Jika tanggal atau tujuan pelaksana di baris tabel tidak tertulis secara spesifik (misalnya karena penggabungan baris tabel atau mengikuti baris sebelumnya), warisi tanggal dan tujuan dari baris di atasnya atau gunakan rentang tanggal dan lokasi utama pada diktum Surat Tugas (bagian Untuk). Jangan pernah mengosongkan etape ([]).
+
 Balas HANYA JSON yang valid sesuai skema.`;
 
 export async function ekstrakSt(
@@ -24,15 +28,18 @@ export async function ekstrakSt(
   konf: KonfigurasiAi,
   isi: IsiBerkas,
 ): Promise<{ model: string; hasil: HasilEkstraksiSt }> {
-  const model = konf.modelTeks;
+  const pakaiGambar = isi.gambar.length > 0;
+  const model = pakaiGambar ? konf.modelGambar : konf.modelTeks;
   if (!model) {
-    throw new AiGalat("MODEL_BELUM_DIATUR", "Model teks belum diatur di Pengaturan > Model AI.");
+    const jenisModel = pakaiGambar ? "gambar" : "teks";
+    throw new AiGalat("MODEL_BELUM_DIATUR", `Model ${jenisModel} belum diatur di Pengaturan > Model AI.`);
   }
-  if (!isi.teks || isi.teks.trim().length === 0) {
-    throw new AiGalat("BERKAS_TIDAK_TERBACA", "Dokumen Surat Tugas tidak memuat teks yang dapat dibaca.");
+  if (!pakaiGambar && (!isi.teks || isi.teks.trim().length === 0)) {
+    throw new AiGalat("BERKAS_TIDAK_TERBACA", "Dokumen Surat Tugas tidak memuat teks atau gambar yang dapat dibaca.");
   }
 
-  const promptDasar = `${PROMPT_ST}\n\nIsi Dokumen Surat Tugas:\n${isi.teks}`;
+  const promptDasar = pakaiGambar ? PROMPT_ST : `${PROMPT_ST}\n\nIsi Dokumen Surat Tugas:\n${isi.teks}`;
+  const gambar = pakaiGambar ? isi.gambar.slice(0, 3) : undefined;
   let prompt = promptDasar;
 
   for (let percobaan = 0; percobaan < 2; percobaan += 1) {
@@ -40,11 +47,40 @@ export async function ekstrakSt(
       baseUrl: konf.llmUrl,
       model,
       prompt,
+      gambar,
       skema: SKEMA_EKSTRAKSI_ST,
       maksToken: 8192,
     });
     try {
-      const parsed = HasilEkstraksiStSchema.parse(uraikanJsonAi(balasan));
+      const raw = uraikanJsonAi(balasan);
+      // Normalisasi etape pelaksana: jika etape kosong karena tabel gabungan baris, warisi dari baris sebelumnya atau ST
+      if (raw && typeof raw === "object" && Array.isArray((raw as any).pelaksana)) {
+        const rawPelaksana = (raw as any).pelaksana;
+        const acuanEtape = rawPelaksana.find((p: any) => Array.isArray(p?.etape) && p.etape.length > 0)?.etape;
+        const tanggalDefault = typeof (raw as any).tanggal === "string" && /^\d{4}-\d{2}-\d{2}$/.test((raw as any).tanggal)
+          ? (raw as any).tanggal
+          : "2026-01-01";
+        const lokasiDefault = typeof (raw as any).kegiatan === "string" && (raw as any).kegiatan.trim().length > 0
+          ? (raw as any).kegiatan.trim().slice(0, 100)
+          : "Tujuan Penugasan";
+
+        let etapeSebelumnya = acuanEtape || [
+          {
+            tujuan: lokasiDefault,
+            tanggalBerangkat: tanggalDefault,
+            tanggalKembali: tanggalDefault,
+          },
+        ];
+
+        for (const p of rawPelaksana) {
+          if (!Array.isArray(p.etape) || p.etape.length === 0) {
+            p.etape = etapeSebelumnya;
+          } else {
+            etapeSebelumnya = p.etape;
+          }
+        }
+      }
+      const parsed = HasilEkstraksiStSchema.parse(raw);
       return { model, hasil: parsed };
     } catch (error) {
       const sebab = (error as Error).message.replace(/\s+/g, " ").slice(0, 200);

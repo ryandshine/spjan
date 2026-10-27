@@ -29,8 +29,8 @@ export interface IsiBerkas {
 
 const BATAS_TEKS = 12_000;
 const MIN_TEKS_PDF = 50;
-// Semua ekstraktor hanya memakai gambar pertama, jadi cukup render halaman pertama.
-const MAKS_HALAMAN_GAMBAR = 1;
+// Ekstraksi dokumen kedinasan (ST, tiket, invoice): ambil maksimal 3 lembar di awal.
+const MAKS_HALAMAN_BACA = 3;
 
 export async function bacaIsi(mime: MimeBerkas, data: Buffer): Promise<IsiBerkas> {
   if (mime !== "application/pdf") return { teks: "", gambar: [data.toString("base64")] };
@@ -41,10 +41,14 @@ export async function bacaIsi(mime: MimeBerkas, data: Buffer): Promise<IsiBerkas
     await writeFile(pdf, data);
     let teks: string;
     try {
-      const { stdout } = await jalankan("pdftotext", ["-layout", "-enc", "UTF-8", pdf, "-"], {
-        maxBuffer: 20 * 1024 * 1024,
-        timeout: 30_000,
-      });
+      const { stdout } = await jalankan(
+        "pdftotext",
+        ["-layout", "-enc", "UTF-8", "-f", "1", "-l", String(MAKS_HALAMAN_BACA), pdf, "-"],
+        {
+          maxBuffer: 20 * 1024 * 1024,
+          timeout: 30_000,
+        },
+      );
       teks = rapatkanTeks(stdout);
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") {
@@ -55,9 +59,13 @@ export async function bacaIsi(mime: MimeBerkas, data: Buffer): Promise<IsiBerkas
     if (teks.length >= MIN_TEKS_PDF) return { teks: teks.slice(0, BATAS_TEKS), gambar: [] };
 
     try {
-      await jalankan("pdftoppm", ["-png", "-r", "110", "-scale-to", "2000", "-f", "1", "-l", String(MAKS_HALAMAN_GAMBAR), pdf, path.join(dir, "hal")], {
-        timeout: 60_000,
-      });
+      await jalankan(
+        "pdftoppm",
+        ["-png", "-r", "110", "-scale-to", "2000", "-f", "1", "-l", String(MAKS_HALAMAN_BACA), pdf, path.join(dir, "hal")],
+        {
+          timeout: 60_000,
+        },
+      );
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") {
         throw new AiGalat("GALAT_INTERNAL", "Utilitas sistem pembaca PDF (pdftoppm) tidak ditemukan.");

@@ -70,4 +70,44 @@ describe("ekstrakSt", () => {
     });
     expect(klien.panggilan).toHaveLength(2);
   });
+
+  it("pelaksana tanpa etape di baris berikutnya otomatis mewarisi etape sebelumnya", async () => {
+    const rawDenganEtapeKosong = JSON.stringify({
+      nomor: "ST.226/PPS/2026",
+      tanggal: "2026-09-08",
+      kegiatan: "Koordinasi",
+      pelaksana: [
+        {
+          nama: "Pelaksana 1",
+          nip: "197803101997031001",
+          jabatan: "Kasubdit",
+          etape: [
+            {
+              tujuan: "Bali",
+              tanggalBerangkat: "2026-09-10",
+              tanggalKembali: "2026-09-11",
+            },
+          ],
+        },
+        {
+          nama: "Pelaksana 2",
+          nip: null,
+          jabatan: "Staf",
+          etape: [],
+        },
+      ],
+    });
+    const klien = klienPalsu(() => rawDenganEtapeKosong);
+    const { hasil } = await ekstrakSt(klien, konf, { teks: "SURAT TUGAS...", gambar: [] });
+    expect(hasil.pelaksana).toHaveLength(2);
+    expect(hasil.pelaksana[1]?.etape).toEqual(hasil.pelaksana[0]?.etape);
+  });
+
+  it("dokumen pindaian gambar memanggil model gambar", async () => {
+    const klien = klienPalsu(() => validStJson);
+    const { model, hasil } = await ekstrakSt(klien, konf, { teks: "", gambar: ["base64-1", "base64-2"] });
+    expect(model).toBe("m-gambar");
+    expect(hasil.nomor).toBe("ST.226/PPS/2026");
+    expect(klien.panggilan[0]?.gambar).toHaveLength(2);
+  });
 });
