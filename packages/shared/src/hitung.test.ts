@@ -337,6 +337,17 @@ describe("hitungSpj - kasus emas", () => {
     expect(hasil.teksTanggalSpj).toBe("");
   });
 
+  it("rute tetap menampilkan asal dan tujuan walau sama (perjalanan dalam satu kabupaten/kota)", () => {
+    const dalamKabupaten: PelaksanaInput = {
+      ...resa,
+      kotaKedudukan: "Kab. Bolaang Mongondow",
+      provinsiKedudukan: "SULAWESI UTARA",
+      etape: resa.etape.map((e) => ({ ...e, kota: "Kab. Bolaang Mongondow", provinsi: "SULAWESI UTARA" })),
+    };
+    const h = hitungSpj(spj([dalamKabupaten]), SBM_2026).pelaksana[0]!;
+    expect(h.rute).toBe("Kab. Bolaang Mongondow - Kab. Bolaang Mongondow");
+  });
+
   it("memformat tanggalSpd menjadi teksTanggalSpd dan menyusun rute", () => {
     const denganTglSpd = { ...resa, tanggalSpd: "2026-09-09" };
     const h = hitungSpj(spj([denganTglSpd]), SBM_2026).pelaksana[0]!;

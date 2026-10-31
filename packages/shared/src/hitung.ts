@@ -524,11 +524,15 @@ function urutanBiayaTransport(jenis: JenisBiaya): number {
       ? `Biaya Perjalanan dinas dalam rangka ${segmen.join(" dan ")} sesuai Surat Tugas Nomor: ${input.nomorSt} tanggal ${tanggalIndonesia(input.tanggalSt)} sesuai dengan rincian terlampir.`
       : "";
 
+  // Kota yang sama berturut-turut antar etape digabung, tetapi etape pertama selalu dicantumkan
+  // walau sama dengan kedudukan (perjalanan dalam satu kabupaten/kota tetap tampil asal - tujuan).
   const kotaUnik: string[] = [];
   if (input.kotaKedudukan) kotaUnik.push(input.kotaKedudukan);
+  let kotaEtapeSebelumnya: string | undefined;
   for (const e of p.etape) {
-    if (e.kota && kotaUnik[kotaUnik.length - 1] !== e.kota) {
+    if (e.kota && kotaEtapeSebelumnya !== e.kota) {
       kotaUnik.push(e.kota);
+      kotaEtapeSebelumnya = e.kota;
     }
   }
   const rute = kotaUnik.length > 0 ? kotaUnik.join(" - ") : "-";
