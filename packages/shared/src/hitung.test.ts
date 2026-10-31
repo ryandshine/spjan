@@ -276,7 +276,7 @@ describe("hitungSpj - kasus emas", () => {
       "Tiket Pesawat Jakarta ke Denpasar",
       "Tiket Pesawat Denpasar ke Yogyakarta",
       "Tiket Pesawat Yogyakarta ke Jakarta",
-      "Taksi dari tempat kedudukan - Bandara Soekarno Hatta (PP)",
+      "Taksi dari tempat kedudukan - Bandara Soekarno Hatta",
     ]);
     expect(h.totalUangHarian).toBe(1_800_000);
     expect(h.totalPenginapan).toBe(2_500_000);
@@ -923,6 +923,42 @@ describe("hitungSpj - paket pertemuan / fullboard", () => {
   });
 });
 
+
+describe("hitungSpj - uraian taksi tempat kedudukan menurut jumlah", () => {
+  const uraianTaksi = (qty: number | undefined, kedudukan?: { kota: string; provinsi: string }) => {
+    const p: PelaksanaInput = {
+      ...resa,
+      ...(kedudukan ? { kotaKedudukan: kedudukan.kota, provinsiKedudukan: kedudukan.provinsi } : {}),
+      biaya: [{ jenis: "TAKSI_KEDUDUKAN", ...(qty === undefined ? {} : { qty }), tarif: 250_000 }],
+    };
+    return hitungSpj(spj([p]), SBM_2026).pelaksana[0]!.transport[0]!;
+  };
+
+  it("1 kali: uraian tanpa (PP)", () => {
+    expect(uraianTaksi(1).uraian).toBe("Taksi dari tempat kedudukan - Bandara Soekarno Hatta");
+    expect(uraianTaksi(1).jumlah).toBe(250_000);
+  });
+
+  it("qty kosong dihitung 1 kali: uraian tanpa (PP)", () => {
+    expect(uraianTaksi(undefined).uraian).toBe("Taksi dari tempat kedudukan - Bandara Soekarno Hatta");
+  });
+
+  it("2 kali: uraian memakai (PP) dan jumlah dua kali tarif", () => {
+    expect(uraianTaksi(2).uraian).toBe("Taksi dari tempat kedudukan - Bandara Soekarno Hatta (PP)");
+    expect(uraianTaksi(2).jumlah).toBe(500_000);
+  });
+
+  it("kedudukan selain Jakarta mengikuti aturan yang sama", () => {
+    const mks = { kota: "Makassar", provinsi: "SULAWESI SELATAN" };
+    expect(uraianTaksi(1, mks).uraian).toBe("Taksi dari tempat kedudukan - Bandara Makassar");
+    expect(uraianTaksi(2, mks).uraian).toBe("Taksi dari tempat kedudukan - Bandara Makassar (PP)");
+  });
+
+  it("uraian yang diketik pengguna tidak diubah", () => {
+    const p: PelaksanaInput = { ...resa, biaya: [{ jenis: "TAKSI_KEDUDUKAN", qty: 1, tarif: 250_000, uraian: "Taksi online ke bandara" }] };
+    expect(hitungSpj(spj([p]), SBM_2026).pelaksana[0]!.transport[0]!.uraian).toBe("Taksi online ke bandara");
+  });
+});
 
 describe("hitungSpj - kedudukan per pelaksana", () => {
   it("pelaksana dari provinsi lain memakai kedudukannya sendiri; yang kosong ikut Pengaturan", () => {

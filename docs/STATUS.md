@@ -1,7 +1,18 @@
 # Status SPJAN
 
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
-Terakhir diperbarui: 2026-10-27 (perbaikan ekstraksi otomatis ST 3 lembar di awal dan penanganan tabel pelaksana gabungan baris).
+Terakhir diperbarui: 2026-10-31 (rute kuitansi untuk perjalanan dalam satu kabupaten/kota).
+
+## Uraian taksi tempat kedudukan (2026-10-31)
+
+- `uraianBiaya` (`packages/shared/src/hitung.ts`): akhiran "(PP)" pada `TAKSI_KEDUDUKAN` hanya muncul bila `qty >= 2`; qty 1 atau kosong = sekali jalan, tanpa "(PP)". Uraian yang diketik pengguna tidak diubah. Taksi baru dari tombol tambah punya `qty: 1`, jadi pengguna menaikkan ke 2 bila pulang-pergi. Berlaku juga untuk ST yang sudah ada (mengikuti `qty` tersimpan).
+
+## Rute kuitansi: asal dan tujuan sama (2026-10-31, sudah di-push dan di-deploy, commit 02db93c)
+
+- **Masalah**: `rute` di `hitungPelaksana` (`packages/shared/src/hitung.ts`) membuang kota yang sama berturut-turut, termasuk antara kedudukan dan etape pertama, sehingga baris "Perjalanan Dari" di kuitansi hanya menampilkan satu kota bila kedudukan sama dengan tujuan. Pengguna sempat mengakalinya dengan menambah titik di akhir nama kota (`Kab. Bolaang Mongondow.`), contohnya ST.366/BPSMANADO/TU/PSL.04.02/B/10/2026.
+- **Perbaikan**: duplikat hanya digabung antar etape; kedudukan dan etape pertama selalu dicantumkan. Hasil: `Kab. Bolaang Mongondow - Kab. Bolaang Mongondow`. Separator tetap " - " (belum diganti "ke").
+- **Pembersihan data**: titik akhir pada kota di ST lama dihapus pengguna lewat aplikasi (bukan SQL langsung, agar pengunci ST final dan audit tetap berlaku).
+- **Keputusan**: perhitungan dalam kota untuk kota sama di luar Jabodetabek **tidak dilanjutkan**. Mesin tetap menghitung uang harian luar kota dan memberi peringatan `TARIF_HOTEL_KOSONG` saat kedudukan sama dengan tujuan; penanda `dalamKota8Jam` otomatis hanya untuk Jabodetabek dan perjalanan 1 hari.
 
 ## Ekstraksi Surat Tugas Multi-Lembar (3 Lembar di Awal) & Normalisasi Etape (2026-10-27)
 
