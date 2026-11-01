@@ -92,6 +92,13 @@ export interface HotelTambahan {
   tarif: number;
   /** Malam (YYYY-MM-DD) di tempat ini */
   tanggal: string[];
+  /** Asal kartu; kosong dianggap manual. */
+  sumber?: "manual" | "kuitansi";
+  /** Kartu dari kuitansi yang sudah diubah pengguna. */
+  diubah?: boolean;
+  berkasId?: number | null;
+  /** Jumlah malam tertulis di kuitansi, untuk mendeteksi tanggal yang bentrok. */
+  malamKuitansi?: number | null;
 }
 
 export interface EtapeInput {
@@ -118,6 +125,8 @@ export interface EtapeInput {
   hotelPihakLainDates?: string[];
   /** Tempat menginap lain pada tujuan ini; hotel utama mencakup malam yang tidak dipilih di sini. */
   hotelTambahan?: HotelTambahan[];
+  /** true = semua penginapan ada di hotelTambahan, bertanggal; malam tanpa kartu tidak dibayar. false = bentuk lama: hotelNama mengambil sisa malam. */
+  hotelPerKartu?: boolean;
   /** Perjalanan dinas dalam kota / Jabodetabek lebih dari 8 jam (menggunakan tarif uang harian dalam kota) */
   dalamKota8Jam?: boolean | null;
   /** Daftar tanggal (YYYY-MM-DD) di mana uang harian / lumpsum tidak dibebankan ke SPJ (ditanggung pihak lain / panitia) */
@@ -178,7 +187,8 @@ export type KodePeringatan =
   | "TARIF_HOTEL_KOSONG"
   | "HOTEL_MELEBIHI_BATAS"
   | "TIKET_KOTA_SAMA"
-  | "MALAM_BERLEBIH";
+  | "MALAM_BERLEBIH"
+  | "MALAM_BELUM_TERISI";
 
 export interface Peringatan {
   kode: KodePeringatan;

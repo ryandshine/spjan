@@ -13,6 +13,7 @@ export function sasaranPeringatan(w: Peringatan, nomorPelaksana: number): string
     case 'TARIF_HOTEL_KOSONG':
     case 'HOTEL_MELEBIHI_BATAS':
     case 'MALAM_BERLEBIH':
+    case 'MALAM_BELUM_TERISI':
       return `etape-${nomorPelaksana}-${tujuan}-tarif`
     case 'TANGGAL_SALAH':
       return `etape-${nomorPelaksana}-${tujuan}-brkt`

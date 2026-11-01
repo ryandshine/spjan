@@ -1,5 +1,10 @@
 import {
+  daftarHariIso,
   etapeKosong,
+  keBentukKartu,
+  parseTanggal,
+  selisihHari,
+  type EtapePayload,
   type BiayaPayload,
   type PegawaiDto,
   type SumberDana,
@@ -21,6 +26,41 @@ export function sesuaikanKodeAkun(kodeAkun: string, sumberDana: SumberDana): str
   if (POLA_SUMBER_DANA.test(kodeAkun)) return kodeAkun.replace(POLA_SUMBER_DANA, sumberDana)
   const bersih = kodeAkun.trim()
   return bersih ? `${bersih} (${sumberDana})` : kodeAkun
+}
+
+/**
+ * Satu kuitansi menjadi satu kartu penginapan, malamnya dari check-in s.d. sehari sebelum check-out.
+ * Malam yang sudah terisi kartu lain tidak diambil; selisihnya tampil sebagai "periksa" di kartu.
+ */
+function tambahKartuKuitansi(etape: EtapePayload, usulan: UsulanHotelItem): EtapePayload {
+  const e = keBentukKartu(etape)
+  const kartu = e.hotelTambahan ?? []
+  if (kartu.some((r) => r.berkasId === usulan.berkasId)) return etape
+  const a = parseTanggal(e.berangkat)
+  const b = parseTanggal(e.pulang)
+  const malamPerjalanan = a && b && selisihHari(a, b) >= 0 ? daftarHariIso(a, b).slice(0, Math.max(0, e.malamOverride ?? selisihHari(a, b))) : []
+  const terpakai = new Set([...(e.hotelPihakLainDates ?? []), ...(e.hotel30Dates ?? []), ...kartu.flatMap((r) => r.tanggal)])
+  const masuk = parseTanggal(usulan.ekstraksi.checkIn)
+  const keluar = parseTanggal(usulan.ekstraksi.checkOut)
+  const malamKuitansi = masuk && keluar && selisihHari(masuk, keluar) > 0 ? daftarHariIso(masuk, keluar).slice(0, -1) : []
+  const dalamPerjalanan = malamKuitansi.filter((t) => malamPerjalanan.includes(t))
+  const kosong = malamPerjalanan.filter((t) => !terpakai.has(t))
+  // Tanggal kuitansi di luar perjalanan: pakai malam kosong sejumlah malam kuitansi, pengguna diminta memeriksa.
+  const tanggal = dalamPerjalanan.length > 0 ? dalamPerjalanan.filter((t) => !terpakai.has(t)) : kosong.slice(0, usulan.malam)
+  return {
+    ...e,
+    hotelTambahan: [
+      ...kartu,
+      {
+        nama: usulan.ekstraksi.namaHotel,
+        tarif: usulan.tarifRiilPerMalam,
+        tanggal,
+        sumber: 'kuitansi',
+        berkasId: usulan.berkasId,
+        malamKuitansi: usulan.malam,
+      },
+    ],
+  }
 }
 
 /** Menerapkan usulan hotel ke satu tujuan (etape) milik satu pelaksana. */
@@ -50,14 +90,7 @@ export function terapkanHotelKeEtape(
           ],
         }
       }
-      return {
-        ...p,
-        etape: p.etape.map((e, j) =>
-          j !== etapeIdx
-            ? e
-            : { ...e, hotelNama: usulan.ekstraksi.namaHotel, hotelTarif: usulan.tarifRiilPerMalam, malamOverride: usulan.malam },
-        ),
-      }
+      return { ...p, etape: p.etape.map((e, j) => (j === etapeIdx ? tambahKartuKuitansi(e, usulan) : e)) }
     }),
   }
 }
@@ -133,8 +166,8 @@ export function sinkronkanSemuaUsulanOtomatis(
     const etapeIdx = h.etapeIndex >= 0 ? h.etapeIndex : 0
     hotelBerkasIds.push(h.berkasId)
 
-    // Jika belum ada etape atau hotelnya belum terisi
-    if (p.etape.length === 0 || !p.etape[etapeIdx]?.hotelNama || !p.etape[etapeIdx]?.hotelTarif) {
+    // Kuitansi yang sudah punya kartu dilewati oleh terapkanHotelKeEtape.
+    if (p.etape.length === 0 || p.etape[etapeIdx]) {
       pelaksanaBaru = terapkanHotelKeEtape(
         { ...st, pelaksana: pelaksanaBaru },
         h.pelaksanaIndex,

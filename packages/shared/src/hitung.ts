@@ -241,7 +241,12 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
     for (const t of tanggal) sudahDipakai.add(t);
     return { ...r, tanggal };
   });
-  const malam = malamDasar - sudahDipakai.size;
+  const list30Kartu = e.hotelPerKartu ? listMalamDasar.filter((t) => !sudahDipakai.has(t) && (e.hotel30Dates ?? []).includes(t)) : [];
+  const malam = e.hotelPerKartu ? list30Kartu.length : malamDasar - sudahDipakai.size;
+  const malamKosong = e.hotelPerKartu ? listMalamDasar.length - sudahDipakai.size - list30Kartu.length : 0;
+  if (malamKosong > 0) {
+    peringatan.push({ kode: "MALAM_BELUM_TERISI", pesan: `${nomor}: ${malamKosong} malam belum punya penginapan atau keterangan.`, etape: i });
+  }
   const rincian = rentangRincian(a, b);
   const cfg = p.status ? sbm.statusKonfigurasi[p.status] : undefined;
   const hasil: HasilEtape = { peringatan };
@@ -324,9 +329,9 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
 
   const batas = cfg ? sbm.penginapan[prov]?.[cfg.kolomHotel - 1] : undefined;
   const tarif30 = batas !== undefined ? Math.round(batas * 0.3) : 0;
-  const listMalam = listMalamDasar.filter((tgl) => !sudahDipakai.has(tgl));
+  const listMalam = e.hotelPerKartu ? list30Kartu : listMalamDasar.filter((tgl) => !sudahDipakai.has(tgl));
   // Ada malam ditanggung pihak lain: cetak tanggal yang benar-benar dibayar.
-  const rincianHotel = sudahDipakai.size > 0 ? formatDaftarTanggal(listMalam) : rincian;
+  const rincianHotel = e.hotelPerKartu || sudahDipakai.size > 0 ? formatDaftarTanggal(listMalam) : rincian;
   const tglHotel30 = (e.hotel30Dates ?? []).filter((tgl) => listMalam.includes(tgl));
   const hasHotel30Dates = (e.hotel30Dates ?? []).length > 0;
   const isSemua30 = hasHotel30Dates ? tglHotel30.length >= malam : !!e.hotel30Persen;

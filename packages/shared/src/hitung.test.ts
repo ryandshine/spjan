@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SBM_2026 } from "./data/sbm-2026.js";
 import { bersihkanKegiatanUraian, hitungSpj, normalkanUraianTiket } from "./hitung.js";
 import { samaKota } from "./teks.js";
+import { keBentukKartu } from "./st-model.js";
 import type { BiayaInput, EtapeInput, PelaksanaInput, SpjInput } from "./types.js";
 
 const NOMOR_ST = "ST.226/PPS/PEMPS/PSL.04.02/B/09/2026";
@@ -1130,5 +1131,31 @@ describe("hitungSpj - tempat menginap lain", () => {
   it("tanpa tempat lain hasil tetap seperti semula", () => {
     expect(hitung({}).penginapan).toHaveLength(1);
     expect(hitung({}).totalPenginapan).toBe(2_000_000);
+  });
+});
+
+describe("keBentukKartu - total ST lama tidak berubah", () => {
+  const e = (over: Partial<EtapeInput>) => etapeBali({ pulang: "2026-09-14", hotelNama: "A", hotelTarif: 500_000, ...over });
+  const total = (x: EtapeInput) => hitungSpj(spj([{ ...resa, biaya: [], etape: [x] }]), SBM_2026).pelaksana[0]!.totalPenginapan;
+  const kasus: [string, Partial<EtapeInput>][] = [
+    ["satu hotel", {}],
+    ["jumlah malam dikurangi", { malamOverride: 2 }],
+    ["tanpa menginap", { malamOverride: 0 }],
+    ["pihak lain", { hotelPihakLainDates: ["2026-09-11"] }],
+    ["tempat lain", { hotelTambahan: [{ nama: "B", tarif: 300_000, tanggal: ["2026-09-12", "2026-09-13"] }] }],
+    ["30% sebagian", { hotel30Dates: ["2026-09-10"] }],
+    ["30% semua lewat tanda", { hotel30Persen: true, hotelTarif: null }],
+    ["30% semua dengan tarif manual", { hotel30Persen: true, hotelTarif: 100_000 }],
+    ["fullboard semua hari", { fullboardDates: ["2026-09-10", "2026-09-11", "2026-09-12", "2026-09-13", "2026-09-14"] }],
+    ["gabungan", { hotelPihakLainDates: ["2026-09-10"], hotel30Dates: ["2026-09-11"], hotelTambahan: [{ nama: "B", tarif: 300_000, tanggal: ["2026-09-12"] }] }],
+  ];
+  it.each(kasus)("%s", (_nama, over) => {
+    const lama = e(over);
+    expect(total(keBentukKartu(lama as never) as EtapeInput)).toBe(total(lama));
+  });
+  it("kartu dihapus semua: malam kosong diperingatkan dan tidak dibayar", () => {
+    const h = hitungSpj(spj([{ ...resa, biaya: [], etape: [e({ hotelPerKartu: true, hotelNama: null, hotelTarif: null, hotelTambahan: [] })] }]), SBM_2026).pelaksana[0]!;
+    expect(h.totalPenginapan).toBe(0);
+    expect(h.peringatan.map((p) => p.kode)).toContain("MALAM_BELUM_TERISI");
   });
 });

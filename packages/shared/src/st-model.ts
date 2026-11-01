@@ -36,6 +36,7 @@ export function etapeKosong(): EtapePayload {
     hotel30Dates: [],
     hotelPihakLainDates: [],
     hotelTambahan: [],
+    hotelPerKartu: false,
     dalamKota8Jam: false,
     tanpaUangHarianDates: [],
     uangHarian60Dates: [],
@@ -118,7 +119,7 @@ export interface RingkasEtape {
 }
 
 export function ringkasEtape(
-  e: Pick<EtapePayload, "berangkat" | "pulang"> & { malamOverride?: number | null; fullboardDates?: string[]; hotelPihakLainDates?: string[]; hotelTambahan?: { tanggal: string[] }[] },
+  e: Pick<EtapePayload, "berangkat" | "pulang"> & { malamOverride?: number | null; fullboardDates?: string[]; hotelPihakLainDates?: string[]; hotelTambahan?: { tanggal: string[] }[]; hotelPerKartu?: boolean; hotel30Dates?: string[] },
 ): RingkasEtape {
   const a = parseTanggal(e.berangkat);
   const b = parseTanggal(e.pulang);
@@ -133,7 +134,50 @@ export function ringkasEtape(
   const pihakLain = (e.hotelPihakLainDates ?? []).filter((t) => listMalam.includes(t)).length;
   const pihakLainTgl = e.hotelPihakLainDates ?? [];
   const tambahan = new Set((e.hotelTambahan ?? []).flatMap((r) => r.tanggal).filter((t) => listMalam.includes(t) && !pihakLainTgl.includes(t)));
+  if (e.hotelPerKartu) {
+    const malam30 = (e.hotel30Dates ?? []).filter((t) => listMalam.includes(t) && !pihakLainTgl.includes(t) && !tambahan.has(t));
+    return { hari, malam: tambahan.size + malam30.length };
+  }
   return { hari, malam: malamDasar - pihakLain - tambahan.size };
+}
+
+/**
+ * Bentuk lama (hotel utama mengambil sisa malam) ke bentuk kartu bertanggal. Biaya tidak berubah:
+ * hanya dipanggil saat pengguna mengedit atau kuitansi diterapkan, jadi ST yang tidak disentuh tetap apa adanya.
+ */
+export function keBentukKartu(e: EtapePayload): EtapePayload {
+  if (e.hotelPerKartu) return e;
+  const a = parseTanggal(e.berangkat);
+  const b = parseTanggal(e.pulang);
+  const hari = a && b ? selisihHari(a, b) + 1 : 0;
+  const semuaFullboard = (e.fullboardDates ?? []).length >= hari;
+  const malamDasar = e.malamOverride ?? (semuaFullboard ? 0 : Math.max(hari - 1, 0));
+  const dasar = a && b && hari >= 1 ? daftarHariIso(a, b).slice(0, Math.max(0, malamDasar)) : [];
+  const dipakai = new Set(e.hotelPihakLainDates ?? []);
+  const tambahan = (e.hotelTambahan ?? []).map((r) => {
+    const tanggal = r.tanggal.filter((t) => dasar.includes(t) && !dipakai.has(t));
+    for (const t of tanggal) dipakai.add(t);
+    return { ...r, tanggal, sumber: r.sumber ?? ("manual" as const) };
+  });
+  const sisa = dasar.filter((t) => !dipakai.has(t));
+  const ada30 = (e.hotel30Dates ?? []).length > 0;
+  const list30 = ada30 ? (e.hotel30Dates ?? []).filter((t) => sisa.includes(t)) : e.hotel30Persen ? sisa : [];
+  const untukHotel = sisa.filter((t) => !list30.includes(t));
+  const punyaHotel = !!e.hotelNama?.trim() || (e.hotelTarif ?? 0) > 0;
+  const pertama = untukHotel.length > 0 && punyaHotel
+    ? [{ nama: e.hotelNama ?? "", tarif: e.hotelTarif ?? 0, tanggal: untukHotel, sumber: "manual" as const }]
+    : [];
+  const semua30 = list30.length > 0 && untukHotel.length === 0;
+  return {
+    ...e,
+    hotelPerKartu: true,
+    hotelTambahan: [...pertama, ...tambahan],
+    // Tarif 30% yang diubah manual tetap dibaca dari sini.
+    hotelNama: semua30 ? e.hotelNama : null,
+    hotelTarif: semua30 ? e.hotelTarif : null,
+    hotel30Dates: list30,
+    hotel30Persen: list30.length > 0,
+  };
 }
 
 /**

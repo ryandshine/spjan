@@ -3,6 +3,11 @@
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
 Terakhir diperbarui: 2026-11-01 (kabupaten dikunjungi per tujuan).
 
+## Kartu penginapan setara (2026-11-01, belum di-commit)
+
+- `etape.hotelPerKartu` (migrasi `1791126000029`): semua penginapan jadi kartu bertanggal di `hotelTambahan` dengan `sumber`, `diubah`, `berkasId`, `malamKuitansi`. Satu kuitansi = satu kartu. ST bentuk lama tetap dihitung cara lama sampai diedit; `keBentukKartu` mengonversi tanpa mengubah total (diuji), kecuali jumlah malam manual yang melebihi tanggal perjalanan.
+- Peringatan `MALAM_BELUM_TERISI` hanya untuk bentuk kartu.
+
 ## Daftar penginapan per tujuan (2026-11-01, belum di-commit)
 
 - Form tanpa isian "0 malam" sebagai jalan pintas: pilihan "Tidak menginap", hitungan "N dari M malam terisi", jumlah malam manual di Pengaturan lanjutan, label "Ditanggung pihak lain" palsu dihapus. ST lama 0 malam dengan rincian manual bisa dipindah ke daftar (`pindahkanPenginapanManual`) bila jumlah malam pas; tanggal diisi berurutan.

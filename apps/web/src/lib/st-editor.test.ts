@@ -15,6 +15,7 @@ import {
   pejabatDariPegawai,
   rincianTotal,
   sudahAdaBiayaTiket,
+  terapkanHotelKeEtape,
   sesuaikanKodeAkun,
   sinkronkanSemuaUsulanOtomatis,
   tabBergalat,
@@ -200,9 +201,8 @@ describe('sinkronkanSemuaUsulanOtomatis', () => {
     const h = usulanHotel({})
     const res = sinkronkanSemuaUsulanOtomatis(st, [h], [])
     expect(res.hotelBerkasIds).toContain(20)
-    expect(res.stBaru.pelaksana[0]?.etape[0]?.hotelNama).toBe('Hotel Ibis Manado')
-    expect(res.stBaru.pelaksana[0]?.etape[0]?.hotelTarif).toBe(650000)
-    expect(res.stBaru.pelaksana[0]?.etape[0]?.malamOverride).toBe(3)
+    expect(res.stBaru.pelaksana[0]?.etape[0]?.hotelTambahan?.[0]).toMatchObject({ nama: 'Hotel Ibis Manado', tarif: 650000, sumber: 'kuitansi' })
+    expect(res.stBaru.pelaksana[0]?.etape[0]?.malamOverride).toBeNull()
   })
 
   it('mengabaikan berkas yang statusnya bukan menunggu atau pelaksanaIndex < 0', () => {
@@ -244,5 +244,29 @@ describe('sudahAdaBiayaTiket - nomor tiket sama pada arah berbeda', () => {
   })
   it('arah dan tanggal sama tetap duplikat', () => {
     expect(sudahAdaBiayaTiket([biayaPergi], usulan('TIKET_PERGI', '2026-10-07'))).toBe(true)
+  })
+})
+
+describe('terapkanHotelKeEtape - kartu kuitansi', () => {
+  const stDasar = (): SuratTugasPayload => ({
+    ...stKosong(),
+    pelaksana: [{ ...pelaksanaKosong(), nama: 'A', etape: [{ ...pelaksanaKosong().etape[0]!, provinsi: 'BALI', kota: 'Denpasar', berangkat: '2026-10-01', pulang: '2026-10-05', hotelPerKartu: true }] }],
+  })
+  const kuitansi = (berkasId: number, checkIn: string, checkOut: string, malam: number) =>
+    ({ berkasId, malam, tarifRiilPerMalam: 500_000, ekstraksi: { namaHotel: `H${berkasId}`, checkIn, checkOut } }) as unknown as UsulanHotelItem
+
+  it('dua kuitansi menjadi dua kartu dengan tanggal masing-masing', () => {
+    let st = terapkanHotelKeEtape(stDasar(), 0, 0, kuitansi(1, '2026-10-01', '2026-10-03', 2))
+    st = terapkanHotelKeEtape(st, 0, 0, kuitansi(2, '2026-10-03', '2026-10-05', 2))
+    expect(st.pelaksana[0]!.etape[0]!.hotelTambahan!.map((r) => [r.nama, r.tanggal])).toEqual([
+      ['H1', ['2026-10-01', '2026-10-02']],
+      ['H2', ['2026-10-03', '2026-10-04']],
+    ])
+  })
+  it('kuitansi yang sama tidak dobel, tanggal bentrok tidak diambil', () => {
+    let st = terapkanHotelKeEtape(stDasar(), 0, 0, kuitansi(1, '2026-10-01', '2026-10-03', 2))
+    st = terapkanHotelKeEtape(st, 0, 0, kuitansi(1, '2026-10-01', '2026-10-03', 2))
+    st = terapkanHotelKeEtape(st, 0, 0, kuitansi(2, '2026-10-02', '2026-10-04', 2))
+    expect(st.pelaksana[0]!.etape[0]!.hotelTambahan!.map((r) => r.tanggal)).toEqual([['2026-10-01', '2026-10-02'], ['2026-10-03']])
   })
 })

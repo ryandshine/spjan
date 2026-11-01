@@ -145,16 +145,16 @@ export function pindahkanPenginapanManual(x: PelaksanaPayload): PelaksanaPayload
   const e = x.etape[0]!
   const baris = barisPindahan(x)
   const hariList = daftarHariIso(parseTanggal(e.berangkat)!, parseTanggal(e.pulang)!)
-  let posisi = baris[0]!.qty ?? 1
-  const hotelTambahan = baris.slice(1).map((b) => {
+  let posisi = 0
+  const hotelTambahan = baris.map((b) => {
     const qty = b.qty ?? 1
     const tanggal = hariList.slice(posisi, posisi + qty)
     posisi += qty
-    return { nama: b.uraian ?? '', tarif: b.tarif, tanggal }
+    return { nama: b.uraian ?? '', tarif: b.tarif, tanggal, sumber: 'manual' as const }
   })
   return {
     ...x,
     biaya: x.biaya.filter((b) => !baris.includes(b)),
-    etape: [{ ...e, malamOverride: null, hotelNama: baris[0]!.uraian ?? e.hotelNama, hotelTarif: baris[0]!.tarif, hotelTambahan }],
+    etape: [{ ...e, malamOverride: null, hotelPerKartu: true, hotelNama: null, hotelTarif: null, hotelTambahan }],
   }
 }

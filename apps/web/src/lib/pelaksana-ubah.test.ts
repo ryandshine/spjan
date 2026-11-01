@@ -113,8 +113,8 @@ describe('pindahkanPenginapanManual', () => {
     const h = pindahkanPenginapanManual(dasar(4))
     const e = h.etape[0]!
     expect(h.biaya).toEqual([])
-    expect(e).toMatchObject({ malamOverride: null, hotelNama: 'Hotel A', hotelTarif: 909_000 })
-    expect(e.hotelTambahan).toEqual([{ nama: 'B', tarif: 720_000, tanggal: ['2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02'] }])
+    expect(e).toMatchObject({ malamOverride: null, hotelPerKartu: true, hotelNama: null })
+    expect(e.hotelTambahan?.map((r) => [r.nama, r.tanggal[0], r.tanggal.length])).toEqual([['Hotel A', '2026-10-26', 4], ['B', '2026-10-30', 4]])
   })
   it('tidak dipindah bila malam tidak pas', () => {
     expect(bisaPindahkanPenginapanManual(dasar(3))).toBe(false)
