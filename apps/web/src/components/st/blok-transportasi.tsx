@@ -28,6 +28,7 @@ const PILIHAN_BIAYA = [
   { jenis: 'TIKET_KAPAL', label: 'Tiket Kapal Laut' },
   { jenis: 'TAKSI_KEDUDUKAN', label: 'Taksi Asal (tempat kedudukan - bandara)' },
   { jenis: 'TAKSI_TERMINAL', label: 'Taksi Tujuan (bandara - kota tujuan)' },
+  { jenis: 'TRANSPORT_DARAT', label: 'Transport Darat (ibu kota provinsi - kab/kota)' },
   { jenis: 'TRANSPORT_JAKARTA_SEKITAR', label: 'Transport Jakarta - sekitarnya (PP)' },
   { jenis: 'BBM_KENDARAAN', label: 'BBM Kendaraan (PP)' },
   { jenis: 'TOL_ETOLL', label: 'E-Toll (PP)' },
@@ -64,6 +65,7 @@ export function BlokTransportasi({
     else if (jenis === 'TIKET_KEMBALI') tambahBiaya(biayaKosong('TIKET_KEMBALI'))
     else if (jenis === 'TAKSI_KEDUDUKAN') tambahBiaya(biayaTaksiKedudukan(provinsiKedudukan, sbm))
     else if (jenis === 'TAKSI_TERMINAL') tambahBiaya(biayaTaksiTerminal(p, sbm))
+    else if (jenis === 'TRANSPORT_DARAT') tambahBiaya({ ...biayaKosong('TRANSPORT_DARAT'), provinsi: p.etape[0]?.provinsi || null })
     else if (jenis === 'TRANSPORT_JAKARTA_SEKITAR') onUbah((x) => tambahTransportJakartaSekitar(x, sbm))
     else if (jenis === 'BBM_KENDARAAN' || jenis === 'TOL_ETOLL') tambahBiaya(biayaPerTujuan(p, jenis))
     else if (jenis === 'TIKET_KERETA' || jenis === 'TIKET_KAPAL' || jenis === 'LAINNYA') tambahBiaya(biayaKosong(jenis))
