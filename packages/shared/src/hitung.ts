@@ -1,4 +1,4 @@
-import { catatanBiaya, paguTiket, tarifUangSakuFullboard } from "./pagu.js";
+import { catatanBiaya, paguTiket, UANG_HARIAN_FULLBOARD } from "./pagu.js";
 import {
   angkaKata,
   daftarHariIso,
@@ -282,7 +282,7 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
       });
     }
     if (tglFullboard.length > 0) {
-      const tarifSaku = tarifUangSakuFullboard(p.status, true);
+      const tarifSaku = UANG_HARIAN_FULLBOARD;
       hasil.uangHarian.push({
         uraian: "Uang saku fullboard :",
         qty: tglFullboard.length,

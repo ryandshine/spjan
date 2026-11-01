@@ -3,6 +3,7 @@ import {
   biayaKosong,
   indeksBarisTransport,
   isJenisTransport,
+  paguBiaya,
   type BiayaPayload,
   type PelaksanaHasil,
   type PelaksanaPayload,
@@ -30,6 +31,11 @@ const PILIHAN_BIAYA = [
   { jenis: 'TAKSI_TERMINAL', label: 'Taksi Tujuan (bandara - kota tujuan)' },
   { jenis: 'TRANSPORT_DARAT', label: 'Transport Darat (ibu kota provinsi - kab/kota)' },
   { jenis: 'TRANSPORT_JAKARTA_SEKITAR', label: 'Transport Jakarta - sekitarnya (PP)' },
+  { jenis: 'TRANSPORT_KEGIATAN_PP', label: 'Transpor Kegiatan dalam Kab/Kota (PP)' },
+  { jenis: 'SEWA_RODA4', label: 'Sewa Kendaraan Roda 4' },
+  { jenis: 'SEWA_RODA6', label: 'Sewa Kendaraan Roda 6/Bus Sedang' },
+  { jenis: 'SEWA_BUS_BESAR', label: 'Sewa Kendaraan Bus Besar' },
+  { jenis: 'AIRPORT_TAX_BAGASI', label: 'Airport Tax / Bagasi / Retribusi' },
   { jenis: 'BBM_KENDARAAN', label: 'BBM Kendaraan (PP)' },
   { jenis: 'TOL_ETOLL', label: 'E-Toll (PP)' },
   { jenis: 'LAINNYA', label: 'Biaya Riil Lainnya' },
@@ -68,7 +74,12 @@ export function BlokTransportasi({
     else if (jenis === 'TRANSPORT_DARAT') tambahBiaya({ ...biayaKosong('TRANSPORT_DARAT'), provinsi: p.etape[0]?.provinsi || null })
     else if (jenis === 'TRANSPORT_JAKARTA_SEKITAR') onUbah((x) => tambahTransportJakartaSekitar(x, sbm))
     else if (jenis === 'BBM_KENDARAAN' || jenis === 'TOL_ETOLL') tambahBiaya(biayaPerTujuan(p, jenis))
-    else if (jenis === 'TIKET_KERETA' || jenis === 'TIKET_KAPAL' || jenis === 'LAINNYA') tambahBiaya(biayaKosong(jenis))
+    else if (jenis === 'TRANSPORT_KEGIATAN_PP') tambahBiaya({ ...biayaKosong(jenis), tarif: sbm.transportKegiatanPp })
+    else if (jenis === 'SEWA_RODA4' || jenis === 'SEWA_RODA6' || jenis === 'SEWA_BUS_BESAR') {
+      // Tarif bawaan dari SBM provinsi tujuan pertama; tetap bisa diubah manual.
+      const b: BiayaPayload = { ...biayaKosong(jenis), provinsi: p.etape[0]?.provinsi || null }
+      tambahBiaya({ ...b, tarif: paguBiaya(sbm, { ...b, tarif: 0 }, provinsiKedudukan ?? '').nilai ?? 0 })
+    } else if (jenis === 'TIKET_KERETA' || jenis === 'AIRPORT_TAX_BAGASI' || jenis === 'TIKET_KAPAL' || jenis === 'LAINNYA') tambahBiaya(biayaKosong(jenis))
   }
 
   return (

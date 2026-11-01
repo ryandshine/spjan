@@ -1041,3 +1041,11 @@ describe("hitungSpj - tiket kereta dan kapal", () => {
     expect(h.totalTransport).toBe(500_000);
   });
 });
+
+describe("hitungSpj - fullboard satu tarif", () => {
+  it("Eselon II tetap Rp130.000 per hari", () => {
+    const p: PelaksanaInput = { ...resa, status: "ESELON_II", biaya: [], etape: [etapeBali({ fullboardDates: ["2026-09-10"], hotelNama: "H", hotelTarif: 500_000 })] };
+    const baris = hitungSpj(spj([p]), SBM_2026).pelaksana[0]!.uangHarian.find((u) => u.keterangan.includes("Fullboard"));
+    expect(baris?.tarif).toBe(130_000);
+  });
+});

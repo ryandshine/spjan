@@ -3,6 +3,11 @@
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
 Terakhir diperbarui: 2026-11-01 (kabupaten dikunjungi per tujuan).
 
+## Fullboard dan menu Transport sesuai PMK (2026-11-01, belum di-commit)
+
+- Uang harian fullboard satu tarif Rp130.000 (`UANG_HARIAN_FULLBOARD`, PMK 32/2025 Lampiran 31.2) menggantikan tarif per jabatan. Masih konstanta di kode, belum data SBM per versi. Hasil ST dihitung saat dibuka, jadi ST lama Eselon II ke atas dengan fullboard ikut berubah.
+- Menu Transport: tambah Transpor Kegiatan, Sewa Kendaraan (3 kelas), Airport Tax. Tarif bawaan dari SBM dan tetap bisa diubah.
+
 ## Tiket kereta dan kapal laut (2026-11-01, belum di-commit)
 
 - Jenis biaya baru `TIKET_KERETA` dan `TIKET_KAPAL` (menu Transport, tanpa pagu SBM). Ekstraksi membaca `moda`; hasil lama tanpa moda disimpulkan dari nama operator (`tentukanModaTiket`). Bus tetap `KERETA_BUS_LAIN`. Tiket kereta/kapal pulang-pergi jadi dua baris berjenis sama. SPD: alat angkut memuat "Laut" bila ada tiket kapal.
