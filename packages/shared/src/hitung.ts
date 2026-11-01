@@ -579,6 +579,21 @@ function urutanBiayaTransport(jenis: JenisBiaya): number {
   const totalUangHarian = jumlah(uangHarian);
   const totalRepresentasi = jumlah(representasi);
   const totalPenginapan = jumlah(penginapan);
+  const tanggalEtape = p.etape.flatMap((e) => [parseTanggal(e.berangkat), parseTanggal(e.pulang)]).filter((t) => t !== null);
+  if (tanggalEtape.length > 0) {
+    const awal = tanggalEtape.reduce((m, t) => (selisihHari(m, t) < 0 ? t : m));
+    const akhir = tanggalEtape.reduce((m, t) => (selisihHari(m, t) > 0 ? t : m));
+    // Perjalanan sehari tetap boleh satu malam (menginap diaktifkan manual).
+    const batasMalam = Math.max(selisihHari(awal, akhir), 1);
+    const totalMalam = penginapan.reduce((s, r) => s + (r.satuan === "malam" ? (r.qty ?? 0) : 0), 0);
+    if (totalMalam > batasMalam) {
+      peringatan.push({
+        kode: "MALAM_BERLEBIH",
+        pesan: `Total penginapan ${totalMalam} malam melebihi lama perjalanan ${batasMalam} malam. Periksa kemungkinan dobel antara Hotel Utama dan Penginapan Tambahan.`,
+        etape: 0,
+      });
+    }
+  }
   const totalPengeluaranRiil = jumlah(pengeluaranRiil);
   const total = totalTransport + totalUangHarian + totalRepresentasi + totalPenginapan;
   const uraianSptb =

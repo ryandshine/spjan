@@ -166,7 +166,8 @@ export type KodePeringatan =
   | "NO_SPD_KOSONG"
   | "TARIF_HOTEL_KOSONG"
   | "HOTEL_MELEBIHI_BATAS"
-  | "TIKET_KOTA_SAMA";
+  | "TIKET_KOTA_SAMA"
+  | "MALAM_BERLEBIH";
 
 export interface Peringatan {
   kode: KodePeringatan;

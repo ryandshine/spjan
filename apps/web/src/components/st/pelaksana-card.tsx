@@ -214,7 +214,7 @@ export function PelaksanaCard({
         <TabPanel idAwal={`pel-${nomor}-bagian`} kunci="penginapan" aktif={bagian === 'penginapan'}>
           <KelompokIsian terkunci={terkunci}>
             <div className="grid gap-5">
-              <BlokForm judul="Penginapan (Hotel / Penginapan Etape)">
+              <BlokForm judul="Hotel Utama">
                 {p.etape.map((e, i) => (
                   <PenginapanEtapeKartu
                     key={i}
@@ -230,9 +230,9 @@ export function PelaksanaCard({
               </BlokForm>
 
               <TabelRincianBebas
-                judul="Rincian Biaya Penginapan Bebas (Manual / Lainnya)"
-                deskripsi="Tambahkan rincian biaya penginapan non-hotel atau biaya penginapan riil lainnya yang tidak tercakup di atas (misal homestay, sewa rumah singgah, fasilitas penginapan lapangan)."
-                tombolLabel="Tambah Rincian Penginapan Bebas"
+                judul="Penginapan Tambahan"
+                deskripsi="Untuk malam yang tidak tercakup di Hotel Utama (mis. pindah hotel, homestay, rumah singgah). Malam yang sama jangan diisi di dua tempat. Pindah hotel: kurangi malam Hotel Utama lewat Ubah manual."
+                tombolLabel="Tambah Penginapan"
                 placeholderUraian="Contoh: Sewa homestay di desa / rumah singgah warga"
                 satuanBawaan="malam"
                 items={itemsPenginapanBebas}

@@ -1077,3 +1077,22 @@ describe("hitungSpj - malam penginapan ditanggung pihak lain", () => {
     expect(hitung({}).penginapan[0]!.keterangan).toBe(`Tanggal 10-15 September 2026, Bukti terlampir`);
   });
 });
+
+describe("hitungSpj - total malam penginapan berlebih", () => {
+  const hitung = (biaya: BiayaInput[], over: Partial<EtapeInput> = {}) =>
+    hitungSpj(spj([{ ...resa, biaya, etape: [etapeBali({ pulang: "2026-09-14", hotelNama: "H", hotelTarif: 500_000, ...over })] }]), SBM_2026).pelaksana[0]!;
+  const kode = (h: ReturnType<typeof hitung>) => h.peringatan.map((p) => p.kode);
+  const tambahan = (qty: number): BiayaInput => ({ jenis: "PENGINAPAN_LAIN", qty, tarif: 100_000, uraian: "Homestay" });
+
+  it("hotel utama ditambah penginapan tambahan melebihi perjalanan: diperingatkan, total tetap dihitung", () => {
+    const h = hitung([tambahan(2)]);
+    expect(kode(h)).toContain("MALAM_BERLEBIH");
+    expect(h.totalPenginapan).toBe(2_200_000);
+  });
+  it("pindah hotel yang pas tidak diperingatkan", () => {
+    expect(kode(hitung([tambahan(2)], { malamOverride: 2 }))).not.toContain("MALAM_BERLEBIH");
+  });
+  it("perjalanan sehari yang menginap satu malam tidak diperingatkan", () => {
+    expect(kode(hitung([], { pulang: "2026-09-10", malamOverride: 1 }))).not.toContain("MALAM_BERLEBIH");
+  });
+});

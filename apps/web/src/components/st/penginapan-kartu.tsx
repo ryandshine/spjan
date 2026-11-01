@@ -90,6 +90,11 @@ export function PenginapanEtapeKartu({
   return (
     <div className="grid gap-4 border-t pt-5 first:border-t-0 first:pt-0">
       <h4 className="text-base font-semibold">{judulBaris}</h4>
+      {peringatanKode('MALAM_BERLEBIH') ? (
+        <p className="flex items-start gap-1 text-sm font-medium text-warning-foreground">
+          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden /> {peringatanKode('MALAM_BERLEBIH')}
+        </p>
+      ) : null}
       {tanpaMenginap ? (
         <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
           <BedDoubleIcon className="size-4 shrink-0" aria-hidden />
