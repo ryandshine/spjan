@@ -3,6 +3,10 @@
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
 Terakhir diperbarui: 2026-11-01 (kabupaten dikunjungi per tujuan).
 
+## Tiket kereta dan kapal laut (2026-11-01, belum di-commit)
+
+- Jenis biaya baru `TIKET_KERETA` dan `TIKET_KAPAL` (menu Transport, tanpa pagu SBM). Ekstraksi membaca `moda`; hasil lama tanpa moda disimpulkan dari nama operator (`tentukanModaTiket`). Bus tetap `KERETA_BUS_LAIN`. Tiket kereta/kapal pulang-pergi jadi dua baris berjenis sama. SPD: alat angkut memuat "Laut" bila ada tiket kapal.
+
 ## Kabupaten dikunjungi per tujuan (2026-11-01, belum di-commit)
 
 - Kolom opsional `etape.kabupaten` (migrasi `1791126000026`), hanya narasi; hitungan tetap. Isian tag di `etape-form.tsx`.

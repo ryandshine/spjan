@@ -89,6 +89,8 @@ export function jenisButuhUraian(jenis: JenisBiaya): boolean {
     "TRANSPORT_JAKARTA_SEKITAR",
     "AIRPORT_TAX_BAGASI",
     "KERETA_BUS_LAIN",
+    "TIKET_KERETA",
+    "TIKET_KAPAL",
     "LAINNYA",
     "PENGINAPAN_LAIN",
     "UANG_HARIAN_LAIN",
@@ -140,6 +142,10 @@ export function indeksBarisTransport(
         return 10;
       case "TIKET_KEMBALI":
         return 20;
+      case "TIKET_KERETA":
+        return 21;
+      case "TIKET_KAPAL":
+        return 22;
       case "TAKSI_KEDUDUKAN":
         return 30;
       case "TAKSI_TERMINAL":

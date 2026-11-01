@@ -10,7 +10,7 @@ const PROMPT = `Anda membaca satu dokumen pendukung perjalanan dinas pemerintah 
 Tentukan jenis dokumen:
 - st: surat tugas
 - hotel: invoice atau folio hotel (penginapan)
-- tiket: tiket atau boarding pass pesawat, kereta, atau bus
+- tiket: tiket atau boarding pass pesawat, kereta, kapal laut/feri, atau bus
 - transport: bukti taksi, ojek online, bensin, tol, parkir, sewa kendaraan, atau transport darat lainnya
 - lainnya: selain di atas
 Balas HANYA JSON {"jenis": ..., "ringkasan": ...}. "ringkasan" satu kalimat singkat tentang isi dokumen (maksimal 200 karakter).`;

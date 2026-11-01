@@ -13,6 +13,9 @@ import type { JenisBiaya, Sbm } from "./types.js";
 export const ArahTiketSchema = z.enum(["pergi", "kembali", "lainnya"]);
 export type ArahTiket = z.infer<typeof ArahTiketSchema>;
 
+export const ModaTiketSchema = z.enum(["pesawat", "kereta", "kapal", "bus", "lainnya"]);
+export type ModaTiket = z.infer<typeof ModaTiketSchema>;
+
 export const SegmenTiketSchema = z.object({
   asal: z.string().trim().min(1).max(100),
   tujuan: z.string().trim().min(1).max(100),
@@ -48,6 +51,8 @@ export const HasilEkstraksiTiketSchema = z.object({
     .optional()
     .default("total"),
   arah: ArahTiketSchema.optional().default("lainnya"),
+  /** Moda angkutan yang terbaca dari dokumen. Kosong pada ekstraksi lama: disimpulkan dari nama operator. */
+  moda: ModaTiketSchema.optional().default("lainnya"),
   /** Semua arah perjalanan dalam dokumen; `tarif` di atas tetap total seluruh segmen. Kosong pada ekstraksi lama. */
   segmen: z.array(SegmenTiketSchema).max(6).optional().default([]),
 });
@@ -196,6 +201,15 @@ function cocokkanPelaksana(
   return { pelaksanaIndex: 0, etapeIndex: 0, pelaksanaId: pid };
 }
 
+/** Moda tiket: dari hasil baca dokumen; bila tidak jelas, dari nama operator; selain itu pesawat. */
+export function tentukanModaTiket(moda: ModaTiket, operator: string): Exclude<ModaTiket, "lainnya"> {
+  if (moda !== "lainnya") return moda;
+  if (/\bkai\b|kereta|\bwhoosh\b/i.test(operator)) return "kereta";
+  if (/pelni|asdp|kapal|\bferry\b|\bferi\b|\bkmp?\b/i.test(operator)) return "kapal";
+  if (/\bbus\b|travel/i.test(operator)) return "bus";
+  return "pesawat";
+}
+
 /** Apakah teks asal/tujuan tiket menunjuk kota kedudukan (Jakarta juga dikenali lewat kode bandara CGK/HLP). */
 function cocokKedudukan(teks: string, kedudukan: string): boolean {
   if (norm(kedudukan).includes("JAKARTA")) return /jakarta|cgk|hlp|soekarno/i.test(teks);
@@ -312,9 +326,13 @@ export function petakanTransportKeUsulan(
 
         // Tentukan jenis biaya
         let jenisBiaya: JenisBiaya = "TIKET_PERGI";
-        const isKeretaOrBus = /kai|kereta|bus|travel/i.test(t.maskapai);
+        const moda = tentukanModaTiket(t.moda, t.maskapai);
 
-        if (isKeretaOrBus) {
+        if (moda === "kereta") {
+          jenisBiaya = "TIKET_KERETA";
+        } else if (moda === "kapal") {
+          jenisBiaya = "TIKET_KAPAL";
+        } else if (moda === "bus") {
           jenisBiaya = "KERETA_BUS_LAIN";
         } else {
           const kedudukan = pelaksana.kotaKedudukan?.trim() || kotaKedudukanDasar?.trim() || "Jakarta";
@@ -343,11 +361,7 @@ export function petakanTransportKeUsulan(
           }
         }
 
-        const jenisModa =
-          t.maskapai?.toLowerCase().includes("kereta") ||
-          t.maskapai?.toLowerCase().includes("kai")
-            ? "Kereta Api"
-            : "Pesawat";
+        const jenisModa = { pesawat: "Pesawat", kereta: "Kereta Api", kapal: "Kapal Laut", bus: "Bus" }[moda];
         const uraianBiaya = `Tiket ${jenisModa} ${t.asal} - ${t.tujuan}${t.nomorPenerbangan ? ` (${t.nomorPenerbangan})` : ""}`;
         const keterangan = `Tgl: ${t.tanggal}, No. Tiket: ${t.nomorTiket ?? t.kodeBooking ?? "-"}`;
 

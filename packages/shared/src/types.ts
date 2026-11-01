@@ -18,6 +18,8 @@ export const STATUS_LABEL: Record<StatusKode, string> = {
 export const JENIS_BIAYA = [
   "TIKET_PERGI",
   "TIKET_KEMBALI",
+  "TIKET_KERETA",
+  "TIKET_KAPAL",
   "TAKSI_KEDUDUKAN",
   "TRANSPORT_DARAT",
   "TRANSPORT_JAKARTA_SEKITAR",
@@ -39,6 +41,8 @@ export type JenisBiaya = (typeof JENIS_BIAYA)[number];
 export const JENIS_LABEL: Record<JenisBiaya, string> = {
   TIKET_PERGI: "Tiket pesawat pergi",
   TIKET_KEMBALI: "Tiket pesawat kembali",
+  TIKET_KERETA: "Tiket kereta api",
+  TIKET_KAPAL: "Tiket kapal laut",
   TAKSI_KEDUDUKAN: "Taksi dari tempat kedudukan - bandara",
   TRANSPORT_DARAT: "Transport darat ibukota ke kab/kota",
   TRANSPORT_JAKARTA_SEKITAR: "Transport Jakarta ke kota sekitar",

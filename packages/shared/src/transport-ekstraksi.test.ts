@@ -629,3 +629,29 @@ describe("petakanTransportKeUsulan - tiket pulang-pergi dalam satu berkas", () =
     expect(h[0]?.jumlahPenerima).toBe(1);
   });
 });
+
+describe("petakanTransportKeUsulan - moda tiket", () => {
+  const st = {
+    pelaksana: [{ nama: "Riandi Eko Priantoro", etape: [{ berangkat: "2026-10-07", pulang: "2026-10-09", provinsi: "D.I. YOGYAKARTA", kota: "Yogyakarta" }] }],
+  } as unknown as SuratTugasPayload;
+  const usulan = (hasil: object) =>
+    petakanTransportKeUsulan([{
+      id: 1, jenis: "tiket", namaAsli: "t.pdf", pelaksanaId: null,
+      ekstraksi: { status: "selesai", usulanStatus: "menunggu", hasil: {
+        maskapai: "X", kodeBooking: null, nomorTiket: null, penumpang: "Riandi Eko Priantoro",
+        asal: "A", tujuan: "B", tanggal: "2026-10-07", tarif: 500_000, ...hasil,
+      } },
+    }] as unknown as BerkasDto[], st)[0]!;
+
+  it("moda terbaca menentukan jenis dan uraian", () => {
+    expect(usulan({ moda: "kereta" })).toMatchObject({ jenisBiaya: "TIKET_KERETA", uraianBiaya: "Tiket Kereta Api A - B" });
+    expect(usulan({ moda: "kapal" })).toMatchObject({ jenisBiaya: "TIKET_KAPAL", uraianBiaya: "Tiket Kapal Laut A - B" });
+    expect(usulan({ moda: "bus" })).toMatchObject({ jenisBiaya: "KERETA_BUS_LAIN", uraianBiaya: "Tiket Bus A - B" });
+    expect(usulan({ moda: "pesawat" }).jenisBiaya).toBe("TIKET_PERGI");
+  });
+  it("hasil lama tanpa moda disimpulkan dari operator", () => {
+    expect(usulan({ maskapai: "PT Kereta Api Indonesia (KAI)" }).jenisBiaya).toBe("TIKET_KERETA");
+    expect(usulan({ maskapai: "PT PELNI" }).jenisBiaya).toBe("TIKET_KAPAL");
+    expect(usulan({ maskapai: "Garuda Indonesia" }).jenisBiaya).toBe("TIKET_PERGI");
+  });
+});

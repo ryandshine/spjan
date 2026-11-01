@@ -133,6 +133,7 @@ describe('sinkronkanSemuaUsulanOtomatis', () => {
       daftarPenumpang: ['Riandi Eko Priantoro'],
       basisTarif: 'total',
       segmen: [],
+      moda: 'pesawat',
     },
     usulanStatus: 'menunggu',
     jumlahPenerima: 1,

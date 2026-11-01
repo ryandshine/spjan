@@ -221,7 +221,10 @@ function getAlatAngkutan(payload?: PelaksanaPayload): string {
       b.jenis === 'TAKSI_TERMINAL' ||
       /pesawat|udara/i.test(b.uraian || ''),
   )
+  const adaKapal = biaya.some((b) => b.jenis === 'TIKET_KAPAL')
+  if (adaPesawat && adaKapal) return 'Transportasi Udara, Laut, dan Darat'
   if (adaPesawat) return 'Transportasi Udara dan Darat'
+  if (adaKapal) return 'Transportasi Laut dan Darat'
   return 'Transportasi Darat'
 }
 

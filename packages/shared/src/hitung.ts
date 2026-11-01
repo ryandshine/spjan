@@ -44,6 +44,8 @@ const LABEL_URAIAN: Partial<Record<JenisBiaya, string>> = {
   SEWA_BUS_BESAR: "Sewa kendaraan bus besar per hari",
   AIRPORT_TAX_BAGASI: "Airport tax / bagasi / retribusi",
   KERETA_BUS_LAIN: "Kereta api / bus / lainnya",
+  TIKET_KERETA: "Tiket Kereta Api",
+  TIKET_KAPAL: "Tiket Kapal Laut",
 };
 
 export function normalkanUraianTiket(uraian: string): string {
@@ -129,6 +131,9 @@ function uraianBiaya(b: BiayaInput, input: SpjInput, etape: EtapeInput[]): strin
       const asal = i > 0 ? (etape[i - 1]?.kota ?? kedudukan) : kedudukan;
       return `${b.jenis === "BBM_KENDARAAN" ? "BBM" : "E-Toll"} dari ${asal} ke ${tujuan} PP`;
     }
+    case "TIKET_KERETA":
+    case "TIKET_KAPAL":
+      return uraian || (LABEL_URAIAN[b.jenis] ?? b.jenis);
     case "LAINNYA":
       return uraian || "Biaya lainnya";
     case "PENGINAPAN_LAIN":
@@ -468,6 +473,10 @@ function urutanBiayaTransport(jenis: JenisBiaya): number {
       return 10;
     case "TIKET_KEMBALI":
       return 20;
+    case "TIKET_KERETA":
+      return 21;
+    case "TIKET_KAPAL":
+      return 22;
     case "TAKSI_KEDUDUKAN":
       return 30;
     case "TAKSI_TERMINAL":

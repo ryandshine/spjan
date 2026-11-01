@@ -1030,3 +1030,14 @@ describe("hitungSpj - kabupaten dikunjungi (narasi)", () => {
     expect(samaKota("Kab. Bogor", "Kabupaten Bogor")).toBe(true);
   });
 });
+
+describe("hitungSpj - tiket kereta dan kapal", () => {
+  it("masuk transport, ikut total, tanpa peringatan tiket pesawat", () => {
+    const h = hitungSpj(spj([{ ...resa, biaya: [
+      { jenis: "TIKET_KAPAL", tarif: 300_000 },
+      { jenis: "TIKET_KERETA", tarif: 200_000, uraian: "Tiket Kereta Api Gambir - Tugu" },
+    ] }]), SBM_2026).pelaksana[0]!;
+    expect(h.transport.map((t) => t.uraian)).toEqual(["Tiket Kereta Api Gambir - Tugu", "Tiket Kapal Laut"]);
+    expect(h.totalTransport).toBe(500_000);
+  });
+});

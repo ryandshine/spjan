@@ -7,17 +7,18 @@ import type { IsiBerkas } from "./baca-berkas.js";
 export const SKEMA_EKSTRAKSI_TIKET = skemaJson(HasilEkstraksiTiketSchema);
 
 const PROMPT_TIKET = `Anda adalah asisten administrasi keuangan perjalanan dinas pemerintah Indonesia.
-Periksa dokumen tiket penerbangan, e-ticket, boarding pass, atau tiket kereta api berikut, lalu ekstrak informasinya secara tepat ke dalam JSON sesuai skema:
-- maskapai: nama maskapai penerbangan atau operator (mis. "Garuda Indonesia", "Batik Air", "Lion Air", "Citilink", "PT Kereta Api Indonesia (KAI)")
+Periksa dokumen tiket penerbangan, e-ticket, boarding pass, tiket kereta api, tiket kapal laut/feri, atau tiket bus berikut, lalu ekstrak informasinya secara tepat ke dalam JSON sesuai skema:
+- moda: jenis angkutan menurut isi dokumen: "pesawat", "kereta", "kapal" (kapal laut, feri, PELNI, ASDP), "bus", atau "lainnya" bila tidak jelas
+- maskapai: nama maskapai penerbangan atau operator (mis. "Garuda Indonesia", "Batik Air", "Lion Air", "Citilink", "PT Kereta Api Indonesia (KAI)", "PT PELNI", "ASDP Indonesia Ferry")
 - kodeBooking: kode booking / PNR (mis. "XYZ123" atau null bila tidak ada)
 - nomorTiket: nomor e-ticket (mis. "126-2134567890" atau null bila tidak ada)
 - penumpang: nama penumpang pertama tertera di tiket (atau null bila tidak ada)
 - daftarPenumpang: daftar SEMUA nama penumpang di tiket, satu elemen per orang, urut sesuai tiket (array kosong bila tidak ada). Satu tiket/booking bisa memuat lebih dari satu penumpang
-- asal: bandara atau kota keberangkatan (mis. "Jakarta (CGK)", "Yogyakarta (YIA)")
-- tujuan: bandara atau kota kedatangan (mis. "Yogyakarta (YIA)", "Jakarta (CGK)")
+- asal: bandara, stasiun, pelabuhan, atau kota keberangkatan (mis. "Jakarta (CGK)", "Gambir", "Tanjung Priok")
+- tujuan: bandara, stasiun, pelabuhan, atau kota kedatangan (mis. "Yogyakarta (YIA)", "Yogyakarta Tugu", "Makassar")
 - tanggal: tanggal keberangkatan format YYYY-MM-DD
 - jam: jam keberangkatan (mis. "08:30" atau null bila tidak ada)
-- nomorPenerbangan: nomor penerbangan / nomor KA (mis. "GA 204", "ID 6371", "KA Argo Bromo" atau null bila tidak ada)
+- nomorPenerbangan: nomor penerbangan / nomor KA (mis. "GA 204", "ID 6371", "KA Argo Bromo", "KM Kelud" atau null bila tidak ada)
 - tarif: angka rupiah bulat tanpa titik/koma/"IDR". Ambil angka yang benar-benar dibayarkan: "Total Pembayaran" / "Total Amount" / "Grand Total" (sudah termasuk pajak, biaya layanan, dan dikurangi diskon). Abaikan harga dasar, pajak, atau biaya lain yang terpisah.
 - basisTarif: arti angka tarif tadi.
   * "total" bila angka itu adalah pembayaran untuk SELURUH penumpang di tiket/booking (mis. "Tiket untuk 2 penumpang ... Total Pembayaran", atau satu total di bawah beberapa nama). Ini kasus yang paling umum untuk booking multi-penumpang.

@@ -10,6 +10,8 @@ import { useUpdateUsulanBerkas, useUsulanTransportSt } from '@/lib/queries'
 const LABEL_JENIS: Record<string, string> = {
   TIKET_PERGI: 'Tiket Pergi',
   TIKET_KEMBALI: 'Tiket Kembali',
+  TIKET_KERETA: 'Tiket Kereta Api',
+  TIKET_KAPAL: 'Tiket Kapal Laut',
   TAKSI_KEDUDUKAN: 'Taksi Kedudukan',
   TAKSI_TERMINAL: 'Taksi Tujuan',
   BBM_KENDARAAN: 'BBM Kendaraan',
