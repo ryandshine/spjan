@@ -29,9 +29,8 @@ export function useTanggalTerpilih(
     kosongkan: () => simpan([]),
     ubahBuka: (buka: boolean) => {
       setBukaManual(buka)
+      // Mencentang hanya membuka pilihan; tanggalnya dipilih pengguna.
       if (!buka) simpan([])
-      // Malam pihak lain mengurangi biaya: pengguna sendiri yang memilih tanggalnya.
-      else if (kolom !== 'hotelPihakLainDates' && aktif.length === 0 && listHari.length > 0) simpan([...listHari].sort())
     },
   }
 }
