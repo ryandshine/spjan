@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import {
   daftarHariIso,
+  formatDaftarTanggal,
   parseTanggal,
   ringkasEtape,
   selisihHari,
@@ -93,16 +94,21 @@ export function PenginapanEtapeKartu({
   })
   const jmlHotel30 = hotel30.jumlah
   const jmlMalamHotel = Math.max(0, listMalam.length - jmlHotel30)
+  const tglHotelUtama = listMalam.filter((t) => !hotel30.aktif.includes(t))
   const isSemua30 = jmlHotel30 > 0 && jmlHotel30 === listMalam.length
   const isSebagian30 = jmlHotel30 > 0 && jmlHotel30 < listMalam.length
 
   const tarifEfektif = isSemua30 ? (etape.hotelTarif ?? (tarif30 !== null ? tarif30 : null)) : etape.hotelTarif
-  const subtotal = (jmlMalamHotel * (etape.hotelTarif ?? 0)) + (jmlHotel30 * (tarif30 ?? 0)) + subtotalTempatLain
+  const tarif30Aktif = isSemua30 ? (tarifEfektif ?? 0) : (tarif30 ?? 0)
+  const subtotalHotelUtama = jmlMalamHotel * (etape.hotelTarif ?? 0)
+  const subtotal30 = jmlHotel30 * tarif30Aktif
+  const subtotal = subtotalHotelUtama + subtotal30 + subtotalTempatLain
   const peringatanTarif = peringatanKode('TARIF_HOTEL_KOSONG') ?? peringatanKode('HOTEL_MELEBIHI_BATAS')
   const tarifKosong = (malam ?? 0) > 0 && jmlMalamHotel > 0 && !etape.hotelTarif
   const malamPerjalanan = etape.malamOverride != null ? Math.max(defaultMalam, listMalamDasar.length) : listMalamDasar.length
   const malamTerisi = listMalamDasar.length
   const judulBaris = `Tujuan ${nomor}${etape.kota ? ` - ${etape.kota}` : ''}`
+  const namaHotelUtama = etape.hotelNama?.trim() || 'Hotel pertama'
 
   return (
     <div className="grid gap-4 border-t pt-5 first:border-t-0 first:pt-0">
@@ -139,7 +145,16 @@ export function PenginapanEtapeKartu({
         <div className="grid items-start gap-4 sm:grid-cols-2">
           <div className="grid gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor={id('hotel')}>Nama hotel / penginapan</Label>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Label htmlFor={id('hotel')}>Nama hotel / penginapan</Label>
+                {malamTerisi > 0 ? (
+                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium tabular-nums text-foreground">
+                    {isSemua30
+                      ? `${jmlHotel30} malam (30% SBM)`
+                      : `${jmlMalamHotel} malam${tglHotelUtama.length > 0 ? ` (${formatDaftarTanggal(tglHotelUtama)})` : ''}`}
+                  </span>
+                ) : null}
+              </div>
               <TextareaOtomatis
                 id={id('hotel')}
                 value={etape.hotelNama ?? ''}
@@ -188,9 +203,16 @@ export function PenginapanEtapeKartu({
                 <p className="text-xs text-muted-foreground tabular-nums">
                   {jmlMalamHotel} malam hotel riil + {jmlHotel30} malam 30% SBM ({rupiah(tarif30 ?? 0)}/malam)
                 </p>
-              ) : batasHotel !== null ? (
-                <p className="text-xs text-muted-foreground tabular-nums">Batas SBM {rupiah(batasHotel)}</p>
-              ) : null}
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-xs text-muted-foreground tabular-nums">
+                  {batasHotel !== null ? <span>Batas SBM {rupiah(batasHotel)}</span> : <span />}
+                  {jmlMalamHotel > 0 && (etape.hotelTarif ?? 0) > 0 ? (
+                    <span className="font-medium text-foreground/80">
+                      {jmlMalamHotel} malam × {rupiah(etape.hotelTarif ?? 0)} = {rupiah(subtotalHotelUtama)}
+                    </span>
+                  ) : null}
+                </div>
+              )}
               {tarifKosong ? <p className="text-xs text-warning-foreground">Belum ada tarif (tidak dicetak)</p> : null}
               {peringatanTarif && !tarifKosong ? (
                 <p className="flex items-start gap-1 text-xs font-medium text-warning-foreground">
@@ -213,6 +235,44 @@ export function PenginapanEtapeKartu({
             ) : null}
             {semuaFullboard && !isManualMalam ? (
               <p className="text-xs text-muted-foreground">Otomatis 0 malam (seluruh hari paket rapat fullboard diatur pada tab Uang Harian).</p>
+            ) : null}
+            {malamTerisi > 0 ? (
+              <div className="grid gap-1 text-xs text-muted-foreground tabular-nums">
+                {jmlMalamHotel > 0 ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate">
+                      {namaHotelUtama} ({jmlMalamHotel} mlm × {rupiah(etape.hotelTarif ?? 0)})
+                    </span>
+                    <span className="shrink-0 font-mono text-foreground">{rupiah(subtotalHotelUtama)}</span>
+                  </div>
+                ) : null}
+                {tempatLain.map((r, idx) => {
+                  const mlm = r.tanggal.filter((t) => malamBisaDipilih.includes(t)).length
+                  if (mlm === 0 && !r.nama && !r.tarif) return null
+                  return (
+                    <div key={idx} className="flex items-center justify-between gap-2">
+                      <span className="truncate">
+                        {r.nama.trim() || `Penginapan ke-${idx + 2}`} ({mlm} mlm × {rupiah(r.tarif || 0)})
+                      </span>
+                      <span className="shrink-0 font-mono text-foreground">{rupiah(mlm * (r.tarif || 0))}</span>
+                    </div>
+                  )
+                })}
+                {jmlHotel30 > 0 ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate">
+                      Penginapan 30% SBM ({jmlHotel30} mlm × {rupiah(tarif30Aktif)})
+                    </span>
+                    <span className="shrink-0 font-mono text-foreground">{rupiah(subtotal30)}</span>
+                  </div>
+                ) : null}
+                {hotelPihakLain.jumlah > 0 ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate">Ditanggung pihak lain ({hotelPihakLain.jumlah} mlm)</span>
+                    <span className="shrink-0 font-mono text-foreground">Rp0</span>
+                  </div>
+                ) : null}
+              </div>
             ) : null}
             <p className="flex items-center justify-between border-t pt-2 text-sm font-semibold">
               <span>Subtotal Penginapan</span>
@@ -273,42 +333,108 @@ export function PenginapanEtapeKartu({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h5 className="text-sm font-semibold text-muted-foreground">Tempat menginap berikutnya (pindah hotel, homestay)</h5>
             <span className="text-xs text-muted-foreground tabular-nums">
-              Tempat pertama {listMalam.length} | Berikutnya {tglTempatLain.length} | Pihak lain {hotelPihakLain.jumlah} malam
+              Hotel pertama: {listMalam.length} malam • Tempat berikutnya: {tglTempatLain.length} malam
+              {hotelPihakLain.jumlah > 0 ? ` • Pihak lain: ${hotelPihakLain.jumlah} malam` : ''}
             </span>
           </div>
+          <p className="text-xs text-muted-foreground">
+            {tempatLain.length === 0
+              ? 'Jika pindah hotel atau homestay di tengah perjalanan, tambahkan tempat menginap dan pilih tanggal malamnya.'
+              : `Klik tanggal malam saat menginap di tempat berikut. Tanggal yang tidak dipilih otomatis tetap dihitung di ${namaHotelUtama} (${listMalam.length} malam).`}
+          </p>
           {tempatLain.map((r, i) => {
             const nomorTempat = i + 1
+            const urutanHotel = i + 2
             const dipakaiLain = tempatLain.filter((_, j) => j !== i).flatMap((x) => x.tanggal)
+            const malamTempatIni = r.tanggal.filter((t) => malamBisaDipilih.includes(t) && !dipakaiLain.includes(t))
+            const subtotalTempatIni = malamTempatIni.length * (r.tarif || 0)
             return (
-              <div key={i} className="grid gap-2 rounded-lg border p-3">
-                <div className="grid items-center gap-2 sm:grid-cols-[1fr_12rem_auto]">
-                  <Input aria-label={`Nama tempat menginap ${nomorTempat}`} placeholder="Nama hotel / penginapan" value={r.nama} onChange={(e) => ubahTempat(i, { nama: e.target.value })} />
-                  <RupiahInput awalan className="font-mono" aria-label={`Tarif per malam ${nomorTempat}`} value={r.tarif || null} onChange={(v) => ubahTempat(i, { tarif: v ?? 0 })} />
-                  <Button type="button" variant="ghost" size="icon" aria-label={`Hapus tempat menginap ${nomorTempat}`} onClick={() => onUbah({ hotelTambahan: tempatLain.filter((_, j) => j !== i) })}>
+              <div key={i} className="grid gap-3 rounded-lg border bg-card/40 p-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold text-foreground">Penginapan ke-{urutanHotel}</span>
+                    {malamTempatIni.length > 0 ? (
+                      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium tabular-nums text-primary">
+                        {malamTempatIni.length} malam ({formatDaftarTanggal(malamTempatIni)})
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-medium text-warning-foreground">
+                        Belum ada tanggal malam dipilih
+                      </span>
+                    )}
+                  </div>
+                  {malamTempatIni.length > 0 && (r.tarif || 0) > 0 ? (
+                    <span className="font-mono text-xs font-semibold tabular-nums text-foreground">
+                      {malamTempatIni.length} malam × {rupiah(r.tarif)} = {rupiah(subtotalTempatIni)}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="grid items-end gap-2 sm:grid-cols-[1fr_13rem_auto]">
+                  <div className="grid gap-1">
+                    <span className="text-xs font-medium text-muted-foreground">Nama hotel / homestay ke-{urutanHotel}</span>
+                    <Input
+                      aria-label={`Nama tempat menginap ${nomorTempat}`}
+                      placeholder="Contoh: Homestay / Hotel kedua"
+                      value={r.nama}
+                      onChange={(e) => ubahTempat(i, { nama: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <span className="text-xs font-medium text-muted-foreground">Tarif per malam</span>
+                    <RupiahInput
+                      awalan
+                      className="font-mono"
+                      placeholder="0"
+                      aria-label={`Tarif per malam ${nomorTempat}`}
+                      value={r.tarif || null}
+                      onChange={(v) => ubahTempat(i, { tarif: v ?? 0 })}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    title={`Hapus penginapan ke-${urutanHotel}`}
+                    aria-label={`Hapus tempat menginap ${nomorTempat}`}
+                    onClick={() => onUbah({ hotelTambahan: tempatLain.filter((_, j) => j !== i) })}
+                  >
                     <Trash2Icon className="text-destructive" />
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {malamBisaDipilih.map((t) => {
-                    const dipilih = r.tanggal.includes(t)
-                    const terpakai = dipakaiLain.includes(t)
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        aria-pressed={dipilih}
-                        disabled={terpakai}
-                        onClick={() => ubahTempat(i, { tanggal: dipilih ? r.tanggal.filter((x) => x !== t) : [...r.tanggal, t].sort() })}
-                        className={cn(
-                          'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-40',
-                          dipilih ? 'border-primary bg-primary text-primary-foreground' : 'border-input bg-card text-foreground hover:bg-accent',
-                        )}
-                      >
-                        {dipilih ? <CheckIcon className="size-3.5 stroke-[3]" aria-hidden /> : null}
-                        {labelTanggal(t)}
-                      </button>
-                    )
-                  })}
+                <div className="grid gap-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Pilih tanggal malam menginap di {r.nama.trim() || `penginapan ke-${urutanHotel}`}:
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {malamBisaDipilih.map((t) => {
+                      const dipilih = r.tanggal.includes(t)
+                      const terpakai = dipakaiLain.includes(t)
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          aria-pressed={dipilih}
+                          disabled={terpakai}
+                          title={
+                            terpakai
+                              ? 'Sudah dipilih di tempat menginap lain'
+                              : dipilih
+                                ? `Klik untuk mengembalikan malam ini ke ${namaHotelUtama}`
+                                : `Saat ini dihitung di ${namaHotelUtama}. Klik jika malam ini menginap di ${r.nama.trim() || `penginapan ke-${urutanHotel}`}`
+                          }
+                          onClick={() => ubahTempat(i, { tanggal: dipilih ? r.tanggal.filter((x) => x !== t) : [...r.tanggal, t].sort() })}
+                          className={cn(
+                            'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-40',
+                            dipilih ? 'border-primary bg-primary text-primary-foreground' : 'border-input bg-card text-foreground hover:bg-accent',
+                          )}
+                        >
+                          {dipilih ? <CheckIcon className="size-3.5 stroke-[3]" aria-hidden /> : null}
+                          {labelTanggal(t)}
+                          {terpakai ? <span className="ml-0.5 text-[10px] font-normal opacity-75">(tempat lain)</span> : null}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
                 {batasHotel !== null && r.tarif > batasHotel ? (
                   <p className="text-xs font-medium text-warning-foreground">Melebihi batas SBM {rupiah(batasHotel)}.</p>
@@ -319,7 +445,6 @@ export function PenginapanEtapeKartu({
           <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => onUbah({ hotelTambahan: [...tempatLain, { nama: '', tarif: 0, tanggal: [] }] })}>
             <PlusIcon /> Tambah tempat menginap
           </Button>
-          <p className="text-xs text-muted-foreground">Pilih malam di tempat ini. Malam yang tidak dipilih tetap dihitung di tempat pertama.</p>
         </div>
       ) : null}
 
