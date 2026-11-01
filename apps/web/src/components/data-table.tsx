@@ -11,6 +11,7 @@ export interface Kolom<T> {
   /** Teks yang dipakai pencarian; kosongkan agar kolom tidak ikut dicari. */
   teks?: (baris: T) => string
   rataKanan?: boolean
+  className?: string
 }
 
 export function DataTable<T>({
@@ -19,12 +20,14 @@ export function DataTable<T>({
   cari = true,
   kosong = 'Tidak ada data.',
   maksBaris = 500,
+  kartuMobile,
 }: {
   kolom: Kolom<T>[]
   baris: T[]
   cari?: boolean
   kosong?: string
   maksBaris?: number
+  kartuMobile?: (baris: T, indeks: number) => ReactNode
 }) {
   const [kata, setKata] = useState('')
   const tersaring = useMemo(() => {
@@ -42,12 +45,23 @@ export function DataTable<T>({
           <Input value={kata} onChange={(e) => setKata(e.target.value)} placeholder="Cari..." className="pl-8" />
         </div>
       ) : null}
-      <div className="rounded-lg border bg-card">
+      {kartuMobile ? (
+        <div className="grid gap-3 md:hidden">
+          {tampil.length === 0 ? (
+            <div className="rounded-lg border bg-card py-10 text-center text-sm text-muted-foreground">
+              {kosong}
+            </div>
+          ) : (
+            tampil.map((b, i) => <div key={i}>{kartuMobile(b, i)}</div>)
+          )}
+        </div>
+      ) : null}
+      <div className={cn('rounded-lg border bg-card', kartuMobile && 'hidden md:block')}>
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               {kolom.map((k) => (
-                <TableHead key={k.judul} className={cn(k.rataKanan && 'text-right')}>
+                <TableHead key={k.judul} className={cn(k.rataKanan && 'text-right', k.className)}>
                   {k.judul}
                 </TableHead>
               ))}
@@ -64,7 +78,7 @@ export function DataTable<T>({
               tampil.map((b, i) => (
                 <TableRow key={i}>
                   {kolom.map((k) => (
-                    <TableCell key={k.judul} className={cn(k.rataKanan && 'text-right tabular-nums')}>
+                    <TableCell key={k.judul} className={cn(k.rataKanan && 'text-right tabular-nums', k.className)}>
                       {k.sel(b)}
                     </TableCell>
                   ))}
