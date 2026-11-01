@@ -42,6 +42,8 @@ export async function cariHasilSama(
   );
   for (const r of rows) {
     if (berkas.jenis !== "belum" && berkas.jenis !== "lainnya" && berkas.jenis !== r.jenis) continue;
+    // Hasil tiket lama tanpa segmen bisa kehilangan tiket pulang: baca ulang.
+    if (r.jenis === "tiket" && !(r.hasil as { segmen?: unknown[] } | null)?.segmen?.length) continue;
     if (SKEMA_PER_JENIS[r.jenis]?.safeParse(r.hasil).success) return r;
   }
   return null;

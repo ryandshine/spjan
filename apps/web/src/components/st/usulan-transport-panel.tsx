@@ -311,7 +311,7 @@ export function UsulanTransportPanel({ stId, pelaksanaList, onTerapkan }: Props)
           <div className="space-y-3">
             {usulanList.map((item) => (
               <UsulanTransportCard
-                key={`${item.berkasId}-${item.pelaksanaIndex}`}
+                key={`${item.berkasId}-${item.pelaksanaIndex}-${item.jenisBiaya}-${item.uraianBiaya}`}
                 item={item}
                 pelaksanaList={pelaksanaList}
                 onTerapkan={onTerapkan}

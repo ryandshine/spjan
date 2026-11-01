@@ -13,6 +13,18 @@ import type { JenisBiaya, Sbm } from "./types.js";
 export const ArahTiketSchema = z.enum(["pergi", "kembali", "lainnya"]);
 export type ArahTiket = z.infer<typeof ArahTiketSchema>;
 
+export const SegmenTiketSchema = z.object({
+  asal: z.string().trim().min(1).max(100),
+  tujuan: z.string().trim().min(1).max(100),
+  tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format YYYY-MM-DD"),
+  jam: z.string().trim().max(20).nullable().optional(),
+  nomorPenerbangan: z.string().trim().max(50).nullable().optional(),
+  arah: ArahTiketSchema.optional().default("lainnya"),
+  /** Harga segmen bila tertera terpisah di tiket; null bila hanya ada satu total. */
+  tarif: z.number().int().nonnegative().nullable().optional(),
+});
+export type SegmenTiket = z.infer<typeof SegmenTiketSchema>;
+
 export const HasilEkstraksiTiketSchema = z.object({
   maskapai: z.string().trim().min(1).max(100),
   kodeBooking: z.string().trim().max(50).nullable(),
@@ -36,6 +48,8 @@ export const HasilEkstraksiTiketSchema = z.object({
     .optional()
     .default("total"),
   arah: ArahTiketSchema.optional().default("lainnya"),
+  /** Semua arah perjalanan dalam dokumen; `tarif` di atas tetap total seluruh segmen. Kosong pada ekstraksi lama. */
+  segmen: z.array(SegmenTiketSchema).max(6).optional().default([]),
 });
 export type HasilEkstraksiTiket = z.infer<typeof HasilEkstraksiTiketSchema>;
 
@@ -65,7 +79,7 @@ export interface UsulanTransportItem {
   kategoriBerkas: "tiket" | "transport";
   ekstraksi: HasilEkstraksiTiket | HasilEkstraksiTransport;
   usulanStatus: StatusUsulan;
-  /** Jumlah usulan yang berasal dari berkas ini (>1 bila satu tiket memuat beberapa penumpang). */
+  /** Jumlah usulan yang berasal dari berkas ini (>1 bila satu tiket memuat beberapa penumpang atau segmen). */
   jumlahPenerima: number;
   pelaksanaId: number | null;
   pelaksanaIndex: number;
@@ -107,6 +121,20 @@ export function bagiRata(total: number, n: number): number[] {
   return Array.from({ length: n }, (_, i) =>
     i === 0 ? total - dasar * (n - 1) : dasar,
   );
+}
+
+/** Bagi tarif seorang penumpang ke segmen: mengikuti harga per segmen bila lengkap dan jumlahnya sama dengan total, selain itu rata. */
+function bagiTarifSegmen(
+  tarif: number,
+  total: number,
+  segmen: SegmenTiket[],
+): { bagian: number[]; rata: boolean } {
+  const harga = segmen.map((s) => s.tarif ?? 0);
+  const lengkap = harga.every((h) => h > 0) && harga.reduce((a, h) => a + h, 0) === total;
+  if (!lengkap) return { bagian: bagiRata(tarif, segmen.length), rata: true };
+  const bagian = harga.map((h) => Math.floor((tarif * h) / total));
+  bagian[0] = tarif - bagian.slice(1).reduce((a, h) => a + h, 0);
+  return { bagian, rata: false };
 }
 
 function cocokkanPelaksana(
@@ -253,12 +281,25 @@ export function petakanTransportKeUsulan(
         penerima.push({ ...m, tarif: t.tarif, peringatanBagi: [] });
       }
 
+      // Satu dokumen pergi-pulang: satu usulan per segmen. Di bawah ini `t` adalah data segmen tersebut.
+      const tiket = t;
+      const daftarSegmen: SegmenTiket[] = tiket.segmen.length >= 2 ? tiket.segmen : [tiket];
+
       for (const pen of penerima) {
-        const { pelaksanaIndex, etapeIndex, pelaksanaId } = pen;
+        const { pelaksanaIndex, pelaksanaId } = pen;
         const pelaksana = st.pelaksana[pelaksanaIndex];
         if (!pelaksana) continue;
+        const pembagian = bagiTarifSegmen(pen.tarif, tiket.tarif, daftarSegmen);
+
+        for (const [iSegmen, seg] of daftarSegmen.entries()) {
+        const t = { ...tiket, ...seg, tarif: tiket.tarif, segmen: [] };
+        const eiSegmen = pelaksana.etape.findIndex((e) => e.berangkat <= t.tanggal && e.pulang >= t.tanggal);
+        const etapeIndex = eiSegmen >= 0 ? eiSegmen : pen.etapeIndex;
         const etape = pelaksana.etape[etapeIndex];
         const peringatan: string[] = [...pen.peringatanBagi];
+        if (daftarSegmen.length > 1 && pembagian.rata) {
+          peringatan.push(`Tiket memuat ${daftarSegmen.length} segmen tanpa harga terpisah; tarif dibagi rata. Periksa tarif.`);
+        }
 
         // Validasi tanggal terhadap rentang etape
         if (etape) {
@@ -316,20 +357,21 @@ export function petakanTransportKeUsulan(
           kategoriBerkas: "tiket",
           ekstraksi: t,
           usulanStatus: b.ekstraksi?.usulanStatus ?? "menunggu",
-          jumlahPenerima: penerima.length,
+          jumlahPenerima: penerima.length * daftarSegmen.length,
           pelaksanaId,
           pelaksanaIndex,
           etapeIndex,
           pelaksanaNama: pelaksana.nama,
           jenisBiaya,
           uraianBiaya,
-          tarifRiil: pen.tarif,
+          tarifRiil: pembagian.bagian[iSegmen] ?? 0,
           qty: 1,
           satuan: "orang",
           provinsi: etape?.provinsi ?? null,
           keterangan,
           peringatan,
         });
+        }
       }
     } else if (b.jenis === "transport") {
       const parse = HasilEkstraksiTransportSchema.safeParse(b.ekstraksi?.hasil);

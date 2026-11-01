@@ -3,6 +3,7 @@ import {
   biayaKosong,
   pelaksanaKosong,
   stKosong,
+  type BiayaPayload,
   type PegawaiDto,
   type SuratTugasPayload,
   type UsulanHotelItem,
@@ -13,9 +14,9 @@ import {
   cariPegawaiPejabat,
   pejabatDariPegawai,
   rincianTotal,
+  sudahAdaBiayaTiket,
   sesuaikanKodeAkun,
   sinkronkanSemuaUsulanOtomatis,
-  sudahAdaBiayaTiket,
   tabBergalat,
   tambahBiayaKePelaksana,
 } from './st-editor'
@@ -131,6 +132,7 @@ describe('sinkronkanSemuaUsulanOtomatis', () => {
       arah: 'pergi',
       daftarPenumpang: ['Riandi Eko Priantoro'],
       basisTarif: 'total',
+      segmen: [],
     },
     usulanStatus: 'menunggu',
     jumlahPenerima: 1,
@@ -222,5 +224,24 @@ describe('sinkronkanSemuaUsulanOtomatis', () => {
     ]
     expect(sudahAdaBiayaTiket(biayaList, t)).toBe(true)
     expect(sudahAdaBiayaTiket([], t)).toBe(false)
+  })
+})
+
+describe('sudahAdaBiayaTiket - nomor tiket sama pada arah berbeda', () => {
+  const biayaPergi = {
+    jenis: 'TIKET_PERGI', uraian: 'Tiket Pesawat CGK - SOQ', qty: 1, satuan: 'orang', tarif: 3_000_000,
+    keterangan: 'Tgl: 2026-10-07, No. Tiket: 126-1', etapeIndex: 0, provinsi: null,
+  } as BiayaPayload
+  const usulan = (jenisBiaya: 'TIKET_PERGI' | 'TIKET_KEMBALI', tanggal: string) =>
+    ({
+      namaBerkas: 'pp.pdf', jenisBiaya, uraianBiaya: 'x', tarifRiil: 1,
+      ekstraksi: { nomorTiket: '126-1', tanggal },
+    }) as unknown as UsulanTransportItem
+
+  it('tiket pulang bernomor sama bukan duplikat', () => {
+    expect(sudahAdaBiayaTiket([biayaPergi], usulan('TIKET_KEMBALI', '2026-10-09'))).toBe(false)
+  })
+  it('arah dan tanggal sama tetap duplikat', () => {
+    expect(sudahAdaBiayaTiket([biayaPergi], usulan('TIKET_PERGI', '2026-10-07'))).toBe(true)
   })
 })

@@ -72,3 +72,11 @@ describe("ekstrakTiket", () => {
     expect(hasil.tarif).toBe(1450000);
   });
 });
+
+describe("ekstrakTiket - beberapa halaman", () => {
+  it("mengirim semua halaman gambar ke model", async () => {
+    const klien = klienPalsu(() => validTiketJson);
+    await ekstrakTiket(klien, konf, { teks: "", gambar: ["hal1", "hal2"] });
+    expect(klien.panggilan[0]?.gambar).toEqual(["hal1", "hal2"]);
+  });
+});

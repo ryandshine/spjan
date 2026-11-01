@@ -25,8 +25,9 @@ Periksa dokumen tiket penerbangan, e-ticket, boarding pass, atau tiket kereta ap
   * "tidak_jelas" bila ada lebih dari satu penumpang tetapi tidak bisa dipastikan.
   Satu penumpang: gunakan "total".
 
-Panduan membaca: format tiket berbeda-beda antar maskapai, agen perjalanan (OTA), dan kereta api, serta bisa berbahasa Indonesia atau Inggris. Hitung jumlah penumpang dari tabel "Detail Penumpang"/"Passenger" dan dari kalimat seperti "Tiket untuk N penumpang"; jumlah elemen daftarPenumpang harus sama. Bila tiket berisi beberapa segmen/penerbangan (pergi dan pulang) dalam satu dokumen, ekstrak segmen pertama dan jangan menjumlahkan harga dua kali. Buang sapaan (MR/MRS/MS) hanya bila bukan bagian nama; jika ragu, salin nama persis seperti tertulis. Jangan menebak: bila suatu nilai tidak tertera, isi null.
+Panduan membaca: format tiket berbeda-beda antar maskapai, agen perjalanan (OTA), dan kereta api, serta bisa berbahasa Indonesia atau Inggris. Hitung jumlah penumpang dari tabel "Detail Penumpang"/"Passenger" dan dari kalimat seperti "Tiket untuk N penumpang"; jumlah elemen daftarPenumpang harus sama. Bila dokumen memuat pergi dan pulang, kolom asal/tujuan/tanggal/jam/nomorPenerbangan/arah diisi dari perjalanan pertama, tarif tetap total yang dibayarkan untuk seluruh perjalanan (jangan dijumlahkan dua kali), dan semua arah dicatat di segmen. Buang sapaan (MR/MRS/MS) hanya bila bukan bagian nama; jika ragu, salin nama persis seperti tertulis. Jangan menebak: bila suatu nilai tidak tertera, isi null.
 - arah: "pergi" (menuju kota kegiatan), "kembali" (pulang ke kota asal), atau "lainnya"
+- segmen: SELALU diisi, satu elemen per arah perjalanan, urut waktu, dari seluruh halaman dokumen (tiket sekali jalan = satu elemen). Tiap elemen berisi asal, tujuan, tanggal, jam, nomorPenerbangan, arah, dan tarif (harga arah itu bila tertera terpisah, selain itu null). Penerbangan lanjutan/transit dalam satu arah digabung menjadi satu elemen: asal bandara awal, tujuan bandara akhir.
 
 Balas HANYA JSON yang valid sesuai skema.`;
 
@@ -47,7 +48,8 @@ export async function ekstrakTiket(
     throw new AiGalat("BERKAS_TIDAK_TERBACA", "Dokumen tiket tidak memuat teks atau gambar yang dapat dibaca.");
   }
 
-  const gambar = pakaiGambar ? [isi.gambar[0]!] : undefined;
+  // Semua halaman yang terbaca: tiket pulang bisa berada di halaman berikutnya.
+  const gambar = pakaiGambar ? isi.gambar : undefined;
   const promptDasar = pakaiGambar ? PROMPT_TIKET : `${PROMPT_TIKET}\n\nIsi Dokumen Tiket:\n${isi.teks}`;
   let prompt = promptDasar;
 

@@ -577,3 +577,55 @@ describe("petakanTransportKeUsulan - kedudukan non-Jakarta", () => {
     expect(hasil[0]!.jenisBiaya).toBe("TIKET_PERGI");
   });
 });
+
+describe("petakanTransportKeUsulan - tiket pulang-pergi dalam satu berkas", () => {
+  const st = {
+    pelaksana: [
+      {
+        nama: "Riandi Eko Priantoro",
+        etape: [{ berangkat: "2026-10-07", pulang: "2026-10-09", provinsi: "PAPUA BARAT DAYA", kota: "Sorong" }],
+      },
+    ],
+  } as unknown as SuratTugasPayload;
+  const pergi = { asal: "Jakarta (CGK)", tujuan: "Sorong (SOQ)", tanggal: "2026-10-07", nomorPenerbangan: "GA 1", arah: "pergi" };
+  const pulang = { asal: "Sorong (SOQ)", tujuan: "Jakarta (CGK)", tanggal: "2026-10-09", nomorPenerbangan: "GA 2", arah: "kembali" };
+  const berkas = (hasil: object) =>
+    [{
+      id: 1, jenis: "tiket", namaAsli: "pp.pdf", pelaksanaId: null,
+      ekstraksi: {
+        status: "selesai", usulanStatus: "menunggu",
+        hasil: { maskapai: "Garuda Indonesia", kodeBooking: "ABC", nomorTiket: "126-1", penumpang: "Riandi Eko Priantoro", ...pergi, ...hasil },
+      },
+    }] as unknown as BerkasDto[];
+
+  it("menghasilkan usulan pergi dan kembali memakai harga per segmen", () => {
+    const h = petakanTransportKeUsulan(berkas({ tarif: 5_000_000, segmen: [{ ...pergi, tarif: 3_000_000 }, { ...pulang, tarif: 2_000_000 }] }), st);
+    expect(h.map((u) => u.jenisBiaya)).toEqual(["TIKET_PERGI", "TIKET_KEMBALI"]);
+    expect(h.map((u) => u.tarifRiil)).toEqual([3_000_000, 2_000_000]);
+    expect(h[1]?.jumlahPenerima).toBe(2);
+    expect((h[1]?.ekstraksi as { tanggal: string }).tanggal).toBe("2026-10-09");
+    expect(h[1]?.uraianBiaya).toContain("Sorong (SOQ) - Jakarta (CGK)");
+  });
+
+  it("harga per segmen tidak ada: total dibagi rata dengan peringatan, jumlah tetap", () => {
+    const h = petakanTransportKeUsulan(berkas({ tarif: 5_000_001, segmen: [{ ...pergi, tarif: null }, { ...pulang, tarif: null }] }), st);
+    expect(h.map((u) => u.tarifRiil)).toEqual([2_500_001, 2_500_000]);
+    expect(h[1]?.peringatan.join(" ")).toContain("dibagi rata");
+  });
+
+  it("dua penumpang dan dua segmen: empat usulan yang jumlahnya sama dengan total", () => {
+    const stDua = { pelaksana: [...st.pelaksana, { ...st.pelaksana[0], nama: "Lusi Ardiputri" }] } as unknown as SuratTugasPayload;
+    const h = petakanTransportKeUsulan(berkas({
+      tarif: 8_000_000, daftarPenumpang: ["Riandi Eko Priantoro", "Lusi Ardiputri"],
+      segmen: [{ ...pergi, tarif: 5_000_000 }, { ...pulang, tarif: 3_000_000 }],
+    }), stDua);
+    expect(h).toHaveLength(4);
+    expect(h.reduce((a, u) => a + u.tarifRiil, 0)).toBe(8_000_000);
+  });
+
+  it("tanpa segmen (hasil lama atau berkas terpisah) tetap satu usulan", () => {
+    const h = petakanTransportKeUsulan(berkas({ ...pulang, tarif: 2_000_000 }), st);
+    expect(h.map((u) => u.jenisBiaya)).toEqual(["TIKET_KEMBALI"]);
+    expect(h[0]?.jumlahPenerima).toBe(1);
+  });
+});

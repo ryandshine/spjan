@@ -72,8 +72,11 @@ export function tambahBiayaKePelaksana(st: SuratTugasPayload, pelaksanaIdx: numb
 /** Memeriksa apakah biaya tiket sudah ada di daftar biaya pelaksana (mencegah duplikasi). */
 export function sudahAdaBiayaTiket(biayaList: BiayaPayload[], u: UsulanTransportItem): boolean {
   return biayaList.some((b) => {
-    if (b.keterangan && u.namaBerkas && b.keterangan.includes(u.namaBerkas)) return true
-    if ('nomorTiket' in u.ekstraksi && u.ekstraksi.nomorTiket && b.keterangan && b.keterangan.includes(u.ekstraksi.nomorTiket)) return true
+    // Satu nomor tiket/berkas bisa memuat pergi dan pulang: duplikat hanya bila arah dan tanggalnya juga sama.
+    if (b.jenis === u.jenisBiaya && b.keterangan?.includes(u.ekstraksi.tanggal)) {
+      if (u.namaBerkas && b.keterangan.includes(u.namaBerkas)) return true
+      if ('nomorTiket' in u.ekstraksi && u.ekstraksi.nomorTiket && b.keterangan.includes(u.ekstraksi.nomorTiket)) return true
+    }
     if (b.uraian === u.uraianBiaya && b.tarif === u.tarifRiil) return true
     return false
   })
@@ -102,7 +105,7 @@ export function sinkronkanSemuaUsulanOtomatis(
     if (t.pelaksanaIndex < 0 || t.pelaksanaIndex >= pelaksanaBaru.length) continue
 
     const p = pelaksanaBaru[t.pelaksanaIndex]!
-    transportBerkasIds.push(t.berkasId)
+    if (!transportBerkasIds.includes(t.berkasId)) transportBerkasIds.push(t.berkasId)
 
     if (!sudahAdaBiayaTiket(p.biaya, t)) {
       const biayaBaru: BiayaPayload = {
