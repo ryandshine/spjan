@@ -1,7 +1,7 @@
 import '../pdf/polyfill-buffer'
 import type * as React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeftIcon, DownloadIcon, UserIcon } from 'lucide-react'
+import { ArrowLeftIcon, ChevronDownIcon, DownloadIcon, TriangleAlertIcon, UserIcon } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { buatLaporanAwal, idGambarLaporan, susunLaporan, type FotoDokumentasi } from '@spjan/shared'
 
@@ -14,6 +14,7 @@ import { Select } from '@/components/ui/select'
 import { keteranganFoto } from '@/lib/gambar'
 import { muatDataUri } from '@/lib/berkas-data-uri'
 import { pesanGalat } from '@/lib/format'
+import { ringkasPeringatan } from '@/lib/periksa'
 import { useDaftarBerkas, useHasilSuratTugas, useLaporan } from '@/lib/queries'
 import { unduhBlob } from '@/lib/unduh'
 import { cn } from '@/lib/utils'
@@ -277,15 +278,29 @@ export default function DokumenPage() {
         }
       />
       {bermasalah.length > 0 ? (
-        <Alert variant="warning" className="mb-4">
-          <p className="mb-1 font-medium">Data belum lengkap. Dokumen tetap bisa dibuat, tetapi periksa dulu sebelum dicetak:</p>
-          <ul className="list-inside list-disc">
-            {bermasalah.map((p, i) => (
-              <li key={i}>
-                {p.nama}: {p.peringatan.map((w) => w.pesan).join(' ')}
-              </li>
-            ))}
-          </ul>
+        <Alert variant="warning" className="mb-4 py-2">
+          <details>
+            <summary className="flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-1">
+              <TriangleAlertIcon className="size-4 shrink-0 text-warning-foreground" aria-hidden />
+              <span className="font-medium">
+                Data belum lengkap: {bermasalah.length} dari {d.pelaksana.length} pelaksana
+              </span>
+              <span className="text-muted-foreground">Dokumen tetap bisa dibuat, periksa dulu sebelum dicetak.</span>
+              <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-primary">
+                Lihat rincian <ChevronDownIcon className="size-3.5" aria-hidden />
+              </span>
+            </summary>
+            <ul className="mt-2 grid max-h-60 gap-2 overflow-y-auto border-t pt-2">
+              {ringkasPeringatan(bermasalah).map((g) => (
+                <li key={g.masalah}>
+                  <p className="font-medium">
+                    {g.masalah} <span className="font-normal text-muted-foreground">({g.nama.length} orang)</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">{g.nama.join(', ')}</p>
+                </li>
+              ))}
+            </ul>
+          </details>
         </Alert>
       ) : null}
       <div className="grid gap-2">

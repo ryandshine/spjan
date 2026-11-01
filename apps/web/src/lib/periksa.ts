@@ -63,3 +63,24 @@ export function kumpulkanPeriksa(pelaksana: ReadonlyArray<Pick<PelaksanaHasil, '
     })),
   )
 }
+
+/**
+ * Kelompokkan peringatan banyak pelaksana menurut masalahnya, agar daftar panjang tidak mengulang kalimat yang sama.
+ * Nomor etape dan jumlah malam dilepas dari pesan; tujuan ke-2 dan seterusnya ditandai di samping nama.
+ */
+export function ringkasPeringatan(
+  pelaksana: Array<{ nama: string; peringatan: Peringatan[] }>,
+): Array<{ masalah: string; nama: string[] }> {
+  const grup = new Map<string, string[]>()
+  for (const p of pelaksana) {
+    for (const w of p.peringatan) {
+      const bersih = w.pesan.replace(/^Etape \d+:\s*/, '').replace(/\s*\(\d+ malam\)/, '').replace(/\.$/, '')
+      const masalah = bersih.charAt(0).toUpperCase() + bersih.slice(1)
+      const nama = (w.etape ?? 0) > 0 ? `${p.nama} (Tujuan ${(w.etape ?? 0) + 1})` : p.nama
+      const daftar = grup.get(masalah) ?? []
+      if (!daftar.includes(nama)) daftar.push(nama)
+      grup.set(masalah, daftar)
+    }
+  }
+  return [...grup].map(([masalah, nama]) => ({ masalah, nama }))
+}
