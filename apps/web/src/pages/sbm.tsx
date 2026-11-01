@@ -186,6 +186,9 @@ function Tabel({ kode, sbm }: { kode: KodeTab; sbm: Sbm }) {
           <p className="text-sm text-muted-foreground">
             Transport kegiatan dalam kabupaten/kota (PP): <strong className="text-foreground">{rupiah(sbm.transportKegiatanPp)}</strong> per orang per kali.
           </p>
+          <p className="text-sm text-muted-foreground">
+            Uang harian rapat/pertemuan fullboard: <strong className="text-foreground">{rupiah(sbm.uangHarianFullboard)}</strong> per orang per hari.
+          </p>
         </div>
       )
     }

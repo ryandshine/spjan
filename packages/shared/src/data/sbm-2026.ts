@@ -4583,6 +4583,7 @@ export const SBM_2026: Sbm = {
   }
  ],
  "transportKegiatanPp": 170000,
+ "uangHarianFullboard": 130000,
  "sewaKendaraan": {
   "ACEH": {
    "roda4": 962000,

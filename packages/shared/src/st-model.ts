@@ -35,6 +35,7 @@ export function etapeKosong(): EtapePayload {
     hotel30Persen: false,
     hotel30Dates: [],
     hotelPihakLainDates: [],
+    hotelTambahan: [],
     dalamKota8Jam: false,
     tanpaUangHarianDates: [],
     uangHarian60Dates: [],
@@ -117,7 +118,7 @@ export interface RingkasEtape {
 }
 
 export function ringkasEtape(
-  e: Pick<EtapePayload, "berangkat" | "pulang"> & { malamOverride?: number | null; fullboardDates?: string[]; hotelPihakLainDates?: string[] },
+  e: Pick<EtapePayload, "berangkat" | "pulang"> & { malamOverride?: number | null; fullboardDates?: string[]; hotelPihakLainDates?: string[]; hotelTambahan?: { tanggal: string[] }[] },
 ): RingkasEtape {
   const a = parseTanggal(e.berangkat);
   const b = parseTanggal(e.pulang);
@@ -130,7 +131,9 @@ export function ringkasEtape(
   // Malam yang ditanggung pihak lain tidak dibebankan ke SPJ.
   const listMalam = daftarHariIso(a, b).slice(0, Math.max(0, malamDasar));
   const pihakLain = (e.hotelPihakLainDates ?? []).filter((t) => listMalam.includes(t)).length;
-  return { hari, malam: malamDasar - pihakLain };
+  const pihakLainTgl = e.hotelPihakLainDates ?? [];
+  const tambahan = new Set((e.hotelTambahan ?? []).flatMap((r) => r.tanggal).filter((t) => listMalam.includes(t) && !pihakLainTgl.includes(t)));
+  return { hari, malam: malamDasar - pihakLain - tambahan.size };
 }
 
 /**

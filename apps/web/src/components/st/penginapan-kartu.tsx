@@ -7,6 +7,7 @@ import {
   PencilIcon,
   PlusIcon,
   RotateCcwIcon,
+  Trash2Icon,
   TriangleAlertIcon,
 } from 'lucide-react'
 import {
@@ -15,6 +16,7 @@ import {
   ringkasEtape,
   selisihHari,
   type EtapePayload,
+  type HotelTambahan,
   type Peringatan,
   type Sbm,
 } from '@spjan/shared'
@@ -23,11 +25,14 @@ import { BagianTanggal } from '@/components/st/bagian-tanggal'
 import { DasarAturan } from '@/components/st/dasar-aturan'
 import { RupiahInput } from '@/components/st/rupiah-input'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Istilah } from '@/components/ui/istilah'
 import { Label } from '@/components/ui/label'
 import { TandaWajib } from '@/components/ui/penanda-isian'
 import { TextareaOtomatis } from '@/components/ui/textarea-otomatis'
 import { rupiah } from '@/lib/format'
+import { labelTanggal } from '@/lib/tanggal-label'
+import { cn } from '@/lib/utils'
 import { useTanggalTerpilih } from '@/lib/use-tanggal-terpilih'
 
 /**
@@ -66,7 +71,13 @@ export function PenginapanEtapeKartu({
 
   const listMalamDasar = listHari.slice(0, Math.max(0, etape.malamOverride ?? defaultMalam))
   const hotelPihakLain = useTanggalTerpilih(etape, 'hotelPihakLainDates', listMalamDasar, onUbah)
-  const listMalam = listMalamDasar.filter((t) => !hotelPihakLain.aktif.includes(t))
+  const tempatLain = etape.hotelTambahan ?? []
+  const malamBisaDipilih = listMalamDasar.filter((t) => !hotelPihakLain.aktif.includes(t))
+  const tglTempatLain = tempatLain.flatMap((r) => r.tanggal).filter((t) => malamBisaDipilih.includes(t))
+  const listMalam = malamBisaDipilih.filter((t) => !tglTempatLain.includes(t))
+  const ubahTempat = (i: number, patch: Partial<HotelTambahan>) =>
+    onUbah({ hotelTambahan: tempatLain.map((r, j) => (j === i ? { ...r, ...patch } : r)) })
+  const subtotalTempatLain = tempatLain.reduce((s, r) => s + r.tarif * r.tanggal.filter((t) => malamBisaDipilih.includes(t)).length, 0)
   const tglUangHarianPihakLain = (etape.tanpaUangHarianDates ?? []).filter((t) => listMalamDasar.includes(t))
   const hotel30 = useTanggalTerpilih(etape, 'hotel30Dates', listMalam, (patch) => {
     const dates = patch.hotel30Dates ?? []
@@ -82,7 +93,7 @@ export function PenginapanEtapeKartu({
   const isSebagian30 = jmlHotel30 > 0 && jmlHotel30 < listMalam.length
 
   const tarifEfektif = isSemua30 ? (etape.hotelTarif ?? (tarif30 !== null ? tarif30 : null)) : etape.hotelTarif
-  const subtotal = (jmlMalamHotel * (etape.hotelTarif ?? 0)) + (jmlHotel30 * (tarif30 ?? 0))
+  const subtotal = (jmlMalamHotel * (etape.hotelTarif ?? 0)) + (jmlHotel30 * (tarif30 ?? 0)) + subtotalTempatLain
   const peringatanTarif = peringatanKode('TARIF_HOTEL_KOSONG') ?? peringatanKode('HOTEL_MELEBIHI_BATAS')
   const tarifKosong = (malam ?? 0) > 0 && jmlMalamHotel > 0 && !etape.hotelTarif
   const judulBaris = `Tujuan ${nomor}${etape.kota ? ` - ${etape.kota}` : ''}`
@@ -270,6 +281,61 @@ export function PenginapanEtapeKartu({
           </div>
         </div>
       )}
+
+      {!tanpaMenginap && listMalamDasar.length > 0 ? (
+        <div className="grid gap-3 border-t pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h5 className="text-sm font-semibold text-muted-foreground">Tempat menginap lain (pindah hotel, homestay)</h5>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              Hotel utama {listMalam.length} | Tempat lain {tglTempatLain.length} | Pihak lain {hotelPihakLain.jumlah} malam
+            </span>
+          </div>
+          {tempatLain.map((r, i) => {
+            const nomorTempat = i + 1
+            const dipakaiLain = tempatLain.filter((_, j) => j !== i).flatMap((x) => x.tanggal)
+            return (
+              <div key={i} className="grid gap-2 rounded-lg border p-3">
+                <div className="grid items-center gap-2 sm:grid-cols-[1fr_12rem_auto]">
+                  <Input aria-label={`Nama tempat menginap ${nomorTempat}`} placeholder="Nama hotel / penginapan" value={r.nama} onChange={(e) => ubahTempat(i, { nama: e.target.value })} />
+                  <RupiahInput awalan className="font-mono" aria-label={`Tarif per malam ${nomorTempat}`} value={r.tarif || null} onChange={(v) => ubahTempat(i, { tarif: v ?? 0 })} />
+                  <Button type="button" variant="ghost" size="icon" aria-label={`Hapus tempat menginap ${nomorTempat}`} onClick={() => onUbah({ hotelTambahan: tempatLain.filter((_, j) => j !== i) })}>
+                    <Trash2Icon className="text-destructive" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {malamBisaDipilih.map((t) => {
+                    const dipilih = r.tanggal.includes(t)
+                    const terpakai = dipakaiLain.includes(t)
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        aria-pressed={dipilih}
+                        disabled={terpakai}
+                        onClick={() => ubahTempat(i, { tanggal: dipilih ? r.tanggal.filter((x) => x !== t) : [...r.tanggal, t].sort() })}
+                        className={cn(
+                          'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-40',
+                          dipilih ? 'border-primary bg-primary text-primary-foreground' : 'border-input bg-card text-foreground hover:bg-accent',
+                        )}
+                      >
+                        {dipilih ? <CheckIcon className="size-3.5 stroke-[3]" aria-hidden /> : null}
+                        {labelTanggal(t)}
+                      </button>
+                    )
+                  })}
+                </div>
+                {batasHotel !== null && r.tarif > batasHotel ? (
+                  <p className="text-xs font-medium text-warning-foreground">Melebihi batas SBM {rupiah(batasHotel)}.</p>
+                ) : null}
+              </div>
+            )
+          })}
+          <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => onUbah({ hotelTambahan: [...tempatLain, { nama: '', tarif: 0, tanggal: [] }] })}>
+            <PlusIcon /> Tambah tempat menginap
+          </Button>
+          <p className="text-xs text-muted-foreground">Pilih malam di tempat ini. Malam yang tidak dipilih tetap dihitung di hotel utama.</p>
+        </div>
+      ) : null}
 
       {listMalamDasar.length > 0 ? (
         <div className="grid gap-3 border-t pt-4">

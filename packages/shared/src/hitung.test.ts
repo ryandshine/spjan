@@ -417,7 +417,7 @@ describe("hitungSpj - pagu biaya tambahan", () => {
     const r = dengan({ jenis: "SEWA_RODA4", provinsi: "BALI", uraian: "Sewa mobil di Bali", qty: 2, tarif: 1_500_000 });
     expect(r).toMatchObject({ satuan: "hari", jumlah: 3_000_000 });
     expect(r.catatan).toBe(
-      "Tarif Rp1.500.000 melebihi pagu PMK Rp1.275.000 per satuan (dapat dilampaui bila riil; lampirkan bukti).",
+      "Tarif Rp1.500.000 melebihi pagu Rp1.275.000: hanya untuk kendaraan di atas 7 kursi (paling tinggi 150%, Rp1.912.500).",
     );
   });
 
@@ -1094,5 +1094,41 @@ describe("hitungSpj - total malam penginapan berlebih", () => {
   });
   it("perjalanan sehari yang menginap satu malam tidak diperingatkan", () => {
     expect(kode(hitung([], { pulang: "2026-09-10", malamOverride: 1 }))).not.toContain("MALAM_BERLEBIH");
+  });
+});
+
+describe("hitungSpj - tempat menginap lain", () => {
+  const hitung = (over: Partial<EtapeInput>) =>
+    hitungSpj(spj([{ ...resa, biaya: [], etape: [etapeBali({ pulang: "2026-09-14", hotelNama: "A", hotelTarif: 500_000, ...over })] }]), SBM_2026).pelaksana[0]!;
+
+  it("hotel utama mencakup sisa malam, total tidak dobel", () => {
+    const h = hitung({ hotelTambahan: [{ nama: "B", tarif: 300_000, tanggal: ["2026-09-12", "2026-09-13"] }] });
+    expect(h.penginapan.map((r) => [r.uraian, r.qty])).toEqual([["A", 2], ["B", 2]]);
+    expect(h.totalPenginapan).toBe(1_600_000);
+    expect(h.penginapan[1]!.keterangan).toContain("12 s.d. 13");
+    expect(h.peringatan.map((p) => p.kode)).not.toContain("MALAM_BERLEBIH");
+  });
+  it("semua malam di tempat lain: hotel utama tidak perlu tarif", () => {
+    const h = hitung({ hotelTarif: null, hotelTambahan: [{ nama: "B", tarif: 300_000, tanggal: ["2026-09-10", "2026-09-11", "2026-09-12", "2026-09-13"] }] });
+    expect(h.penginapan).toHaveLength(1);
+    expect(h.peringatan.map((p) => p.kode)).not.toContain("TARIF_HOTEL_KOSONG");
+  });
+  it("malam ganda antar tempat dan malam pihak lain tidak dihitung dua kali", () => {
+    const h = hitung({
+      hotelPihakLainDates: ["2026-09-10"],
+      hotelTambahan: [
+        { nama: "B", tarif: 300_000, tanggal: ["2026-09-10", "2026-09-11"] },
+        { nama: "C", tarif: 200_000, tanggal: ["2026-09-11", "2026-09-12"] },
+      ],
+    });
+    expect(h.penginapan.map((r) => [r.uraian, r.qty])).toEqual([["A", 1], ["B", 1], ["C", 1]]);
+  });
+  it("tarif kosong dan melebihi batas diperingatkan", () => {
+    expect(hitung({ hotelTambahan: [{ nama: "B", tarif: 0, tanggal: ["2026-09-10"] }] }).peringatan.map((p) => p.kode)).toContain("TARIF_HOTEL_KOSONG");
+    expect(hitung({ hotelTambahan: [{ nama: "B", tarif: 99_000_000, tanggal: ["2026-09-10"] }] }).peringatan.map((p) => p.kode)).toContain("HOTEL_MELEBIHI_BATAS");
+  });
+  it("tanpa tempat lain hasil tetap seperti semula", () => {
+    expect(hitung({}).penginapan).toHaveLength(1);
+    expect(hitung({}).totalPenginapan).toBe(2_000_000);
   });
 });

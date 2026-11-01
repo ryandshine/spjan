@@ -177,6 +177,7 @@ export function petakanStKeUsulan(
         hotel30Persen: false,
         hotel30Dates: [],
         hotelPihakLainDates: [],
+        hotelTambahan: [],
         dalamKota8Jam: dalamKota,
         tanpaUangHarianDates: [],
         uangHarian60Dates: [],

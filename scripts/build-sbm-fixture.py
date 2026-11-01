@@ -57,6 +57,7 @@ sbm = {
     "transportIbukota": ibukota,
     "transportJakarta": jakarta,
     "transportKegiatanPp": kegiatan_pp,
+    "uangHarianFullboard": 130000,  # PMK 32/2025 Lampiran 31.2
     "sewaKendaraan": sewa,
     "statusKonfigurasi": {
         "PEJABAT_NEGARA_WAMEN": {"kolomHotel": 1, "barisRepresentasi": 1, "kelasTiket": "Bisnis"},

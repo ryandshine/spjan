@@ -60,6 +60,13 @@ export function catatanBiaya(sbm: Sbm, biaya: BiayaInput, provinsiKedudukan: str
   const pagu = paguBiaya(sbm, biaya, provinsiKedudukan);
   if (!pagu.adaPagu) return "Tidak ada pagu di PMK: biaya riil, lampirkan bukti.";
   if (pagu.nilai === null) return "Tujuan/provinsi tidak ditemukan di tabel PMK (harga pasar/at cost).";
+  if (biaya.jenis === "SEWA_RODA4" && biaya.tarif > pagu.nilai) {
+    // PMK 32/2025 angka 35: kendaraan di atas 7 kursi paling tinggi 150% dari satuan biaya roda 4.
+    const batas = Math.round(pagu.nilai * 1.5);
+    return biaya.tarif > batas
+      ? `Tarif ${formatRp(biaya.tarif)} melebihi batas 150% (${formatRp(batas)}) sewa roda 4 di atas 7 kursi; periksa kembali.`
+      : `Tarif ${formatRp(biaya.tarif)} melebihi pagu ${formatRp(pagu.nilai)}: hanya untuk kendaraan di atas 7 kursi (paling tinggi 150%, ${formatRp(batas)}).`;
+  }
   if (biaya.tarif > pagu.nilai) {
     return `Tarif ${formatRp(biaya.tarif)} melebihi pagu PMK ${formatRp(pagu.nilai)} per satuan (dapat dilampaui bila riil; lampirkan bukti).`;
   }
@@ -73,5 +80,3 @@ export function paguTiket(sbm: Sbm, asal: string, tujuan: string, kelas: "Bisnis
   return kelas === "Bisnis" ? baris.bisnis : baris.ekonomi;
 }
 
-/** Uang harian rapat/pertemuan di luar kantor paket fullboard: satu tarif per orang per hari untuk semua status (PMK 32/2025, Lampiran 31.2). */
-export const UANG_HARIAN_FULLBOARD = 130_000;

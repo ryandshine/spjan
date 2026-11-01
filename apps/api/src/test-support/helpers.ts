@@ -75,6 +75,7 @@ export const stResa = {
           hotel30Persen: false,
           hotel30Dates: [],
           hotelPihakLainDates: [],
+          hotelTambahan: [],
           dalamKota8Jam: false,
           tanpaUangHarianDates: [],
           uangHarian60Dates: [],

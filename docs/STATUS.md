@@ -3,6 +3,18 @@
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
 Terakhir diperbarui: 2026-11-01 (kabupaten dikunjungi per tujuan).
 
+## Daftar penginapan per tujuan (2026-11-01, belum di-commit)
+
+- `etape.hotelTambahan` (jsonb, migrasi `1791126000028`): tempat menginap lain dengan malam terpilih. Hotel utama otomatis mencakup sisa malam; satu malam tidak terhitung dua kali (prioritas: pihak lain, tempat lain, hotel utama). Tabel rincian manual (`PENGINAPAN_LAIN`) tetap ada untuk biaya tanpa tanggal dan ST lama. Hasil scan hotel kedua belum otomatis menjadi tempat lain.
+- Tarif fullboard pindah ke `sbm.uangHarianFullboard`; migrasi melengkapi versi tersimpan. `sbm-2026.ts` dan skrip pembuatnya disesuaikan bersama.
+- Catatan sewa roda 4: di atas pagu dan di atas 150% (PMK 32/2025 angka 35).
+
+## Perbaikan penginapan dan provinsi (2026-11-01, sudah di-push)
+
+- Peringatan `MALAM_BERLEBIH` bila total malam melebihi lama perjalanan. Tanggal pihak lain tidak otomatis terpilih saat dicentang.
+- Hasil baca ST: tujuan yang bukan provinsi SBM tidak lagi masuk kolom provinsi; form memberi peringatan untuk nilai lama.
+- Panel Data Belum Lengkap di halaman Dokumen diringkas per masalah.
+
 ## Malam penginapan ditanggung pihak lain (2026-11-01, belum di-commit)
 
 - Kolom `etape.hotelPihakLainDates` (migrasi `1791126000027`). Malam terpilih mengurangi malam dibayar; Rincian mencetak tanggal yang dibayar dan catatan jumlah malam pihak lain. Terpisah dari tanggal uang harian pihak lain (ada tombol samakan). Isian jumlah malam manual tetap ada; tombol "Set 0 malam" dihapus.

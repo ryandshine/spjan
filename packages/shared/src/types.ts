@@ -81,8 +81,17 @@ export interface Sbm {
   transportIbukota: Array<{ provinsi: string; ibukota: string; kabKota: string; besaran: number }>;
   transportJakarta: Array<{ kabKota: string; besaran: number }>;
   transportKegiatanPp: number;
+  /** Uang harian rapat/pertemuan di luar kantor paket fullboard per orang per hari (Lampiran 31.2) */
+  uangHarianFullboard: number;
   sewaKendaraan: Record<string, { roda4: number; roda6BusSedang: number; busBesar: number }>;
   statusKonfigurasi: Record<StatusKode, StatusKonfigurasi>;
+}
+
+export interface HotelTambahan {
+  nama: string;
+  tarif: number;
+  /** Malam (YYYY-MM-DD) di tempat ini */
+  tanggal: string[];
 }
 
 export interface EtapeInput {
@@ -107,6 +116,8 @@ export interface EtapeInput {
   hotel30Dates?: string[];
   /** Daftar tanggal (YYYY-MM-DD) malam yang penginapannya ditanggung pihak lain (tidak dibebankan ke SPJ) */
   hotelPihakLainDates?: string[];
+  /** Tempat menginap lain pada tujuan ini; hotel utama mencakup malam yang tidak dipilih di sini. */
+  hotelTambahan?: HotelTambahan[];
   /** Perjalanan dinas dalam kota / Jabodetabek lebih dari 8 jam (menggunakan tarif uang harian dalam kota) */
   dalamKota8Jam?: boolean | null;
   /** Daftar tanggal (YYYY-MM-DD) di mana uang harian / lumpsum tidak dibebankan ke SPJ (ditanggung pihak lain / panitia) */

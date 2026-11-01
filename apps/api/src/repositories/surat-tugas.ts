@@ -1,3 +1,4 @@
+import type { HotelTambahan } from "@spjan/shared";
 import type { PoolClient } from "pg";
 import { INSTANSI_BAWAAN, normalkanUraianTiket, type StatusKode, type StatusSt, type SuratTugasDto, type SuratTugasPayload, type SuratTugasRingkasDto } from "@spjan/shared";
 
@@ -79,6 +80,7 @@ interface EtapeRow {
   hotel_30_persen: boolean;
   hotel_30_dates: string[] | null;
   hotel_pihak_lain_dates: string[] | null;
+  hotel_tambahan: HotelTambahan[] | null;
   dalam_kota_8_jam: boolean;
   tanpa_uang_harian_dates: string[] | null;
   uang_harian_60_dates: string[] | null;
@@ -189,6 +191,7 @@ export async function muatSuratTugas(db: Db, ids: number[]): Promise<SuratTugasD
             hotel30Persen: e.hotel_30_persen ?? false,
             hotel30Dates: e.hotel_30_dates ?? [],
             hotelPihakLainDates: e.hotel_pihak_lain_dates ?? [],
+            hotelTambahan: e.hotel_tambahan ?? [],
             dalamKota8Jam: e.dalam_kota_8_jam ?? false,
             tanpaUangHarianDates: e.tanpa_uang_harian_dates ?? [],
             uangHarian60Dates: e.uang_harian_60_dates ?? [],
@@ -225,13 +228,13 @@ async function sisipkanPelaksana(client: PoolClient, stId: number, pelaksana: Su
     const pelId = (rows[0] as { id: number }).id;
     for (const [j, e] of p.etape.entries()) {
       await client.query(
-        `insert into etape (pelaksana_id, urutan, provinsi, kota, kegiatan, berangkat, pulang, malam_override, hotel_nama, hotel_tarif, dinas_jabatan, fullboard_dates, hotel_30_persen, hotel_30_dates, dalam_kota_8_jam, tanpa_uang_harian_dates, uang_harian_60_dates, kabupaten, hotel_pihak_lain_dates)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+        `insert into etape (pelaksana_id, urutan, provinsi, kota, kegiatan, berangkat, pulang, malam_override, hotel_nama, hotel_tarif, dinas_jabatan, fullboard_dates, hotel_30_persen, hotel_30_dates, dalam_kota_8_jam, tanpa_uang_harian_dates, uang_harian_60_dates, kabupaten, hotel_pihak_lain_dates, hotel_tambahan)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20::jsonb)`,
         [
           pelId, j, e.provinsi, e.kota, e.kegiatan, e.berangkat || null, e.pulang || null,
           e.malamOverride ?? null, e.hotelNama ?? null, e.hotelTarif ?? null, e.dinasJabatan ?? false,
           e.fullboardDates ?? [], e.hotel30Persen ?? false, e.hotel30Dates ?? [], e.dalamKota8Jam ?? false,
-          e.tanpaUangHarianDates ?? [], e.uangHarian60Dates ?? [], e.kabupaten ?? [], e.hotelPihakLainDates ?? [],
+          e.tanpaUangHarianDates ?? [], e.uangHarian60Dates ?? [], e.kabupaten ?? [], e.hotelPihakLainDates ?? [], JSON.stringify(e.hotelTambahan ?? []),
         ],
       );
     }

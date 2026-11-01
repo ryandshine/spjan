@@ -1,4 +1,4 @@
-import { catatanBiaya, paguTiket, UANG_HARIAN_FULLBOARD } from "./pagu.js";
+import { catatanBiaya, paguTiket } from "./pagu.js";
 import {
   angkaKata,
   daftarHariIso,
@@ -234,7 +234,14 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
   const malamDasar = e.malamOverride != null ? e.malamOverride : semuaFullboard ? 0 : Math.max(hari - 1, 0);
   const listMalamDasar = listHari.slice(0, Math.max(0, malamDasar));
   const tglHotelPihakLain = (e.hotelPihakLainDates ?? []).filter((tgl) => listMalamDasar.includes(tgl));
-  const malam = malamDasar - tglHotelPihakLain.length;
+  // Tempat menginap lain mengambil malam yang dipilih; hotel utama mencakup sisanya, jadi satu malam tidak terhitung dua kali.
+  const sudahDipakai = new Set<string>(tglHotelPihakLain);
+  const hotelTambahan = (e.hotelTambahan ?? []).map((r) => {
+    const tanggal = r.tanggal.filter((t) => listMalamDasar.includes(t) && !sudahDipakai.has(t));
+    for (const t of tanggal) sudahDipakai.add(t);
+    return { ...r, tanggal };
+  });
+  const malam = malamDasar - sudahDipakai.size;
   const rincian = rentangRincian(a, b);
   const cfg = p.status ? sbm.statusKonfigurasi[p.status] : undefined;
   const hasil: HasilEtape = { peringatan };
@@ -289,7 +296,7 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
       });
     }
     if (tglFullboard.length > 0) {
-      const tarifSaku = UANG_HARIAN_FULLBOARD;
+      const tarifSaku = sbm.uangHarianFullboard;
       hasil.uangHarian.push({
         uraian: "Uang saku fullboard :",
         qty: tglFullboard.length,
@@ -317,9 +324,9 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
 
   const batas = cfg ? sbm.penginapan[prov]?.[cfg.kolomHotel - 1] : undefined;
   const tarif30 = batas !== undefined ? Math.round(batas * 0.3) : 0;
-  const listMalam = listMalamDasar.filter((tgl) => !tglHotelPihakLain.includes(tgl));
+  const listMalam = listMalamDasar.filter((tgl) => !sudahDipakai.has(tgl));
   // Ada malam ditanggung pihak lain: cetak tanggal yang benar-benar dibayar.
-  const rincianHotel = tglHotelPihakLain.length > 0 ? formatDaftarTanggal(listMalam) : rincian;
+  const rincianHotel = sudahDipakai.size > 0 ? formatDaftarTanggal(listMalam) : rincian;
   const tglHotel30 = (e.hotel30Dates ?? []).filter((tgl) => listMalam.includes(tgl));
   const hasHotel30Dates = (e.hotel30Dates ?? []).length > 0;
   const isSemua30 = hasHotel30Dates ? tglHotel30.length >= malam : !!e.hotel30Persen;
@@ -415,6 +422,31 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
       }
       hasil.penginapan = daftarPgn;
     }
+  }
+
+  const barisTambahan: BarisBiaya[] = [];
+  for (const r of hotelTambahan) {
+    if (r.tanggal.length === 0) continue;
+    const namaTempat = r.nama.trim() || "Penginapan";
+    if (!(r.tarif > 0)) {
+      peringatan.push({ kode: "TARIF_HOTEL_KOSONG", pesan: `${nomor}: tarif ${namaTempat} belum diisi (${r.tanggal.length} malam).`, etape: i });
+      continue;
+    }
+    if (batas !== undefined && r.tarif > batas) {
+      peringatan.push({ kode: "HOTEL_MELEBIHI_BATAS", pesan: `${nomor}: tarif ${namaTempat} ${formatRp(r.tarif)} melebihi batas SBM ${formatRp(batas)}.`, etape: i });
+    }
+    barisTambahan.push({
+      uraian: namaTempat,
+      qty: r.tanggal.length,
+      satuan: "malam",
+      tarif: r.tarif,
+      jumlah: r.tanggal.length * r.tarif,
+      keterangan: `Tanggal ${formatDaftarTanggal(r.tanggal)}, Bukti terlampir`,
+    });
+  }
+  if (barisTambahan.length > 0) {
+    const ada = hasil.penginapan ? (Array.isArray(hasil.penginapan) ? hasil.penginapan : [hasil.penginapan]) : [];
+    hasil.penginapan = [...ada, ...barisTambahan];
   }
 
   const kata = hari <= 99 ? ` (${angkaKata(hari)})` : "";
@@ -589,7 +621,7 @@ function urutanBiayaTransport(jenis: JenisBiaya): number {
     if (totalMalam > batasMalam) {
       peringatan.push({
         kode: "MALAM_BERLEBIH",
-        pesan: `Total penginapan ${totalMalam} malam melebihi lama perjalanan ${batasMalam} malam. Periksa kemungkinan dobel antara Hotel Utama dan Penginapan Tambahan.`,
+        pesan: `Total penginapan ${totalMalam} malam melebihi lama perjalanan ${batasMalam} malam. Periksa kemungkinan dobel dengan rincian manual.`,
         etape: 0,
       });
     }

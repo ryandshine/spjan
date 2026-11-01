@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SBM_2026 } from "./data/sbm-2026.js";
-import { catatanBiaya, paguBiaya, paguTiket, UANG_HARIAN_FULLBOARD } from "./pagu.js";
+import { catatanBiaya, paguBiaya, paguTiket } from "./pagu.js";
 
 const KEDUDUKAN = "D.K.I. JAKARTA";
 
@@ -69,8 +69,15 @@ describe("paguTiket", () => {
   });
 });
 
-describe("UANG_HARIAN_FULLBOARD", () => {
-  it("sesuai PMK 32/2025 Lampiran 31.2", () => {
-    expect(UANG_HARIAN_FULLBOARD).toBe(130_000);
+describe("SBM fullboard dan sewa roda 4", () => {
+  it("tarif fullboard ada di data SBM", () => {
+    expect(SBM_2026.uangHarianFullboard).toBe(130_000);
+  });
+  it("sewa roda 4: di atas pagu dan di atas 150% diberi catatan berbeda", () => {
+    const nilai = SBM_2026.sewaKendaraan["BALI"]!.roda4;
+    const catatan = (tarif: number) => catatanBiaya(SBM_2026, { jenis: "SEWA_RODA4", provinsi: "BALI", tarif }, KEDUDUKAN);
+    expect(catatan(nilai)).toContain("dalam pagu");
+    expect(catatan(nilai + 1)).toContain("di atas 7 kursi");
+    expect(catatan(Math.round(nilai * 1.5) + 1)).toContain("melebihi batas 150%");
   });
 });

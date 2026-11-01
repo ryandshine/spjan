@@ -82,7 +82,7 @@ export function hitungProgresSpj(
         const semua30 = (e?.hotel30Dates ?? []).length > 0
           ? (e?.hotel30Dates ?? []).length >= (e?.malamOverride ?? 1)
           : !!e?.hotel30Persen
-        const semuaPihakLain = !!e && (e.hotelPihakLainDates ?? []).length > 0 && ringkasEtape(e).malam === 0
+        const semuaPihakLain = !!e && ((e.hotelPihakLainDates ?? []).length > 0 || (e.hotelTambahan ?? []).length > 0) && ringkasEtape(e).malam === 0
         const perluHotel = (e?.malamOverride ?? 1) > 0 && !(e?.fullboardDates ?? []).length && !semua30 && !semuaPihakLain
         if (!perluHotel || (e?.hotelTarif && e.hotelTarif > 0)) perPelaksanaValid++
       }

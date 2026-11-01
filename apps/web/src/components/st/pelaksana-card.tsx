@@ -64,6 +64,7 @@ export function PelaksanaCard({
   onHapus: () => void
 }) {
   const [dialogHapus, setDialogHapus] = useState(false)
+  const [bukaPenginapanManual, setBukaPenginapanManual] = useState(false)
   const adaGalat = !!galat && Object.keys(galat).length > 0
   const id = (k: string) => `pel-${nomor}-${k}`
 
@@ -214,7 +215,7 @@ export function PelaksanaCard({
         <TabPanel idAwal={`pel-${nomor}-bagian`} kunci="penginapan" aktif={bagian === 'penginapan'}>
           <KelompokIsian terkunci={terkunci}>
             <div className="grid gap-5">
-              <BlokForm judul="Hotel Utama">
+              <BlokForm judul="Penginapan">
                 {p.etape.map((e, i) => (
                   <PenginapanEtapeKartu
                     key={i}
@@ -229,9 +230,14 @@ export function PelaksanaCard({
                 ))}
               </BlokForm>
 
+              {itemsPenginapanBebas.length === 0 && !bukaPenginapanManual ? (
+                <Button type="button" variant="link" className="h-auto w-fit p-0 text-xs" onClick={() => setBukaPenginapanManual(true)}>
+                  Isi rincian manual tanpa tanggal
+                </Button>
+              ) : (
               <TabelRincianBebas
-                judul="Penginapan Tambahan"
-                deskripsi="Untuk malam yang tidak tercakup di Hotel Utama (mis. pindah hotel, homestay, rumah singgah). Malam yang sama jangan diisi di dua tempat. Pindah hotel: kurangi malam Hotel Utama lewat Ubah manual."
+                judul="Rincian Manual Tanpa Tanggal"
+                deskripsi="Untuk biaya yang tidak bisa dipilih per malam. Pindah hotel sebaiknya memakai Tambah tempat menginap, agar malam tidak dobel."
                 tombolLabel="Tambah Penginapan"
                 placeholderUraian="Contoh: Sewa homestay di desa / rumah singgah warga"
                 satuanBawaan="malam"
@@ -241,6 +247,7 @@ export function PelaksanaCard({
                 onUbah={ubahItemPenginapan}
                 onHapus={hapusItemPenginapan}
               />
+              )}
 
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/40 px-4 py-3">
                 <div>

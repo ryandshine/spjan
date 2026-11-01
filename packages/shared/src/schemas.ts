@@ -25,6 +25,7 @@ export const EtapePayloadSchema = z.object({
   hotel30Persen: z.boolean().nullish(),
   hotel30Dates: z.array(tanggalWajib).optional(),
   hotelPihakLainDates: z.array(tanggalWajib).optional(),
+  hotelTambahan: z.array(z.object({ nama: teks(200), tarif: rupiah, tanggal: z.array(tanggalWajib) })).max(30).optional(),
   dalamKota8Jam: z.boolean().nullish(),
   tanpaUangHarianDates: z.array(tanggalWajib).optional(),
   uangHarian60Dates: z.array(tanggalWajib).optional(),

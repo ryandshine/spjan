@@ -97,6 +97,17 @@ describe("surat tugas", () => {
     expect(hasil.hasil.total).toBe(6_965_979);
   });
 
+  it("tempat menginap lain tersimpan dan mengurangi malam hotel utama", async () => {
+    const dasar = stResa.pelaksana[0]!;
+    const tambahan = [{ nama: "Homestay", tarif: 300_000, tanggal: ["2026-09-10"] }];
+    const st = { ...stResa, pelaksana: [{ ...dasar, etape: [{ ...dasar.etape[0]!, hotelTambahan: tambahan }] }] };
+    const { id } = (await call("POST", "/api/surat-tugas", st)).json();
+    const hasil = (await call("GET", `/api/surat-tugas/${id}/hasil`)).json();
+    expect(hasil.suratTugas.pelaksana[0].etape[0].hotelTambahan).toEqual(tambahan);
+    expect(hasil.hasil.pelaksana[0].penginapan.map((r: { uraian: string }) => r.uraian)).toEqual(["Homestay"]);
+    expect(hasil.hasil.pelaksana[0].totalPenginapan).toBe(300_000);
+  });
+
   it("draf dengan tanggal kosong tersimpan dan menghasilkan peringatan", async () => {
     const draf = {
       ...stResa,
