@@ -1049,3 +1049,31 @@ describe("hitungSpj - fullboard satu tarif", () => {
     expect(baris?.tarif).toBe(130_000);
   });
 });
+
+describe("hitungSpj - malam penginapan ditanggung pihak lain", () => {
+  const hitung = (over: Partial<EtapeInput>) =>
+    hitungSpj(spj([{ ...resa, biaya: [], etape: [etapeBali({ pulang: "2026-09-15", hotelNama: "H", hotelTarif: 500_000, ...over })] }]), SBM_2026).pelaksana[0]!;
+
+  it("mengurangi malam, mencetak tanggal dibayar, dan memberi catatan", () => {
+    const h = hitung({ hotelPihakLainDates: ["2026-09-10", "2026-09-11"] });
+    expect(h.penginapan[0]).toMatchObject({ qty: 3, jumlah: 1_500_000 });
+    expect(h.penginapan[0]!.keterangan).toContain("12");
+    expect(h.penginapan[0]!.keterangan).not.toContain("10");
+    expect(h.catatan.join(" ")).toContain("2 malam penginapan");
+  });
+  it("semua malam pihak lain: tanpa penginapan dan tanpa peringatan tarif", () => {
+    const h = hitung({ hotelTarif: null, hotelPihakLainDates: ["2026-09-10", "2026-09-11", "2026-09-12", "2026-09-13", "2026-09-14"] });
+    expect(h.penginapan).toEqual([]);
+    expect(h.peringatan.map((p) => p.kode)).not.toContain("TARIF_HOTEL_KOSONG");
+  });
+  it("uang harian tidak berubah", () => {
+    expect(hitung({ hotelPihakLainDates: ["2026-09-10"] }).totalUangHarian).toBe(hitung({}).totalUangHarian);
+  });
+  it("malam 30% pada tanggal pihak lain tidak ikut dihitung", () => {
+    const h = hitung({ hotelPihakLainDates: ["2026-09-10"], hotel30Dates: ["2026-09-10", "2026-09-11"] });
+    expect(h.penginapan.reduce((a, r) => a + (r.qty ?? 0), 0)).toBe(4);
+  });
+  it("tanpa pihak lain keterangan tetap seperti semula", () => {
+    expect(hitung({}).penginapan[0]!.keterangan).toBe(`Tanggal 10-15 September 2026, Bukti terlampir`);
+  });
+});

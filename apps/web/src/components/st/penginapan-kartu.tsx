@@ -64,7 +64,10 @@ export function PenginapanEtapeKartu({
   const isManualMalam = etape.malamOverride != null
   const tanpaMenginap = hari === 1 && malam === 0 && !isManualMalam
 
-  const listMalam = listHari.slice(0, Math.max(0, malam ?? defaultMalam))
+  const listMalamDasar = listHari.slice(0, Math.max(0, etape.malamOverride ?? defaultMalam))
+  const hotelPihakLain = useTanggalTerpilih(etape, 'hotelPihakLainDates', listMalamDasar, onUbah)
+  const listMalam = listMalamDasar.filter((t) => !hotelPihakLain.aktif.includes(t))
+  const tglUangHarianPihakLain = (etape.tanpaUangHarianDates ?? []).filter((t) => listMalamDasar.includes(t))
   const hotel30 = useTanggalTerpilih(etape, 'hotel30Dates', listMalam, (patch) => {
     const dates = patch.hotel30Dates ?? []
     onUbah({
@@ -232,17 +235,7 @@ export function PenginapanEtapeKartu({
                     <span className="text-sm font-medium text-foreground">malam</span>
                   </div>
 
-                  {(etape.malamOverride ?? 0) > 0 ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 px-2 text-xs border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-300"
-                      onClick={() => onUbah({ malamOverride: 0 })}
-                    >
-                      Set 0 malam (pihak lain)
-                    </Button>
-                  ) : (
+                  {(etape.malamOverride ?? 0) > 0 ? null : (
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
                       <CheckIcon className="size-3 stroke-[3]" aria-hidden /> Ditanggung pihak lain
                     </span>
@@ -273,9 +266,29 @@ export function PenginapanEtapeKartu({
         </div>
       )}
 
-      {(malam ?? 0) > 0 && listMalam.length > 0 ? (
+      {listMalamDasar.length > 0 ? (
         <div className="grid gap-3 border-t pt-4">
           <h5 className="text-sm font-semibold text-muted-foreground">Opsi Penginapan Tambahan</h5>
+          <BagianTanggal
+            judul="Penginapan ditanggung pihak lain"
+            chip={`Pihak lain ${hotelPihakLain.jumlah} malam | Dibayar SPJ ${listMalam.length} malam`}
+            petunjuk="Pilih malam yang penginapannya dibayar pihak lain:"
+            gaya="amber"
+            akhiranTerpilih="(pihak lain)"
+            listHari={listMalamDasar}
+            tanggal={hotelPihakLain}
+          >
+            {tglUangHarianPihakLain.length > 0 ? (
+              <button
+                type="button"
+                className="w-fit text-xs text-primary hover:underline"
+                onClick={() => onUbah({ hotelPihakLainDates: tglUangHarianPihakLain })}
+              >
+                Samakan dengan tanggal uang harian pihak lain
+              </button>
+            ) : null}
+          </BagianTanggal>
+          {listMalam.length > 0 ? (
           <BagianTanggal
             judul="Menginap tanpa fasilitas hotel (biaya penginapan 30%)"
             chip={`${jmlHotel30} dari ${listMalam.length} malam (30%)`}
@@ -313,6 +326,7 @@ export function PenginapanEtapeKartu({
               </p>
             </DasarAturan>
           </BagianTanggal>
+          ) : null}
         </div>
       ) : null}
     </div>

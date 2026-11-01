@@ -1,4 +1,4 @@
-import type { BerkasDto, SpjHasil, SuratTugasPayload } from '@spjan/shared'
+import { ringkasEtape, type BerkasDto, type SpjHasil, type SuratTugasPayload } from '@spjan/shared'
 
 export interface RingkasanTahap {
   wajib: number
@@ -82,7 +82,8 @@ export function hitungProgresSpj(
         const semua30 = (e?.hotel30Dates ?? []).length > 0
           ? (e?.hotel30Dates ?? []).length >= (e?.malamOverride ?? 1)
           : !!e?.hotel30Persen
-        const perluHotel = (e?.malamOverride ?? 1) > 0 && !(e?.fullboardDates ?? []).length && !semua30
+        const semuaPihakLain = !!e && (e.hotelPihakLainDates ?? []).length > 0 && ringkasEtape(e).malam === 0
+        const perluHotel = (e?.malamOverride ?? 1) > 0 && !(e?.fullboardDates ?? []).length && !semua30 && !semuaPihakLain
         if (!perluHotel || (e?.hotelTarif && e.hotelTarif > 0)) perPelaksanaValid++
       }
 

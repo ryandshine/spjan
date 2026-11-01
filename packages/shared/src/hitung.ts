@@ -178,6 +178,7 @@ interface HasilEtape {
   uraianSptb?: string;
   tanpaUangHarianJumlah?: number;
   uangHarian60Jumlah?: number;
+  hotelPihakLainJumlah?: number;
 }
 
 /** Membersihkan awalan kegiatan agar tidak terjadi pengulangan "dalam rangka" atau "perjalanan dinas". */
@@ -230,7 +231,10 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
   const tglBiasa = tglSisaBiasa.filter((tgl) => !tglUangHarian60.includes(tgl));
   const semuaFullboard = tglFullboard.length >= hari;
 
-  const malam = e.malamOverride != null ? e.malamOverride : semuaFullboard ? 0 : Math.max(hari - 1, 0);
+  const malamDasar = e.malamOverride != null ? e.malamOverride : semuaFullboard ? 0 : Math.max(hari - 1, 0);
+  const listMalamDasar = listHari.slice(0, Math.max(0, malamDasar));
+  const tglHotelPihakLain = (e.hotelPihakLainDates ?? []).filter((tgl) => listMalamDasar.includes(tgl));
+  const malam = malamDasar - tglHotelPihakLain.length;
   const rincian = rentangRincian(a, b);
   const cfg = p.status ? sbm.statusKonfigurasi[p.status] : undefined;
   const hasil: HasilEtape = { peringatan };
@@ -239,6 +243,9 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
   }
   if (tglUangHarian60.length > 0) {
     hasil.uangHarian60Jumlah = tglUangHarian60.length;
+  }
+  if (tglHotelPihakLain.length > 0) {
+    hasil.hotelPihakLainJumlah = tglHotelPihakLain.length;
   }
 
   const ketHarian = dalamKota
@@ -310,7 +317,9 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
 
   const batas = cfg ? sbm.penginapan[prov]?.[cfg.kolomHotel - 1] : undefined;
   const tarif30 = batas !== undefined ? Math.round(batas * 0.3) : 0;
-  const listMalam = listHari.slice(0, Math.max(0, malam));
+  const listMalam = listMalamDasar.filter((tgl) => !tglHotelPihakLain.includes(tgl));
+  // Ada malam ditanggung pihak lain: cetak tanggal yang benar-benar dibayar.
+  const rincianHotel = tglHotelPihakLain.length > 0 ? formatDaftarTanggal(listMalam) : rincian;
   const tglHotel30 = (e.hotel30Dates ?? []).filter((tgl) => listMalam.includes(tgl));
   const hasHotel30Dates = (e.hotel30Dates ?? []).length > 0;
   const isSemua30 = hasHotel30Dates ? tglHotel30.length >= malam : !!e.hotel30Persen;
@@ -338,7 +347,7 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
           satuan: "malam",
           tarif: tarifEfektif30,
           jumlah: malam * tarifEfektif30,
-          keterangan: `Tanggal ${rincian}, Tanpa fasilitas hotel (DPR)`,
+          keterangan: `Tanggal ${rincianHotel}, Tanpa fasilitas hotel (DPR)`,
         };
       }
     } else if (malam30 === 0 && malamHotel > 0) {
@@ -353,7 +362,7 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
           satuan: "malam",
           tarif: tarifHotel,
           jumlah: malam * tarifHotel,
-          keterangan: `Tanggal ${rincian}, Bukti terlampir`,
+          keterangan: `Tanggal ${rincianHotel}, Bukti terlampir`,
         };
         if (batas !== undefined && tarifHotel > batas) {
           peringatan.push({
@@ -459,6 +468,10 @@ function hitungPelaksana(p: PelaksanaInput, inputDasar: SpjInput, sbm: Sbm): Pel
     if (h.tanpaUangHarianJumlah && h.tanpaUangHarianJumlah > 0) {
       const pref = p.etape.length > 1 ? `Tujuan ${i + 1}: ` : "";
       catatan.push(`${pref}${h.tanpaUangHarianJumlah} hari uang harian tidak dibebankan ke SPJ (ditanggung pihak lain).`);
+    }
+    if (h.hotelPihakLainJumlah) {
+      const pref = p.etape.length > 1 ? `Tujuan ${i + 1}: ` : "";
+      catatan.push(`${pref}${h.hotelPihakLainJumlah} malam penginapan tidak dibebankan ke SPJ (ditanggung pihak lain).`);
     }
     if (h.uangHarian60Jumlah && h.uangHarian60Jumlah > 0) {
       const pref = p.etape.length > 1 ? `Tujuan ${i + 1}: ` : "";

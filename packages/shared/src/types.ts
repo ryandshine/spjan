@@ -105,6 +105,8 @@ export interface EtapeInput {
   hotel30Persen?: boolean | null;
   /** Daftar tanggal (YYYY-MM-DD) menginap tanpa fasilitas hotel (30% tarif SBM) */
   hotel30Dates?: string[];
+  /** Daftar tanggal (YYYY-MM-DD) malam yang penginapannya ditanggung pihak lain (tidak dibebankan ke SPJ) */
+  hotelPihakLainDates?: string[];
   /** Perjalanan dinas dalam kota / Jabodetabek lebih dari 8 jam (menggunakan tarif uang harian dalam kota) */
   dalamKota8Jam?: boolean | null;
   /** Daftar tanggal (YYYY-MM-DD) di mana uang harian / lumpsum tidak dibebankan ke SPJ (ditanggung pihak lain / panitia) */

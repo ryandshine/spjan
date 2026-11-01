@@ -1,6 +1,6 @@
 import { INSTANSI_BAWAAN } from "./schemas.js";
 import type { BiayaPayload, EtapePayload, PelaksanaPayload, SumberDana, SuratTugasDto, SuratTugasPayload } from "./schemas.js";
-import { parseTanggal, selisihHari } from "./teks.js";
+import { daftarHariIso, parseTanggal, selisihHari } from "./teks.js";
 import type { BiayaInput, JenisBiaya } from "./types.js";
 
 export function stKosong(kodeAkun = "", tahunAnggaran: number | null = null, sumberDana: SumberDana = "RM"): SuratTugasPayload {
@@ -34,6 +34,7 @@ export function etapeKosong(): EtapePayload {
     fullboardDates: [],
     hotel30Persen: false,
     hotel30Dates: [],
+    hotelPihakLainDates: [],
     dalamKota8Jam: false,
     tanpaUangHarianDates: [],
     uangHarian60Dates: [],
@@ -116,7 +117,7 @@ export interface RingkasEtape {
 }
 
 export function ringkasEtape(
-  e: Pick<EtapePayload, "berangkat" | "pulang"> & { malamOverride?: number | null; fullboardDates?: string[] },
+  e: Pick<EtapePayload, "berangkat" | "pulang"> & { malamOverride?: number | null; fullboardDates?: string[]; hotelPihakLainDates?: string[] },
 ): RingkasEtape {
   const a = parseTanggal(e.berangkat);
   const b = parseTanggal(e.pulang);
@@ -125,7 +126,11 @@ export function ringkasEtape(
   if (hari < 1) return { hari: null, malam: null };
   const semuaFullboard = (e.fullboardDates ?? []).length >= hari;
   const defaultMalam = semuaFullboard ? 0 : Math.max(hari - 1, 0);
-  return { hari, malam: e.malamOverride != null ? e.malamOverride : defaultMalam };
+  const malamDasar = e.malamOverride != null ? e.malamOverride : defaultMalam;
+  // Malam yang ditanggung pihak lain tidak dibebankan ke SPJ.
+  const listMalam = daftarHariIso(a, b).slice(0, Math.max(0, malamDasar));
+  const pihakLain = (e.hotelPihakLainDates ?? []).filter((t) => listMalam.includes(t)).length;
+  return { hari, malam: malamDasar - pihakLain };
 }
 
 /**

@@ -3,6 +3,10 @@
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
 Terakhir diperbarui: 2026-11-01 (kabupaten dikunjungi per tujuan).
 
+## Malam penginapan ditanggung pihak lain (2026-11-01, belum di-commit)
+
+- Kolom `etape.hotelPihakLainDates` (migrasi `1791126000027`). Malam terpilih mengurangi malam dibayar; Rincian mencetak tanggal yang dibayar dan catatan jumlah malam pihak lain. Terpisah dari tanggal uang harian pihak lain (ada tombol samakan). Isian jumlah malam manual tetap ada; tombol "Set 0 malam" dihapus.
+
 ## Fullboard dan menu Transport sesuai PMK (2026-11-01, belum di-commit)
 
 - Uang harian fullboard satu tarif Rp130.000 (`UANG_HARIAN_FULLBOARD`, PMK 32/2025 Lampiran 31.2) menggantikan tarif per jabatan. Masih konstanta di kode, belum data SBM per versi. Hasil ST dihitung saat dibuka, jadi ST lama Eselon II ke atas dengan fullboard ikut berubah.

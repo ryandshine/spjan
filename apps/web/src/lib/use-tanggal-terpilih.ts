@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { EtapePayload } from '@spjan/shared'
 
-type KolomTanggal = 'fullboardDates' | 'tanpaUangHarianDates' | 'uangHarian60Dates' | 'hotel30Dates'
+type KolomTanggal = 'fullboardDates' | 'tanpaUangHarianDates' | 'uangHarian60Dates' | 'hotel30Dates' | 'hotelPihakLainDates'
 
 /**
  * Daftar tanggal terpilih pada satu kolom etape (paket rapat / uang harian ditanggung pihak lain / 30% penginapan).
