@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SBM_2026 } from "./data/sbm-2026.js";
 import { bersihkanKegiatanUraian, hitungSpj, normalkanUraianTiket } from "./hitung.js";
+import { samaKota } from "./teks.js";
 import type { BiayaInput, EtapeInput, PelaksanaInput, SpjInput } from "./types.js";
 
 const NOMOR_ST = "ST.226/PPS/PEMPS/PSL.04.02/B/09/2026";
@@ -973,5 +974,59 @@ describe("hitungSpj - kedudukan per pelaksana", () => {
     ]);
     expect(b!.kotaKedudukan).toBe("Jakarta");
     expect(b!.transport[0]!.uraian).toBe("Tiket Pesawat Jakarta ke Denpasar");
+  });
+});
+
+describe("hitungSpj - kabupaten dikunjungi (narasi)", () => {
+  const kab = ["Kab. Minahasa", "Kab. Minahasa Utara"];
+  const hasil = (kedudukan: string, etape: Partial<EtapeInput>[], biaya: BiayaInput[] = []) =>
+    hitungSpj(
+      spj([{ ...resa, kotaKedudukan: kedudukan, provinsiKedudukan: "SULAWESI UTARA", biaya,
+        etape: etape.map((e) => etapeBali({ hotelNama: "H", hotelTarif: 500_000, ...e })) }]),
+      SBM_2026,
+    ).pelaksana[0]!;
+
+  it("kota beda dengan kabupaten", () => {
+    expect(hasil("Jakarta", [{ kota: "Kota Manado", kabupaten: kab }]).rute).toBe(
+      "Jakarta - Kota Manado (Kab. Minahasa, Kab. Minahasa Utara)",
+    );
+  });
+  it("kota sama dengan kabupaten: nama kota tidak dicetak dua kali", () => {
+    expect(hasil("Kota Manado", [{ kota: "Kota Manado", kabupaten: kab }]).rute).toBe(
+      "Kota Manado - Kab. Minahasa, Kab. Minahasa Utara",
+    );
+  });
+  it("penulisan berbeda tetap dianggap kota sama", () => {
+    expect(hasil("Manado", [{ kota: "Kota Manado.", kabupaten: kab }]).rute).toBe("Manado - Kab. Minahasa, Kab. Minahasa Utara");
+  });
+  it("dua tujuan kota sama: kabupaten digabung tanpa hilang atau dobel", () => {
+    const h = hasil("Kota Manado", [
+      { kota: "Kota Manado", kabupaten: ["Kab. Minahasa"] },
+      { kota: "manado", kabupaten: ["Kab. Minahasa", "Kab. Bitung"] },
+    ]);
+    expect(h.rute).toBe("Kota Manado - Kab. Minahasa, Kab. Bitung");
+  });
+  it("kabupaten tidak mengubah total", () => {
+    expect(hasil("Jakarta", [{ kota: "Kota Manado", kabupaten: kab }]).total).toBe(hasil("Jakarta", [{ kota: "Kota Manado" }]).total);
+  });
+  it("uraian BBM dan E-Toll memakai kabupaten", () => {
+    const h = hasil("Kota Manado", [{ kota: "Kota Manado", kabupaten: kab }], [
+      { jenis: "BBM_KENDARAAN", tarif: 1000 },
+      { jenis: "TOL_ETOLL", tarif: 1000 },
+    ]);
+    expect(h.transport.map((t) => t.uraian)).toEqual([
+      "BBM dari Kota Manado ke Kab. Minahasa, Kab. Minahasa Utara PP",
+      "E-Toll dari Kota Manado ke Kab. Minahasa, Kab. Minahasa Utara PP",
+    ]);
+  });
+  it("tiket dengan asal dan tujuan sama diberi peringatan tanpa diblokir", () => {
+    const h = hasil("Manado", [{ kota: "Kota Manado" }], [{ jenis: "TIKET_PERGI", tarif: 1000 }, { jenis: "TIKET_KEMBALI", tarif: 1000 }]);
+    expect(h.peringatan.filter((p) => p.kode === "TIKET_KOTA_SAMA")).toHaveLength(2);
+    expect(h.transport).toHaveLength(2);
+    expect(hasil("Jakarta", [{ kota: "Denpasar" }], [{ jenis: "TIKET_PERGI", tarif: 1000 }]).peringatan.map((p) => p.kode)).not.toContain("TIKET_KOTA_SAMA");
+  });
+  it("Kota Bogor dan Kab. Bogor tetap berbeda", () => {
+    expect(samaKota("Kota Bogor", "Kab. Bogor")).toBe(false);
+    expect(samaKota("Kab. Bogor", "Kabupaten Bogor")).toBe(true);
   });
 });

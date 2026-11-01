@@ -8,6 +8,7 @@ import {
   parseTanggal,
   proper,
   rentangRincian,
+  samaKota,
   rentangSptb,
   selisihHari,
   tanggalIndonesia,
@@ -51,6 +52,31 @@ export function normalkanUraianTiket(uraian: string): string {
     /^Tiket\s+(?:Garuda(?:\s+Indonesia)?|AirAsia(?:\s+Indonesia)?|Lion(?:\s+Air)?|Batik(?:\s+Air)?|Citilink|Super\s+Air\s+Jet|Sriwijaya(?:\s+Air)?|Wings\s+Air|Pelita\s+Air|Nam\s+Air|TransNusa)\b/i,
     "Tiket Pesawat",
   );
+}
+
+/** Teks satu tujuan: kota sama dengan kedudukan cukup daftar kabupatennya; kota lain "Kota (Kab. A, Kab. B)". */
+function teksTujuan(kota: string, kabupaten: string[], kedudukan: string | null | undefined): string {
+  if (kabupaten.length === 0) return kota;
+  const daftar = kabupaten.join(", ");
+  return samaKota(kota, kedudukan) ? daftar : `${kota} (${daftar})`;
+}
+
+/** Teks tujuan perjalanan, berurutan; etape berturut-turut di kota yang sama digabung beserta kabupatennya. */
+export function daftarTujuan(
+  etape: Pick<EtapeInput, "kota" | "kabupaten">[],
+  kedudukan: string | null | undefined,
+): string[] {
+  const grup: { kota: string; kabupaten: string[] }[] = [];
+  for (const e of etape) {
+    if (!e.kota) continue;
+    const akhir = grup[grup.length - 1];
+    const sasaran = akhir && samaKota(akhir.kota, e.kota) ? akhir : { kota: e.kota, kabupaten: [] };
+    if (sasaran !== akhir) grup.push(sasaran);
+    for (const k of e.kabupaten ?? []) {
+      if (!sasaran.kabupaten.some((x) => norm(x) === norm(k))) sasaran.kabupaten.push(k);
+    }
+  }
+  return grup.map((g) => teksTujuan(g.kota, g.kabupaten, kedudukan));
 }
 
 function ada(s: string | null | undefined): boolean {
@@ -99,7 +125,7 @@ function uraianBiaya(b: BiayaInput, input: SpjInput, etape: EtapeInput[]): strin
     case "TOL_ETOLL": {
       if (uraian) return uraian;
       const i = b.etapeIndex ?? 0;
-      const tujuan = etape[i]?.kota ?? "";
+      const tujuan = teksTujuan(etape[i]?.kota ?? "", etape[i]?.kabupaten ?? [], kedudukan);
       const asal = i > 0 ? (etape[i - 1]?.kota ?? kedudukan) : kedudukan;
       return `${b.jenis === "BBM_KENDARAAN" ? "BBM" : "E-Toll"} dari ${asal} ke ${tujuan} PP`;
     }
@@ -480,6 +506,18 @@ function urutanBiayaTransport(jenis: JenisBiaya): number {
   });
 
   for (const b of biayaUrut) {
+    if (b.tarif > 0 && (b.jenis === "TIKET_PERGI" || b.jenis === "TIKET_KEMBALI")) {
+      const i = b.etapeIndex ?? (b.jenis === "TIKET_PERGI" ? 0 : p.etape.length - 1);
+      const tujuanTiket = p.etape[i]?.kota;
+      const asalTiket = b.jenis === "TIKET_PERGI" && i > 0 ? p.etape[i - 1]?.kota : input.kotaKedudukan;
+      if (samaKota(asalTiket, tujuanTiket)) {
+        peringatan.push({
+          kode: "TIKET_KOTA_SAMA",
+          pesan: `Tiket pesawat: asal dan tujuan sama-sama ${tujuanTiket}. Periksa kembali biaya tiket ini.`,
+          etape: i,
+        });
+      }
+    }
     const baris = barisTransport(b, input, p.etape, sbm);
     if (baris) {
       if (b.jenis === "PENGINAPAN_LAIN") {
@@ -526,17 +564,8 @@ function urutanBiayaTransport(jenis: JenisBiaya): number {
       ? `Biaya Perjalanan dinas dalam rangka ${segmen.join(" dan ")} sesuai Surat Tugas Nomor: ${input.nomorSt} tanggal ${tanggalIndonesia(input.tanggalSt)} sesuai dengan rincian terlampir.`
       : "";
 
-  // Kota yang sama berturut-turut antar etape digabung, tetapi etape pertama selalu dicantumkan
-  // walau sama dengan kedudukan (perjalanan dalam satu kabupaten/kota tetap tampil asal - tujuan).
-  const kotaUnik: string[] = [];
-  if (input.kotaKedudukan) kotaUnik.push(input.kotaKedudukan);
-  let kotaEtapeSebelumnya: string | undefined;
-  for (const e of p.etape) {
-    if (e.kota && kotaEtapeSebelumnya !== e.kota) {
-      kotaUnik.push(e.kota);
-      kotaEtapeSebelumnya = e.kota;
-    }
-  }
+  // Etape pertama selalu dicantumkan walau sama dengan kedudukan (perjalanan dalam satu kabupaten/kota tetap asal - tujuan).
+  const kotaUnik = [...(input.kotaKedudukan ? [input.kotaKedudukan] : []), ...daftarTujuan(p.etape, input.kotaKedudukan)];
   const rute = kotaUnik.length > 0 ? kotaUnik.join(" - ") : "-";
 
   return {

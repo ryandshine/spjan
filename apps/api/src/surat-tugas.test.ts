@@ -30,7 +30,12 @@ describe("surat tugas", () => {
     expect({ status, dikunciPada, dibukaPada, jumlahDibuka }).toEqual({ status: "draft", dikunciPada: null, dibukaPada: null, jumlahDibuka: 0 });
     expect(isi).toEqual({
       ...stResa,
-      pelaksana: stResa.pelaksana.map((p) => ({ ...p, pangkatGolongan: "", instansi: "Direktorat Pengendalian Perhutanan Sosial" })),
+      pelaksana: stResa.pelaksana.map((p) => ({
+        ...p,
+        pangkatGolongan: "",
+        instansi: "Direktorat Pengendalian Perhutanan Sosial",
+        etape: p.etape.map((e) => ({ ...e, kabupaten: [] })),
+      })),
     });
     expect(typeof createdAt).toBe("string");
     expect(typeof updatedAt).toBe("string");
@@ -80,6 +85,16 @@ describe("surat tugas", () => {
     expect((await call("GET", `/api/surat-tugas/${id}/hasil`)).json().hasil.total).toBe(960_000 + 1_021_948);
     const { rows } = await pool.query("select count(*)::int as n from biaya");
     expect(rows[0].n).toBe(0);
+  });
+
+  it("kabupaten tujuan tersimpan dan tampil di rute tanpa mengubah total", async () => {
+    const dasar = stResa.pelaksana[0]!;
+    const st = { ...stResa, pelaksana: [{ ...dasar, etape: [{ ...dasar.etape[0]!, kabupaten: ["Kab. Badung", "Kab. Gianyar"] }] }] };
+    const { id } = (await call("POST", "/api/surat-tugas", st)).json();
+    const hasil = (await call("GET", `/api/surat-tugas/${id}/hasil`)).json();
+    expect(hasil.suratTugas.pelaksana[0].etape[0].kabupaten).toEqual(["Kab. Badung", "Kab. Gianyar"]);
+    expect(hasil.hasil.pelaksana[0].rute).toBe("Jakarta - Denpasar (Kab. Badung, Kab. Gianyar)");
+    expect(hasil.hasil.total).toBe(6_965_979);
   });
 
   it("draf dengan tanggal kosong tersimpan dan menghasilkan peringatan", async () => {

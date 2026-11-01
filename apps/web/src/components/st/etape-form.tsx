@@ -1,4 +1,5 @@
-import { Trash2Icon, TriangleAlertIcon } from 'lucide-react'
+import { useState } from 'react'
+import { Trash2Icon, TriangleAlertIcon, XIcon } from 'lucide-react'
 import {
   isKotaJabodetabek,
   provinsiDariKotaJabodetabek,
@@ -18,6 +19,57 @@ import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { tanggalPanjang } from '@/lib/format'
 import { saranKota } from '@/lib/saran-kota'
+
+/** Isian daftar kabupaten: ketik atau pilih, lalu Enter. Hanya untuk narasi dokumen. */
+function InputKabupaten({
+  id,
+  daftarId,
+  nilai,
+  onUbah,
+}: {
+  id: string
+  daftarId: string
+  nilai: string[]
+  onUbah: (kabupaten: string[]) => void
+}) {
+  const [teks, setTeks] = useState('')
+
+  function tambah() {
+    const baru = teks.trim().replace(/\.+$/, '')
+    setTeks('')
+    if (baru && !nilai.some((k) => k.toLowerCase() === baru.toLowerCase())) onUbah([...nilai, baru])
+  }
+
+  return (
+    <div className="grid gap-2">
+      <Input
+        id={id}
+        list={daftarId}
+        value={teks}
+        onChange={(e) => setTeks(e.target.value)}
+        onBlur={tambah}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            tambah()
+          }
+        }}
+      />
+      {nilai.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {nilai.map((k) => (
+            <Badge key={k} variant="muted" className="gap-1">
+              {k}
+              <button type="button" aria-label={`Hapus ${k}`} onClick={() => onUbah(nilai.filter((x) => x !== k))}>
+                <XIcon className="size-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
 
 export function EtapeForm({
   idAwal,
@@ -117,6 +169,14 @@ export function EtapeForm({
               <option key={nama} value={nama} />
             ))}
           </datalist>
+        </Field>
+        <Field label="Kabupaten dikunjungi" htmlFor={id('kab')} hint="Opsional. Ketik atau pilih, lalu Enter. Hanya untuk narasi dokumen, tidak mengubah hitungan.">
+          <InputKabupaten
+            id={id('kab')}
+            daftarId={id('list-kota')}
+            nilai={etape.kabupaten ?? []}
+            onUbah={(kabupaten) => onUbah({ kabupaten })}
+          />
         </Field>
         <Field label="Berangkat" htmlFor={id('brkt')} error={galat?.berangkat} hint={tanggalPanjang(etape.berangkat) || undefined} warning={peringatanKode('TANGGAL_SALAH')} mode="wajib">
           <InputTanggal

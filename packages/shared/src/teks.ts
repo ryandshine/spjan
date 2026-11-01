@@ -18,6 +18,24 @@ export function norm(s: string): string {
   return s.trim().replace(/\s+/g, " ").toUpperCase();
 }
 
+function uraiKota(s: string): { jenis: "KOTA" | "KAB" | null; nama: string } {
+  const t = norm(s).replace(/[.\s]+$/, "");
+  const m = /^(KOTA|KABUPATEN|KAB\.?)\s+(.+)$/.exec(t);
+  if (!m) return { jenis: null, nama: t };
+  return { jenis: m[1] === "KOTA" ? "KOTA" : "KAB", nama: m[2]! };
+}
+
+/**
+ * Dua penulisan menunjuk tempat yang sama: mengabaikan huruf besar-kecil, titik di akhir, dan "Kab."/"Kabupaten".
+ * "Manado" sama dengan "Kota Manado", tetapi "Kota Bogor" berbeda dengan "Kab. Bogor".
+ */
+export function samaKota(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a?.trim() || !b?.trim()) return false;
+  const x = uraiKota(a);
+  const y = uraiKota(b);
+  return x.nama === y.nama && (x.jenis === y.jenis || x.jenis === null || y.jenis === null);
+}
+
 /** "D.I. YOGYAKARTA" -> "D.I. Yogyakarta". */
 export function proper(s: string): string {
   return s

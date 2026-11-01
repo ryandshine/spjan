@@ -12,6 +12,8 @@ export const StatusKodeSchema = z.enum(STATUS_KODE);
 export const EtapePayloadSchema = z.object({
   provinsi: teks(100),
   kota: teks(100),
+  /** Kabupaten yang dikunjungi; hanya untuk narasi dokumen, tidak memengaruhi hitungan. */
+  kabupaten: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
   kegiatan: teks(1000),
   berangkat: tanggalOpsional,
   pulang: tanggalOpsional,

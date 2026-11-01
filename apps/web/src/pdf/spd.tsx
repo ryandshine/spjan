@@ -2,6 +2,7 @@ import { Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import {
   INSTANSI_BAWAAN,
   angkaKata,
+  daftarTujuan,
   parseTanggal,
   proper,
   selisihHari,
@@ -224,10 +225,11 @@ function getAlatAngkutan(payload?: PelaksanaPayload): string {
   return 'Transportasi Darat'
 }
 
-function getTempatTujuan(etape: EtapePayload[] = []): string {
-  const tujuan = etape
-    .map((e) => e.kota?.trim() || proper(e.provinsi?.trim() || ''))
-    .filter(Boolean)
+function getTempatTujuan(etape: EtapePayload[] = [], kedudukan?: string | null): string {
+  const adaKabupaten = etape.some((e) => (e.kabupaten?.length ?? 0) > 0)
+  const tujuan = adaKabupaten
+    ? daftarTujuan(etape, kedudukan)
+    : etape.map((e) => e.kota?.trim() || proper(e.provinsi?.trim() || '')).filter(Boolean)
   const unik = [...new Set(tujuan)]
   if (unik.length === 0) return '-'
   if (unik.length === 1) return unik[0]!
@@ -269,7 +271,7 @@ export function SpdPage({
   const { lama, berangkat, kembali } = getLamaPerjalanan(etape)
   const maksud = etape.find((e) => e.kegiatan?.trim())?.kegiatan?.trim() || d.st.catatan || d.st.nomor || '-'
   const alatAngkut = getAlatAngkutan(payload)
-  const tujuan = getTempatTujuan(etape)
+  const tujuan = getTempatTujuan(etape, p.kotaKedudukan || pp.kotaKedudukan)
   const tingkatBiaya = getTingkatBiaya(p.status)
   const pangkat = getPangkatGolongan(p.status)
 

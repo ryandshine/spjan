@@ -1,7 +1,14 @@
 # Status SPJAN
 
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
-Terakhir diperbarui: 2026-10-31 (rute kuitansi untuk perjalanan dalam satu kabupaten/kota).
+Terakhir diperbarui: 2026-11-01 (kabupaten dikunjungi per tujuan).
+
+## Kabupaten dikunjungi per tujuan (2026-11-01, belum di-commit)
+
+- Kolom opsional `etape.kabupaten` (migrasi `1791126000026`), hanya narasi; hitungan tetap. Isian tag di `etape-form.tsx`.
+- `daftarTujuan` (`hitung.ts`) dipakai rute kuitansi dan SPD: `Jakarta - Kota Manado (Kab. A, Kab. B)`; kota sama dengan kedudukan: `Kota Manado - Kab. A, Kab. B`; tujuan berturut-turut di kota sama digabung. Uraian BBM/E-Toll ikut memakai kabupaten.
+- `samaKota` (`teks.ts`): `Manado` = `Kota Manado`, titik akhir diabaikan, `Kota Bogor` berbeda dengan `Kab. Bogor`.
+- Peringatan baru `TIKET_KOTA_SAMA` (tidak memblokir). Laporan (`laporan-susun.ts`) dan teks "Untuk Pembayaran" sengaja tidak memuat kabupaten.
 
 ## Uraian taksi tempat kedudukan (2026-10-31)
 

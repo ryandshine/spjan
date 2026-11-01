@@ -23,6 +23,7 @@ export function etapeKosong(): EtapePayload {
   return {
     provinsi: "",
     kota: "",
+    kabupaten: [],
     kegiatan: "",
     berangkat: "",
     pulang: "",

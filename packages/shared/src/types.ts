@@ -84,6 +84,8 @@ export interface Sbm {
 export interface EtapeInput {
   provinsi: string;
   kota: string;
+  /** Kabupaten yang dikunjungi; hanya untuk narasi dokumen, tidak memengaruhi hitungan. */
+  kabupaten?: string[];
   kegiatan: string;
   /** YYYY-MM-DD */
   berangkat: string;
@@ -157,7 +159,8 @@ export type KodePeringatan =
   | "NIP_KOSONG"
   | "NO_SPD_KOSONG"
   | "TARIF_HOTEL_KOSONG"
-  | "HOTEL_MELEBIHI_BATAS";
+  | "HOTEL_MELEBIHI_BATAS"
+  | "TIKET_KOTA_SAMA";
 
 export interface Peringatan {
   kode: KodePeringatan;
