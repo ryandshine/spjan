@@ -2,9 +2,7 @@ import {
   BedDoubleIcon,
   CheckIcon,
   InfoIcon,
-  LockIcon,
   MinusIcon,
-  PencilIcon,
   PlusIcon,
   RotateCcwIcon,
   Trash2Icon,
@@ -45,6 +43,8 @@ export function PenginapanEtapeKartu({
   etape,
   batasHotel,
   peringatan,
+  rincianManual = false,
+  onPindahkan,
   onUbah,
 }: {
   idAwal: string
@@ -53,6 +53,10 @@ export function PenginapanEtapeKartu({
   batasHotel: number | null
   sbm?: Sbm
   peringatan: Peringatan[]
+  /** Pelaksana punya baris rincian manual penginapan. */
+  rincianManual?: boolean
+  /** Ada bila rincian manual bisa dipindah ke daftar tanpa mengubah total. */
+  onPindahkan?: () => void
   onUbah: (patch: Partial<EtapePayload>) => void
 }) {
   const { hari, malam } = ringkasEtape(etape)
@@ -96,6 +100,8 @@ export function PenginapanEtapeKartu({
   const subtotal = (jmlMalamHotel * (etape.hotelTarif ?? 0)) + (jmlHotel30 * (tarif30 ?? 0)) + subtotalTempatLain
   const peringatanTarif = peringatanKode('TARIF_HOTEL_KOSONG') ?? peringatanKode('HOTEL_MELEBIHI_BATAS')
   const tarifKosong = (malam ?? 0) > 0 && jmlMalamHotel > 0 && !etape.hotelTarif
+  const malamPerjalanan = etape.malamOverride != null ? Math.max(defaultMalam, listMalamDasar.length) : listMalamDasar.length
+  const malamTerisi = listMalamDasar.length
   const judulBaris = `Tujuan ${nomor}${etape.kota ? ` - ${etape.kota}` : ''}`
 
   return (
@@ -106,7 +112,22 @@ export function PenginapanEtapeKartu({
           <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden /> {peringatanKode('MALAM_BERLEBIH')}
         </p>
       ) : null}
-      {tanpaMenginap ? (
+      {etape.malamOverride === 0 && hari !== null ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          <BedDoubleIcon className="size-4 shrink-0" aria-hidden />
+          {rincianManual ? 'Penginapan dicatat di Rincian Manual di bawah.' : 'Tidak menginap: biaya penginapan tidak dihitung.'}
+          {onPindahkan ? (
+            <Button type="button" variant="link" className="h-auto p-0 text-sm" onClick={onPindahkan}>
+              Pindahkan ke daftar penginapan
+            </Button>
+          ) : null}
+          {!rincianManual ? (
+            <Button type="button" variant="link" className="h-auto p-0 text-sm" onClick={() => onUbah({ malamOverride: hari === 1 ? 1 : null })}>
+              Aktifkan jika menginap
+            </Button>
+          ) : null}
+        </div>
+      ) : tanpaMenginap ? (
         <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
           <BedDoubleIcon className="size-4 shrink-0" aria-hidden />
           Perjalanan 1 hari tanpa menginap: biaya penginapan tidak dihitung.
@@ -178,49 +199,38 @@ export function PenginapanEtapeKartu({
               ) : null}
             </div>
           </div>
-          <div className="grid gap-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">Malam menginap</span>
-              {!isManualMalam ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs text-primary gap-1 hover:bg-accent"
-                  onClick={() => onUbah({ malamOverride: malam ?? 0 })}
-                >
-                  <PencilIcon className="size-3" aria-hidden /> Ubah manual
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
-                  onClick={() => onUbah({ malamOverride: null })}
-                  title="Kembali ke hitungan otomatis dari tanggal"
-                >
-                  <RotateCcwIcon className="size-3" aria-hidden /> Kembali otomatis
-                </Button>
-              )}
+          <div className="grid gap-2">
+            <div className="flex min-h-9 items-center justify-between gap-2 rounded-lg bg-muted px-3 py-2">
+              <span className="text-sm font-semibold tabular-nums text-foreground">
+                {malamTerisi} dari {malamPerjalanan} malam terisi
+              </span>
+              {malamTerisi === malamPerjalanan ? <CheckIcon className="size-4 text-emerald-600 dark:text-emerald-400" aria-label="Lengkap" /> : null}
             </div>
-
-            {!isManualMalam ? (
-              <div className="flex min-h-9 items-center justify-between gap-2 rounded-lg bg-muted px-3 py-2">
-                <span className="text-sm font-semibold tabular-nums text-foreground">{malam !== null ? `${malam} malam` : '-'}</span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">
-                  <LockIcon className="size-3" aria-hidden /> Otomatis dari Tanggal
-                </span>
-              </div>
-            ) : (
-              <div className="grid gap-2 rounded-lg border border-primary/30 bg-primary/5 p-2.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
+            {malamTerisi < malamPerjalanan ? (
+              <p className="flex items-start gap-1 text-xs font-medium text-warning-foreground">
+                <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> {malamPerjalanan - malamTerisi} malam belum punya keterangan. Periksa jumlah malam di pengaturan lanjutan.
+              </p>
+            ) : null}
+            {semuaFullboard && !isManualMalam ? (
+              <p className="text-xs text-muted-foreground">Otomatis 0 malam (seluruh hari paket rapat fullboard diatur pada tab Uang Harian).</p>
+            ) : null}
+            <p className="flex items-center justify-between border-t pt-2 text-sm font-semibold">
+              <span>Subtotal Penginapan</span>
+              <span className="font-mono tabular-nums">{rupiah(subtotal)}</span>
+            </p>
+            <details className="text-xs" open={isManualMalam || undefined}>
+              <summary className="cursor-pointer text-muted-foreground">Pengaturan lanjutan</summary>
+              <div className="mt-2 grid gap-2">
+                <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => onUbah({ malamOverride: 0, hotelTambahan: [], hotelPihakLainDates: [] })}>
+                  Tidak menginap
+                </Button>
+                {isManualMalam ? (
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
-                      className="size-7 rounded-md border-border bg-background"
+                      className="size-7"
                       disabled={(etape.malamOverride ?? 0) <= 0}
                       onClick={() => onUbah({ malamOverride: Math.max(0, (etape.malamOverride ?? 0) - 1) })}
                       aria-label="Kurangi 1 malam"
@@ -231,6 +241,7 @@ export function PenginapanEtapeKartu({
                       type="number"
                       min={0}
                       max={365}
+                      aria-label="Jumlah malam"
                       value={etape.malamOverride ?? 0}
                       onChange={(e) => {
                         const v = e.target.value === '' ? 0 : parseInt(e.target.value, 10)
@@ -238,46 +249,21 @@ export function PenginapanEtapeKartu({
                       }}
                       className="h-7 w-14 rounded-md border border-input bg-background px-2 text-center text-sm font-semibold font-mono tabular-nums text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="size-7 rounded-md border-border bg-background"
-                      onClick={() => onUbah({ malamOverride: (etape.malamOverride ?? 0) + 1 })}
-                      aria-label="Tambah 1 malam"
-                    >
+                    <Button type="button" variant="outline" size="icon" className="size-7" onClick={() => onUbah({ malamOverride: (etape.malamOverride ?? 0) + 1 })} aria-label="Tambah 1 malam">
                       <PlusIcon className="size-3.5" aria-hidden />
                     </Button>
-                    <span className="text-sm font-medium text-foreground">malam</span>
+                    <span>malam</span>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => onUbah({ malamOverride: null })}>
+                      <RotateCcwIcon className="size-3" aria-hidden /> Kembali otomatis
+                    </Button>
                   </div>
-
-                  {(etape.malamOverride ?? 0) > 0 ? null : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                      <CheckIcon className="size-3 stroke-[3]" aria-hidden /> Ditanggung pihak lain
-                    </span>
-                  )}
-                </div>
-
-                {(etape.malamOverride ?? 0) === 0 ? (
-                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <InfoIcon className="size-3.5 shrink-0 text-primary" aria-hidden />
-                    <span>0 malam: seluruh penginapan ditanggung pihak lain/panitia (tidak dibebankan ke SPJ).</span>
-                  </p>
                 ) : (
-                  <p className="text-xs text-muted-foreground">
-                    Diatur manual ({etape.malamOverride} malam). Hitungan tanggal bawaan: {defaultMalam} malam.
-                  </p>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 w-fit px-2 text-xs" onClick={() => onUbah({ malamOverride: defaultMalam })}>
+                    Atur jumlah malam manual
+                  </Button>
                 )}
               </div>
-            )}
-
-            {semuaFullboard && !isManualMalam ? (
-              <p className="text-xs text-muted-foreground">Otomatis 0 malam (seluruh hari paket rapat fullboard diatur pada tab Uang Harian).</p>
-            ) : null}
-            <p className="mt-1 flex items-center justify-between border-t pt-2 text-sm font-semibold">
-              <span>Subtotal Penginapan</span>
-              <span className="font-mono tabular-nums">{rupiah(subtotal)}</span>
-            </p>
+            </details>
           </div>
         </div>
       )}
@@ -285,9 +271,9 @@ export function PenginapanEtapeKartu({
       {!tanpaMenginap && listMalamDasar.length > 0 ? (
         <div className="grid gap-3 border-t pt-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h5 className="text-sm font-semibold text-muted-foreground">Tempat menginap lain (pindah hotel, homestay)</h5>
+            <h5 className="text-sm font-semibold text-muted-foreground">Tempat menginap berikutnya (pindah hotel, homestay)</h5>
             <span className="text-xs text-muted-foreground tabular-nums">
-              Hotel utama {listMalam.length} | Tempat lain {tglTempatLain.length} | Pihak lain {hotelPihakLain.jumlah} malam
+              Tempat pertama {listMalam.length} | Berikutnya {tglTempatLain.length} | Pihak lain {hotelPihakLain.jumlah} malam
             </span>
           </div>
           {tempatLain.map((r, i) => {
@@ -333,13 +319,13 @@ export function PenginapanEtapeKartu({
           <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => onUbah({ hotelTambahan: [...tempatLain, { nama: '', tarif: 0, tanggal: [] }] })}>
             <PlusIcon /> Tambah tempat menginap
           </Button>
-          <p className="text-xs text-muted-foreground">Pilih malam di tempat ini. Malam yang tidak dipilih tetap dihitung di hotel utama.</p>
+          <p className="text-xs text-muted-foreground">Pilih malam di tempat ini. Malam yang tidak dipilih tetap dihitung di tempat pertama.</p>
         </div>
       ) : null}
 
       {listMalamDasar.length > 0 ? (
         <div className="grid gap-3 border-t pt-4">
-          <h5 className="text-sm font-semibold text-muted-foreground">Opsi Penginapan Tambahan</h5>
+          <h5 className="text-sm font-semibold text-muted-foreground">Malam tanpa biaya hotel penuh</h5>
           <BagianTanggal
             judul="Penginapan ditanggung pihak lain"
             chip={`Pihak lain ${hotelPihakLain.jumlah} malam | Dibayar SPJ ${listMalam.length} malam`}

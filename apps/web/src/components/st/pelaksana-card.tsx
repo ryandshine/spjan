@@ -24,7 +24,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { MenuAksi } from '@/components/ui/menu-aksi'
 import { TabPanel, Tabs, type TabItem } from '@/components/ui/tabs'
 import { rupiah } from '@/lib/format'
-import { batasHotelEtape, hapusEtape, ubahBiaya, ubahEtape } from '@/lib/pelaksana-ubah'
+import { batasHotelEtape, bisaPindahkanPenginapanManual, hapusEtape, pindahkanPenginapanManual, ubahBiaya, ubahEtape } from '@/lib/pelaksana-ubah'
 import type { BagianPelaksana } from '@/lib/periksa'
 import { cakupanGalat, type PetaGalat } from '@/lib/validasi'
 
@@ -223,6 +223,8 @@ export function PelaksanaCard({
                     nomor={i + 1}
                     etape={e}
                     batasHotel={batasHotelEtape(e, p.status, sbm)}
+                    rincianManual={itemsPenginapanBebas.length > 0}
+                    onPindahkan={bisaPindahkanPenginapanManual(p) ? () => onUbah(pindahkanPenginapanManual) : undefined}
                     sbm={sbm}
                     peringatan={hasil?.peringatan.filter((w) => w.etape === i) ?? []}
                     onUbah={(patch) => onUbah((x) => ubahEtape(x, i, patch, sbm))}
@@ -237,7 +239,7 @@ export function PelaksanaCard({
               ) : (
               <TabelRincianBebas
                 judul="Rincian Manual Tanpa Tanggal"
-                deskripsi="Untuk biaya yang tidak bisa dipilih per malam. Pindah hotel sebaiknya memakai Tambah tempat menginap, agar malam tidak dobel."
+                deskripsi="Untuk biaya yang tidak bisa dipilih per malam. Pindah hotel sebaiknya memakai Tambah tempat menginap, agar malam tercatat per tanggal."
                 tombolLabel="Tambah Penginapan"
                 placeholderUraian="Contoh: Sewa homestay di desa / rumah singgah warga"
                 satuanBawaan="malam"

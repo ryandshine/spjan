@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SBM_2026, biayaKosong, etapeKosong, type PelaksanaPayload } from '@spjan/shared'
 
-import { batasHotelEtape, biayaPerTujuan, hapusEtape, tambahTransportJakartaSekitar, ubahBiaya, ubahEtape } from './pelaksana-ubah'
+import { batasHotelEtape, biayaPerTujuan, bisaPindahkanPenginapanManual, hapusEtape, pindahkanPenginapanManual, tambahTransportJakartaSekitar, ubahBiaya, ubahEtape } from './pelaksana-ubah'
 
 const sbm = SBM_2026
 const pelaksana = (p: Partial<PelaksanaPayload> = {}): PelaksanaPayload => ({
@@ -96,5 +96,28 @@ describe('biayaPerTujuan', () => {
 describe('batasHotelEtape', () => {
   it('null bila status belum dipilih', () => {
     expect(batasHotelEtape(etapeKosong(), null, sbm)).toBeNull()
+  })
+})
+
+describe('pindahkanPenginapanManual', () => {
+  const dasar = (qty2: number): PelaksanaPayload => ({
+    ...pelaksana(),
+    etape: [{ ...etapeKosong(), berangkat: '2026-10-26', pulang: '2026-11-03', malamOverride: 0, hotelNama: 'Lama', hotelTarif: 1 }],
+    biaya: [
+      { ...biayaKosong('PENGINAPAN_LAIN'), uraian: 'Hotel A', qty: 4, satuan: 'malam', tarif: 909_000 },
+      { ...biayaKosong('PENGINAPAN_LAIN'), uraian: 'B', qty: qty2, satuan: 'malam', tarif: 720_000 },
+    ],
+  })
+
+  it('memindah berurutan tanpa mengubah jumlah malam', () => {
+    const h = pindahkanPenginapanManual(dasar(4))
+    const e = h.etape[0]!
+    expect(h.biaya).toEqual([])
+    expect(e).toMatchObject({ malamOverride: null, hotelNama: 'Hotel A', hotelTarif: 909_000 })
+    expect(e.hotelTambahan).toEqual([{ nama: 'B', tarif: 720_000, tanggal: ['2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02'] }])
+  })
+  it('tidak dipindah bila malam tidak pas', () => {
+    expect(bisaPindahkanPenginapanManual(dasar(3))).toBe(false)
+    expect(pindahkanPenginapanManual(dasar(3)).biaya).toHaveLength(2)
   })
 })

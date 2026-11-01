@@ -5,6 +5,7 @@ Terakhir diperbarui: 2026-11-01 (kabupaten dikunjungi per tujuan).
 
 ## Daftar penginapan per tujuan (2026-11-01, belum di-commit)
 
+- Form tanpa isian "0 malam" sebagai jalan pintas: pilihan "Tidak menginap", hitungan "N dari M malam terisi", jumlah malam manual di Pengaturan lanjutan, label "Ditanggung pihak lain" palsu dihapus. ST lama 0 malam dengan rincian manual bisa dipindah ke daftar (`pindahkanPenginapanManual`) bila jumlah malam pas; tanggal diisi berurutan.
 - `etape.hotelTambahan` (jsonb, migrasi `1791126000028`): tempat menginap lain dengan malam terpilih. Hotel utama otomatis mencakup sisa malam; satu malam tidak terhitung dua kali (prioritas: pihak lain, tempat lain, hotel utama). Tabel rincian manual (`PENGINAPAN_LAIN`) tetap ada untuk biaya tanpa tanggal dan ST lama. Hasil scan hotel kedua belum otomatis menjadi tempat lain.
 - Tarif fullboard pindah ke `sbm.uangHarianFullboard`; migrasi melengkapi versi tersimpan. `sbm-2026.ts` dan skrip pembuatnya disesuaikan bersama.
 - Catatan sewa roda 4: di atas pagu dan di atas 150% (PMK 32/2025 angka 35).

@@ -1,8 +1,10 @@
 import {
   biayaKosong,
   cocokkanKotaJakartaSekitar,
+  daftarHariIso,
   isKotaJabodetabek,
   norm,
+  parseTanggal,
   provinsiDariKotaJabodetabek,
   ringkasEtape,
   tarifTerminal,
@@ -122,4 +124,37 @@ export function batasHotelEtape(e: EtapePayload, status: StatusKode | null | und
   const cfg = status ? sbm.statusKonfigurasi[status] : undefined
   if (!cfg) return null
   return sbm.penginapan[norm(e.provinsi)]?.[cfg.kolomHotel - 1] ?? null
+}
+
+function barisPindahan(x: PelaksanaPayload): BiayaPayload[] {
+  return x.biaya.filter((b) => b.jenis === 'PENGINAPAN_LAIN' && b.tarif > 0 && !b.pengeluaranRiil && (!b.satuan || b.satuan === 'malam'))
+}
+
+/** Rincian manual bisa dipindah bila satu tujuan, 0 malam, dan jumlah malamnya pas dengan perjalanan (total tidak berubah). */
+export function bisaPindahkanPenginapanManual(x: PelaksanaPayload): boolean {
+  const e = x.etape[0]
+  if (x.etape.length !== 1 || !e || e.malamOverride !== 0) return false
+  const baris = barisPindahan(x)
+  const malam = ringkasEtape({ ...e, malamOverride: null, hotelTambahan: [], hotelPihakLainDates: [] }).malam ?? 0
+  return baris.length > 0 && malam > 0 && baris.reduce((s, b) => s + (b.qty ?? 1), 0) === malam
+}
+
+/** Pindahkan rincian manual ke daftar penginapan; tanggal diisi berurutan dan bisa disesuaikan pengguna. */
+export function pindahkanPenginapanManual(x: PelaksanaPayload): PelaksanaPayload {
+  if (!bisaPindahkanPenginapanManual(x)) return x
+  const e = x.etape[0]!
+  const baris = barisPindahan(x)
+  const hariList = daftarHariIso(parseTanggal(e.berangkat)!, parseTanggal(e.pulang)!)
+  let posisi = baris[0]!.qty ?? 1
+  const hotelTambahan = baris.slice(1).map((b) => {
+    const qty = b.qty ?? 1
+    const tanggal = hariList.slice(posisi, posisi + qty)
+    posisi += qty
+    return { nama: b.uraian ?? '', tarif: b.tarif, tanggal }
+  })
+  return {
+    ...x,
+    biaya: x.biaya.filter((b) => !baris.includes(b)),
+    etape: [{ ...e, malamOverride: null, hotelNama: baris[0]!.uraian ?? e.hotelNama, hotelTarif: baris[0]!.tarif, hotelTambahan }],
+  }
 }
