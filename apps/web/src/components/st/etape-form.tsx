@@ -97,6 +97,7 @@ export function EtapeForm({
   onHapus: () => void
 }) {
   const { hari, malam } = ringkasEtape(etape)
+  const provinsiTidakDikenal = !!etape.provinsi && provinsi.length > 0 && !provinsi.includes(etape.provinsi)
   const peringatanKode = (kode: string) => peringatan.find((w) => w.kode === kode)?.pesan
   // Peringatan yang sudah tampil di isiannya tidak diulang di bawah.
   const sisaPeringatan = peringatan.filter((w) => !['TARIF_HOTEL_KOSONG', 'HOTEL_MELEBIHI_BATAS', 'TANGGAL_SALAH'].includes(w.kode))
@@ -133,9 +134,10 @@ export function EtapeForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 items-start">
-        <Field label="Provinsi tujuan" htmlFor={id('prov')} error={galat?.provinsi} mode="wajib">
+        <Field label="Provinsi tujuan" htmlFor={id('prov')} error={galat?.provinsi} warning={provinsiTidakDikenal ? `"${etape.provinsi}" bukan provinsi di SBM. Pilih provinsinya, nama daerah diisi di Kota tujuan.` : undefined} mode="wajib">
           <Select id={id('prov')} value={etape.provinsi} onChange={(e) => onUbah({ provinsi: e.target.value })}>
             <option value="">- pilih provinsi -</option>
+            {provinsiTidakDikenal ? <option value={etape.provinsi}>{etape.provinsi}</option> : null}
             {provinsi.map((p) => (
               <option key={p} value={p}>
                 {p}

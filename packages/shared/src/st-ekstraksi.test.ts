@@ -196,3 +196,19 @@ describe("st-ekstraksi", () => {
     expect(bogor.payload.pelaksana[0]!.etape[0]?.dalamKota8Jam).toBe(true);
   });
 });
+
+describe("petakanStKeUsulan - tujuan bukan provinsi", () => {
+  it("provinsi dikosongkan dan nama daerah tetap di kota", () => {
+    const hasil = petakanStKeUsulan(
+      {
+        nomorSt: "ST.1", tanggalSt: "2026-10-01", kegiatan: "Evaluasi",
+        pelaksana: [{ nama: "A", nip: "1", jabatan: "J", etape: [{ tujuan: "Poigar", tanggalBerangkat: "2026-10-05", tanggalKembali: "2026-10-07" }] }],
+      } as never,
+      [],
+      ["SULAWESI UTARA"],
+    );
+    const e = hasil.payload.pelaksana[0]!.etape[0]!;
+    expect(e.provinsi).toBe("");
+    expect(e.kota).toBe("Poigar");
+  });
+});

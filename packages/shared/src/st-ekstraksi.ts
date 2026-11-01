@@ -163,7 +163,8 @@ export function petakanStKeUsulan(
       }
 
       return {
-        provinsi: prov ?? et.tujuan,
+        // Tujuan yang bukan provinsi SBM tetap tersimpan di kota; provinsinya dipilih pengguna.
+        provinsi: prov ?? "",
         kota: namaKotaStandard,
         kegiatan: ekstraksi.kegiatan,
         berangkat: et.tanggalBerangkat,
