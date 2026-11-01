@@ -30,7 +30,8 @@ function renderBadgeStatus(b: SuratTugasRingkasDto) {
   return <Badge variant="success">Siap cetak</Badge>
 }
 
-function renderTujuan(tujuan: string) {
+function DaftarTujuan({ tujuan }: { tujuan: string }) {
+  const [terbuka, setTerbuka] = useState(false)
   const daftar = tujuan
     .split(';')
     .map((s) => s.trim())
@@ -43,21 +44,27 @@ function renderTujuan(tujuan: string) {
     return <span className="text-sm leading-snug">{daftar[0]}</span>
   }
 
-  const tampil = daftar.slice(0, 2)
-  const sisa = daftar.length - tampil.length
+  const tampil = terbuka ? daftar : daftar.slice(0, 2)
+  const sisa = daftar.length - 2
 
   return (
-    <div className="grid gap-1 py-0.5" title={daftar.join('\n')}>
+    <div className="grid gap-1 py-0.5">
       {tampil.map((rute, idx) => (
         <div key={idx} className="flex items-start gap-1.5 text-xs leading-snug">
           <span className="mt-1.5 size-1 shrink-0 rounded-full bg-primary/60" aria-hidden />
-          <span className="line-clamp-1">{rute}</span>
+          <span className={terbuka ? 'break-words' : 'line-clamp-1'} title={rute}>
+            {rute}
+          </span>
         </div>
       ))}
       {sisa > 0 ? (
-        <span className="w-fit rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-          +{sisa} rute lainnya
-        </span>
+        <button
+          type="button"
+          onClick={() => setTerbuka((v) => !v)}
+          className="mt-0.5 w-fit cursor-pointer rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-primary/15 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          {terbuka ? 'Sembunyikan' : `+${sisa} rute lainnya`}
+        </button>
       ) : null}
     </div>
   )
@@ -91,7 +98,7 @@ export default function SuratTugasListPage() {
       judul: 'Tujuan',
       teks: (b) => b.tujuan,
       className: 'min-w-[200px] max-w-[280px]',
-      sel: (b) => renderTujuan(b.tujuan),
+      sel: (b) => <DaftarTujuan tujuan={b.tujuan} />,
     },
     {
       judul: 'Pelaksana',
@@ -205,7 +212,7 @@ export default function SuratTugasListPage() {
 
               <div className="border-t pt-2.5">
                 <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Tujuan</p>
-                {renderTujuan(b.tujuan)}
+                <DaftarTujuan tujuan={b.tujuan} />
               </div>
 
               <div className="rounded-md bg-muted/40 p-2.5 grid gap-1.5">
