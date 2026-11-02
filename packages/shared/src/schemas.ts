@@ -34,6 +34,7 @@ export const EtapePayloadSchema = z.object({
 
 export const BiayaPayloadSchema = z.object({
   jenis: z.enum(JENIS_BIAYA),
+  arah: z.enum(["pergi", "pulang", "pp"]).nullish(),
   provinsi: teks(100).nullish(),
   uraian: teks(300).nullish(),
   qty: z.number().int().min(1).max(1000).nullish(),

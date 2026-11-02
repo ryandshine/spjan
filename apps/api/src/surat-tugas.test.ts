@@ -71,7 +71,7 @@ describe("surat tugas", () => {
     expect(hasil.pelaksana[0].transport.map((r: { uraian: string }) => r.uraian)).toEqual([
       "Tiket Pesawat Jakarta ke Denpasar",
       "Tiket Pesawat Denpasar ke Jakarta",
-      "Taksi dari tempat kedudukan - Bandara Soekarno Hatta (PP)",
+      "Taksi dari tempat kedudukan - Bandara (PP)",
     ]);
     expect(hasil.teksTanggalSt).toBe("8 September 2026");
   });
@@ -106,6 +106,15 @@ describe("surat tugas", () => {
     expect(hasil.suratTugas.pelaksana[0].etape[0].hotelTambahan).toEqual(tambahan);
     expect(hasil.hasil.pelaksana[0].penginapan.map((r: { uraian: string }) => r.uraian)).toEqual(["Homestay"]);
     expect(hasil.hasil.pelaksana[0].totalPenginapan).toBe(300_000);
+  });
+
+  it("arah taksi tersimpan dan menentukan uraian", async () => {
+    const dasar = stResa.pelaksana[0]!;
+    const st = { ...stResa, pelaksana: [{ ...dasar, biaya: [{ jenis: "TAKSI_KEDUDUKAN" as const, arah: "pulang" as const, qty: 1, tarif: 250_000 }] }] };
+    const { id } = (await call("POST", "/api/surat-tugas", st)).json();
+    const hasil = (await call("GET", `/api/surat-tugas/${id}/hasil`)).json();
+    expect(hasil.suratTugas.pelaksana[0].biaya[0].arah).toBe("pulang");
+    expect(hasil.hasil.pelaksana[0].transport[0].uraian).toBe("Taksi dari Bandara - tempat kedudukan");
   });
 
   it("draf dengan tanggal kosong tersimpan dan menghasilkan peringatan", async () => {

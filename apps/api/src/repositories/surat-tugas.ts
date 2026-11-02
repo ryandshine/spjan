@@ -1,4 +1,4 @@
-import type { HotelTambahan } from "@spjan/shared";
+import type { ArahTaksi, HotelTambahan } from "@spjan/shared";
 import type { PoolClient } from "pg";
 import { INSTANSI_BAWAAN, normalkanUraianTiket, type StatusKode, type StatusSt, type SuratTugasDto, type SuratTugasPayload, type SuratTugasRingkasDto } from "@spjan/shared";
 
@@ -97,6 +97,7 @@ interface BiayaRow {
   keterangan: string | null;
   etape_urutan: number | null;
   pengeluaran_riil: boolean | null;
+  arah: ArahTaksi | null;
 }
 
 /** Kelompokkan baris menurut kunci, urutan baris tetap. */
@@ -209,6 +210,7 @@ export async function muatSuratTugas(db: Db, ids: number[]): Promise<SuratTugasD
             keterangan: b.keterangan,
             etapeIndex: b.etape_urutan,
             pengeluaranRiil: b.pengeluaran_riil ?? false,
+            ...(b.arah ? { arah: b.arah } : {}),
           })),
       })),
     });
@@ -245,8 +247,8 @@ async function sisipkanPelaksana(client: PoolClient, stId: number, pelaksana: Su
         ? normalkanUraianTiket(b.uraian)
         : b.uraian;
       await client.query(
-        `insert into biaya (pelaksana_id, urutan, jenis, provinsi, uraian, qty, satuan, tarif, keterangan, etape_urutan, pengeluaran_riil)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        `insert into biaya (pelaksana_id, urutan, jenis, provinsi, uraian, qty, satuan, tarif, keterangan, etape_urutan, pengeluaran_riil, arah)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
         [
           pelId,
           j,
@@ -259,6 +261,7 @@ async function sisipkanPelaksana(client: PoolClient, stId: number, pelaksana: Su
           b.keterangan ?? null,
           b.etapeIndex ?? null,
           b.pengeluaranRiil ?? false,
+          b.arah ?? null,
         ],
       );
     }

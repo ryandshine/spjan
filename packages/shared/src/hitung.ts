@@ -28,7 +28,8 @@ import type {
 } from "./types.js";
 
 const KETERANGAN_DEFAULT = "Bukti terlampir";
-const URAIAN_TAKSI_KEDUDUKAN = "Taksi dari tempat kedudukan - Bandara Soekarno Hatta";
+const URAIAN_TAKSI_KEDUDUKAN = "Taksi dari tempat kedudukan - Bandara";
+const URAIAN_TAKSI_PULANG = "Taksi dari Bandara - tempat kedudukan";
 
 const SEWA = new Set<JenisBiaya>(["SEWA_RODA4", "SEWA_RODA6", "SEWA_BUS_BESAR"]);
 /** Taksi bandara/kedudukan: uraian dicetak tanpa rincian "n kali @ tarif", langsung total. */
@@ -103,12 +104,9 @@ function uraianBiaya(b: BiayaInput, input: SpjInput, etape: EtapeInput[]): strin
     }
     case "TAKSI_KEDUDUKAN": {
       if (uraian) return uraian;
-      // "(PP)" hanya bila dipilih 2 kali atau lebih (pulang-pergi); 1 kali = sekali jalan.
-      const pp = b.qty != null && b.qty >= 2 ? " (PP)" : "";
-      if (kedudukan && norm(kedudukan) !== "JAKARTA") {
-        return `Taksi dari tempat kedudukan - Bandara ${proper(kedudukan)}${pp}`;
-      }
-      return `${URAIAN_TAKSI_KEDUDUKAN}${pp}`;
+      const arah = b.arah ?? (b.qty != null && b.qty >= 2 ? "pp" : "pergi");
+      if (arah === "pulang") return URAIAN_TAKSI_PULANG;
+      return arah === "pp" ? `${URAIAN_TAKSI_KEDUDUKAN} (PP)` : URAIAN_TAKSI_KEDUDUKAN;
     }
     case "TAKSI_TERMINAL": {
       if (uraian) return uraian;

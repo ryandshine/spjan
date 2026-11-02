@@ -8,6 +8,7 @@ import {
   norm,
   tarifTerminal,
   type BarisBiaya,
+  type ArahTaksi,
   type BiayaPayload,
   type JenisBiaya,
   type Sbm,
@@ -49,7 +50,7 @@ export function BiayaBaris({
   const perluProvinsi = jenisButuhProvinsi(biaya.jenis)
   const perluEtape = jenisButuhEtape(biaya.jenis) && etapeJumlah > 1
   const kendaraan = biaya.jenis === 'BBM_KENDARAAN' || biaya.jenis === 'TOL_ETOLL'
-  const perluUraian = jenisButuhUraian(biaya.jenis) || !!biaya.uraian || biaya.jenis === 'TAKSI_TERMINAL' || kendaraan
+  const perluUraian = jenisButuhUraian(biaya.jenis) || !!biaya.uraian || biaya.jenis === 'TAKSI_TERMINAL' || biaya.jenis === 'TAKSI_KEDUDUKAN' || kendaraan
   const namaProvinsiPagu = biaya.jenis === 'TAKSI_KEDUDUKAN' ? provinsiKedudukan : biaya.jenis === 'TAKSI_TERMINAL' ? biaya.provinsi : null
   const tarifTidakAda = !!sbm && !!namaProvinsiPagu && !biaya.tarif && tarifTerminal(sbm, namaProvinsiPagu) === undefined
   // Taksi bandara dan taksi kedudukan: tarif otomatis dari SBM provinsi bila ada.
@@ -69,7 +70,7 @@ export function BiayaBaris({
         ? 'Uraian biaya (ketik bebas), mis. Sewa perahu ke desa'
       : biaya.jenis === 'TIKET_PERGI' || biaya.jenis === 'TIKET_KEMBALI'
         ? 'Uraian tiket'
-        : biaya.jenis === 'TAKSI_TERMINAL' || kendaraan
+        : biaya.jenis === 'TAKSI_TERMINAL' || biaya.jenis === 'TAKSI_KEDUDUKAN' || kendaraan
           ? 'Uraian (opsional)'
           : 'Uraian'
   const subtotal = baris?.jumlah ?? (biaya.tarif ? (biaya.qty ?? 1) * biaya.tarif : 0)
@@ -119,6 +120,21 @@ export function BiayaBaris({
             ))}
           </Select>
           )}
+          {biaya.jenis === 'TAKSI_KEDUDUKAN' ? (
+            <Select
+              aria-label="Arah taksi"
+              className={SEL_KECIL}
+              value={biaya.arah ?? ((biaya.qty ?? 1) >= 2 ? 'pp' : 'pergi')}
+              onChange={(e) => {
+                const arah = e.target.value as ArahTaksi
+                onUbah({ arah, qty: arah === 'pp' ? 2 : 1 })
+              }}
+            >
+              <option value="pergi">Arah: Pergi</option>
+              <option value="pulang">Arah: Pulang</option>
+              <option value="pp">Arah: Pulang-pergi</option>
+            </Select>
+          ) : null}
           {perluEtape ? (
             <Select
               aria-label="Untuk tujuan"
@@ -287,7 +303,7 @@ export function BiayaBaris({
             <TextareaOtomatis
               aria-label={uraianLabel}
               className={TEKS_KECIL}
-              placeholder={biaya.jenis === 'TAKSI_TERMINAL' ? 'Otomatis: taksi dari-ke bandara/terminal' : kendaraan ? `Otomatis: ${biaya.jenis === 'BBM_KENDARAAN' ? 'BBM' : 'E-Toll'} dari asal ke tujuan PP` : uraianLabel}
+              placeholder={biaya.jenis === 'TAKSI_KEDUDUKAN' ? 'Otomatis mengikuti arah; ketik bila ke stasiun/pelabuhan' : biaya.jenis === 'TAKSI_TERMINAL' ? 'Otomatis: taksi dari-ke bandara/terminal' : kendaraan ? `Otomatis: ${biaya.jenis === 'BBM_KENDARAAN' ? 'BBM' : 'E-Toll'} dari asal ke tujuan PP` : uraianLabel}
               value={biaya.uraian ?? ''}
               onChange={(e) => onUbah({ uraian: e.target.value || null })}
             />

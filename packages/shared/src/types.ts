@@ -135,7 +135,11 @@ export interface EtapeInput {
   uangHarian60Dates?: string[];
 }
 
+export type ArahTaksi = "pergi" | "pulang" | "pp";
+
 export interface BiayaInput {
+  /** Arah taksi tempat kedudukan; kosong (data lama): jumlah 2 atau lebih berarti pulang-pergi. */
+  arah?: ArahTaksi | null;
   jenis: JenisBiaya;
   /** Provinsi untuk pagu (transport darat, terminal, sewa kendaraan). */
   provinsi?: string | null;

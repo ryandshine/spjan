@@ -3,6 +3,10 @@
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
 Terakhir diperbarui: 2026-11-01 (kabupaten dikunjungi per tujuan).
 
+## Arah taksi tempat kedudukan (2026-11-02)
+
+- Kolom `biaya.arah` (migrasi `1791126000030`): pergi, pulang, pp. Teks tanpa nama bandara atau kota untuk semua kedudukan. Data lama: jumlah 2 atau lebih dibaca pulang-pergi. Uraian yang diketik tetap dipakai (mis. ke stasiun/pelabuhan).
+
 ## Kartu penginapan setara (2026-11-01, belum di-commit)
 
 - `etape.hotelPerKartu` (migrasi `1791126000029`): semua penginapan jadi kartu bertanggal di `hotelTambahan` dengan `sumber`, `diubah`, `berkasId`, `malamKuitansi`. Satu kuitansi = satu kartu. ST bentuk lama tetap dihitung cara lama sampai diedit; `keBentukKartu` mengonversi tanpa mengubah total (diuji), kecuali jumlah malam manual yang melebihi tanggal perjalanan.

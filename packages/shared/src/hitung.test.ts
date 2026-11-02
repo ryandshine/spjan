@@ -75,7 +75,7 @@ describe("hitungSpj - kasus emas", () => {
     expect(h.transport.map((r) => r.uraian)).toEqual([
       "Tiket Pesawat Jakarta ke Denpasar",
       "Tiket Pesawat Denpasar ke Jakarta",
-      "Taksi dari tempat kedudukan - Bandara Soekarno Hatta (PP)",
+      "Taksi dari tempat kedudukan - Bandara (PP)",
     ]);
     expect(h.transport[2]).toMatchObject({ qty: null, satuan: null, tarif: null, jumlah: 500_000, keterangan: "" });
     expect(h.transport[0]).toMatchObject({ qty: null, satuan: null, tarif: null, keterangan: "Bukti terlampir" });
@@ -278,7 +278,7 @@ describe("hitungSpj - kasus emas", () => {
       "Tiket Pesawat Jakarta ke Denpasar",
       "Tiket Pesawat Denpasar ke Yogyakarta",
       "Tiket Pesawat Yogyakarta ke Jakarta",
-      "Taksi dari tempat kedudukan - Bandara Soekarno Hatta",
+      "Taksi dari tempat kedudukan - Bandara",
     ]);
     expect(h.totalUangHarian).toBe(1_800_000);
     expect(h.totalPenginapan).toBe(2_500_000);
@@ -937,23 +937,23 @@ describe("hitungSpj - uraian taksi tempat kedudukan menurut jumlah", () => {
   };
 
   it("1 kali: uraian tanpa (PP)", () => {
-    expect(uraianTaksi(1).uraian).toBe("Taksi dari tempat kedudukan - Bandara Soekarno Hatta");
+    expect(uraianTaksi(1).uraian).toBe("Taksi dari tempat kedudukan - Bandara");
     expect(uraianTaksi(1).jumlah).toBe(250_000);
   });
 
   it("qty kosong dihitung 1 kali: uraian tanpa (PP)", () => {
-    expect(uraianTaksi(undefined).uraian).toBe("Taksi dari tempat kedudukan - Bandara Soekarno Hatta");
+    expect(uraianTaksi(undefined).uraian).toBe("Taksi dari tempat kedudukan - Bandara");
   });
 
   it("2 kali: uraian memakai (PP) dan jumlah dua kali tarif", () => {
-    expect(uraianTaksi(2).uraian).toBe("Taksi dari tempat kedudukan - Bandara Soekarno Hatta (PP)");
+    expect(uraianTaksi(2).uraian).toBe("Taksi dari tempat kedudukan - Bandara (PP)");
     expect(uraianTaksi(2).jumlah).toBe(500_000);
   });
 
   it("kedudukan selain Jakarta mengikuti aturan yang sama", () => {
     const mks = { kota: "Makassar", provinsi: "SULAWESI SELATAN" };
-    expect(uraianTaksi(1, mks).uraian).toBe("Taksi dari tempat kedudukan - Bandara Makassar");
-    expect(uraianTaksi(2, mks).uraian).toBe("Taksi dari tempat kedudukan - Bandara Makassar (PP)");
+    expect(uraianTaksi(1, mks).uraian).toBe("Taksi dari tempat kedudukan - Bandara");
+    expect(uraianTaksi(2, mks).uraian).toBe("Taksi dari tempat kedudukan - Bandara (PP)");
   });
 
   it("uraian yang diketik pengguna tidak diubah", () => {
@@ -971,7 +971,7 @@ describe("hitungSpj - kedudukan per pelaksana", () => {
     expect(a!.transport.map((r) => r.uraian)).toEqual([
       "Tiket Pesawat Makassar ke Denpasar",
       "Tiket Pesawat Denpasar ke Makassar",
-      "Taksi dari tempat kedudukan - Bandara Makassar (PP)",
+      "Taksi dari tempat kedudukan - Bandara (PP)",
     ]);
     expect(b!.kotaKedudukan).toBe("Jakarta");
     expect(b!.transport[0]!.uraian).toBe("Tiket Pesawat Jakarta ke Denpasar");
@@ -1157,5 +1157,23 @@ describe("keBentukKartu - total ST lama tidak berubah", () => {
     const h = hitungSpj(spj([{ ...resa, biaya: [], etape: [e({ hotelPerKartu: true, hotelNama: null, hotelTarif: null, hotelTambahan: [] })] }]), SBM_2026).pelaksana[0]!;
     expect(h.totalPenginapan).toBe(0);
     expect(h.peringatan.map((p) => p.kode)).toContain("MALAM_BELUM_TERISI");
+  });
+});
+
+describe("hitungSpj - arah taksi tempat kedudukan", () => {
+  const baris = (b: Partial<BiayaInput>, kota = "Jakarta") =>
+    hitungSpj(spj([{ ...resa, kotaKedudukan: kota, biaya: [{ jenis: "TAKSI_KEDUDUKAN", tarif: 250_000, ...b }] }]), SBM_2026).pelaksana[0]!.transport[0]!;
+  it("tiga arah dan jumlahnya", () => {
+    expect(baris({ arah: "pergi", qty: 1 })).toMatchObject({ uraian: "Taksi dari tempat kedudukan - Bandara", jumlah: 250_000 });
+    expect(baris({ arah: "pulang", qty: 1 })).toMatchObject({ uraian: "Taksi dari Bandara - tempat kedudukan", jumlah: 250_000 });
+    expect(baris({ arah: "pp", qty: 2 })).toMatchObject({ uraian: "Taksi dari tempat kedudukan - Bandara (PP)", jumlah: 500_000 });
+  });
+  it("data lama tanpa arah mengikuti jumlah", () => {
+    expect(baris({ qty: 2 }).uraian).toContain("(PP)");
+    expect(baris({ qty: 1 }).uraian).not.toContain("(PP)");
+  });
+  it("tanpa nama kota, dan uraian ketikan tetap dipakai", () => {
+    expect(baris({ arah: "pergi" }, "Makassar").uraian).toBe("Taksi dari tempat kedudukan - Bandara");
+    expect(baris({ arah: "pulang", uraian: "Taksi dari Stasiun Gambir" }).uraian).toBe("Taksi dari Stasiun Gambir");
   });
 });
