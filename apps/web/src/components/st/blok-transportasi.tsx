@@ -38,7 +38,6 @@ const PILIHAN_BIAYA = [
   { jenis: 'AIRPORT_TAX_BAGASI', label: 'Airport Tax / Bagasi / Retribusi' },
   { jenis: 'BBM_KENDARAAN', label: 'BBM Kendaraan (PP)' },
   { jenis: 'TOL_ETOLL', label: 'E-Toll (PP)' },
-  { jenis: 'LAINNYA', label: 'Biaya Riil Lainnya' },
 ] as const
 
 /** Tabel biaya transportasi satu pelaksana beserta menu penambahnya. */
@@ -79,7 +78,7 @@ export function BlokTransportasi({
       // Tarif bawaan dari SBM provinsi tujuan pertama; tetap bisa diubah manual.
       const b: BiayaPayload = { ...biayaKosong(jenis), provinsi: p.etape[0]?.provinsi || null }
       tambahBiaya({ ...b, tarif: paguBiaya(sbm, { ...b, tarif: 0 }, provinsiKedudukan ?? '').nilai ?? 0 })
-    } else if (jenis === 'TIKET_KERETA' || jenis === 'AIRPORT_TAX_BAGASI' || jenis === 'TIKET_KAPAL' || jenis === 'LAINNYA') tambahBiaya(biayaKosong(jenis))
+    } else if (jenis === 'TIKET_KERETA' || jenis === 'AIRPORT_TAX_BAGASI' || jenis === 'TIKET_KAPAL') tambahBiaya(biayaKosong(jenis))
   }
 
   return (
