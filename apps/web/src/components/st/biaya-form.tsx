@@ -80,6 +80,11 @@ export function BiayaBaris({
     <tr className={cn('align-top border-t first:border-t-0', tarifKosong && 'bg-warning/5')}>
       <td className="p-2">
         <div className="grid gap-1.5">
+          {biaya.jenis === 'LAINNYA' ? (
+            <div className="flex h-8 items-center rounded-md border border-dashed px-2.5 text-xs font-medium text-muted-foreground">
+              Rincian bebas (ketik sendiri)
+            </div>
+          ) : (
           <Select
             aria-label="Jenis biaya"
             className={SEL_KECIL}
@@ -102,12 +107,14 @@ export function BiayaBaris({
               })
             }}
           >
-            {JENIS_BIAYA.map((j) => (
+            {/* Penginapan dan uang harian lainnya ada di tab sendiri; memilihnya di sini akan memindahkan baris ke tab itu. */}
+            {JENIS_BIAYA.filter((j) => j !== 'PENGINAPAN_LAIN' && j !== 'UANG_HARIAN_LAIN').map((j) => (
               <option key={j} value={j}>
                 {JENIS_LABEL[j]}
               </option>
             ))}
           </Select>
+          )}
           {perluEtape ? (
             <Select
               aria-label="Untuk tujuan"
@@ -268,7 +275,7 @@ export function BiayaBaris({
           <TextareaOtomatis
             aria-label="Keterangan"
             className={TEKS_KECIL}
-            placeholder={biaya.jenis === 'TAKSI_KEDUDUKAN' || biaya.jenis === 'TAKSI_TERMINAL' ? 'Keterangan' : kendaraan ? 'Tanggal / no. kuitansi' : 'Tanggal / no. tiket / bukti'}
+            placeholder={biaya.jenis === 'TAKSI_KEDUDUKAN' || biaya.jenis === 'TAKSI_TERMINAL' ? 'Keterangan' : biaya.jenis === 'LAINNYA' ? 'Keterangan (ketik bebas), mis. tanggal / no. kuitansi' : kendaraan ? 'Tanggal / no. kuitansi' : 'Tanggal / no. tiket / bukti'}
             value={biaya.keterangan ?? ''}
             onChange={(e) => onUbah({ keterangan: e.target.value || null })}
           />
