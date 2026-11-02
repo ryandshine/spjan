@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Trash2Icon, TriangleAlertIcon, XIcon } from 'lucide-react'
 import {
   isKotaJabodetabek,
+  norm,
   provinsiDariKotaJabodetabek,
   ringkasEtape,
   type EtapePayload,
@@ -150,6 +151,10 @@ export function EtapeForm({
             id={id('kota')}
             list={id('list-kota')}
             value={etape.kota}
+            // Daftar saran hanya menampilkan yang cocok dengan teks; nama provinsi di kolom kota (terbawa dari ST) mengosongkannya.
+            onFocus={() => {
+              if (etape.kota && etape.provinsi && norm(etape.kota) === norm(etape.provinsi)) onUbah({ kota: '' })
+            }}
             onChange={(e) => {
               const val = e.target.value
               const patch: Partial<EtapePayload> = { kota: val }
