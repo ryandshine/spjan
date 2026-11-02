@@ -316,8 +316,28 @@ export async function replaceSuratTugas(id: number, payload: SuratTugasPayload):
       await tolakBilaTerkunci(client, id);
       return false;
     }
+    // Baris pelaksana dibuat ulang dengan id baru; ikatan berkas dicatat lalu dipulihkan menurut orangnya.
+    const { rows: terikat } = await client.query<{ berkas_id: number; pegawai_id: number | null; nip: string; nama: string }>(
+      `select b.id as berkas_id, p.pegawai_id, p.nip, p.nama from berkas b join pelaksana p on p.id = b.pelaksana_id where b.st_id = $1`,
+      [id],
+    );
     await client.query("delete from pelaksana where st_id = $1", [id]);
     await sisipkanPelaksana(client, id, payload.pelaksana);
+    if (terikat.length > 0) {
+      const { rows: baru } = await client.query<{ id: number; pegawai_id: number | null; nip: string; nama: string }>(
+        "select id, pegawai_id, nip, nama from pelaksana where st_id = $1 order by urutan",
+        [id],
+      );
+      const namaBersih = (n: string) => n.trim().replace(/\s+/g, " ").toLowerCase();
+      for (const t of terikat) {
+        // Orang yang dihapus tidak punya padanan, sehingga berkasnya lepas.
+        const cocok =
+          (t.pegawai_id != null ? baru.find((b) => b.pegawai_id === t.pegawai_id) : undefined) ??
+          (t.nip.trim() ? baru.find((b) => b.nip.trim() === t.nip.trim()) : undefined) ??
+          baru.find((b) => namaBersih(b.nama) === namaBersih(t.nama));
+        if (cocok) await client.query("update berkas set pelaksana_id = $1 where id = $2", [cocok.id, t.berkas_id]);
+      }
+    }
     return true;
   });
 }

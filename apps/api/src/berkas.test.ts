@@ -300,3 +300,38 @@ describe("isi, hapus, dan ulang", () => {
 });
 
 
+
+describe("keterikatan berkas ke pelaksana saat ST disimpan ulang", () => {
+  const put = (id: number, body: unknown) => app.inject({ method: "PUT", url: `/api/surat-tugas/${id}`, headers: { cookie }, payload: body as object });
+  const dua = () => {
+    const a = stResa.pelaksana[0]!;
+    return { ...stResa, pelaksana: [a, { ...a, nama: "Budi Santoso, S.Hut.", nip: "198001012005011001", noSpd: "404/SPD/PPS/2026" }] };
+  };
+  const ikat = async (stId: number, nama: string, namaBerkas: string, seed: number) => {
+    const { berkas } = (await unggah(namaBerkas, pngUnik(seed), `?stId=${stId}`)).json();
+    const { rows } = await pool.query<{ id: number }>("select id from pelaksana where st_id = $1 and nama = $2", [stId, nama]);
+    await pool.query("update berkas set pelaksana_id = $1 where id = $2", [rows[0]!.id, berkas.id]);
+    return berkas.id as number;
+  };
+  const pemilik = async (berkasId: number) =>
+    (await pool.query<{ nama: string | null }>("select p.nama from berkas b left join pelaksana p on p.id = b.pelaksana_id where b.id = $1", [berkasId])).rows[0]!.nama;
+
+  it("simpan ulang tanpa perubahan mempertahankan pemilik berkas", async () => {
+    const stId = (await call("POST", "/api/surat-tugas", dua())).json().id as number;
+    const berkasA = await ikat(stId, "R Resa Adam Gunawan, S.T.", "a.png", 11);
+    const berkasB = await ikat(stId, "Budi Santoso, S.Hut.", "b.png", 12);
+    expect((await put(stId, dua())).statusCode).toBe(200);
+    expect(await pemilik(berkasA)).toBe("R Resa Adam Gunawan, S.T.");
+    expect(await pemilik(berkasB)).toBe("Budi Santoso, S.Hut.");
+  });
+
+  it("menghapus satu pelaksana: berkasnya lepas, berkas pelaksana lain tetap miliknya", async () => {
+    const stId = (await call("POST", "/api/surat-tugas", dua())).json().id as number;
+    const berkasA = await ikat(stId, "R Resa Adam Gunawan, S.T.", "a.png", 13);
+    const berkasB = await ikat(stId, "Budi Santoso, S.Hut.", "b.png", 14);
+    const tanpaA = { ...dua(), pelaksana: [dua().pelaksana[1]!] };
+    expect((await put(stId, tanpaA)).statusCode).toBe(200);
+    expect(await pemilik(berkasA)).toBeNull();
+    expect(await pemilik(berkasB)).toBe("Budi Santoso, S.Hut.");
+  });
+});
