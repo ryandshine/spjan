@@ -12,7 +12,7 @@ export function RequireAuth() {
   }
   if (me.isError) {
     if (me.error instanceof ApiError && me.error.status === 401) {
-      return <Navigate to="/login" replace state={{ dari: location.pathname }} />
+      return <Navigate to="/login" replace state={{ dari: location.pathname + location.search }} />
     }
     return (
       <div className="grid min-h-screen place-items-center px-6 text-center text-sm text-destructive">

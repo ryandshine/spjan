@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select } from '@/components/ui/select'
 import { pesanGalat, rupiah } from '@/lib/format'
 import { useMe, useSbm, useSimpanStatusSbm, useVersiSbm } from '@/lib/queries'
+import { useParamUrl } from '@/lib/use-param-url'
 import { cn } from '@/lib/utils'
 
 const KOLOM_HOTEL_LABEL = ['Pejabat Negara/Wamen/Eselon I', 'Pejabat Negara Lainnya/Eselon II', 'Eselon III/Gol. IV', 'Eselon IV/Gol. III/II/I']
@@ -212,7 +213,10 @@ export default function SbmPage() {
   const [dipilih, setDipilih] = useState<number | undefined>()
   const id = dipilih ?? versi.data?.[0]?.id
   const sbm = useSbm(id)
-  const [tab, setTab] = useState<KodeTab>('status')
+  const { params, ubah } = useParamUrl()
+  const tabUrl = params.get('tab')
+  const tab: KodeTab = TAB.find(([kode]) => kode === tabUrl)?.[0] ?? 'status'
+  const setTab = (kode: KodeTab) => ubah({ tab: kode === 'status' ? null : kode })
 
   return (
     <div>

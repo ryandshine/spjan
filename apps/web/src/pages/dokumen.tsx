@@ -14,6 +14,7 @@ import { Select } from '@/components/ui/select'
 import { keteranganFoto } from '@/lib/gambar'
 import { muatDataUri } from '@/lib/berkas-data-uri'
 import { pesanGalat } from '@/lib/format'
+import { useParamUrl } from '@/lib/use-param-url'
 import { ringkasPeringatan } from '@/lib/periksa'
 import { useDaftarBerkas, useHasilSuratTugas, useLaporan } from '@/lib/queries'
 import { unduhBlob } from '@/lib/unduh'
@@ -207,8 +208,12 @@ export default function DokumenPage() {
   }, [idGambar, kunciGambar])
   const gambarSiap = idGambar.length === 0 || gambarTermuat?.kunci === kunciGambar
   const gambarLaporan = gambarTermuat?.kunci === kunciGambar ? gambarTermuat.data : undefined
-  const [kunci, setKunci] = useState('sptb')
-  const [pelIdx, setPelIdx] = useState(0)
+  const { params: paramUrl, ubah: ubahUrl } = useParamUrl()
+  const kunci = paramUrl.get('dok') ?? 'sptb'
+  const setKunci = (k: string) => ubahUrl({ dok: k === 'sptb' ? null : k })
+  const nomorUrl = Number(paramUrl.get('pelaksana'))
+  const pelIdx = Number.isInteger(nomorUrl) && nomorUrl > 0 ? nomorUrl - 1 : 0
+  const setPelIdx = (i: number) => ubahUrl({ pelaksana: i > 0 ? String(i + 1) : null })
   const blobTerakhir = useRef<Blob | null>(null)
 
   const pilihan: Pilihan[] = useMemo(() => {

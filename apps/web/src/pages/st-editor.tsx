@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { FileTextIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -64,6 +64,7 @@ import {
   terapkanHotelKeEtape,
 } from '@/lib/st-editor'
 import { bagianUntukSasaran, lompatKeIsian } from '@/lib/periksa'
+import { useParamUrl } from '@/lib/use-param-url'
 import { useSlotSidebar } from '@/lib/slot-sidebar'
 import { useDaftarPelaksana } from '@/lib/use-daftar-pelaksana'
 import { usePenjagaPerubahan } from '@/lib/use-penjaga-perubahan'
@@ -71,6 +72,7 @@ import { pesanValidasi, petaGalat } from '@/lib/validasi'
 
 type TabKunci = 'data' | 'bukti' | 'pelaksana' | 'laporan'
 type SubBukti = 'bukti' | 'foto'
+const TAB_KUNCI: TabKunci[] = ['data', 'bukti', 'pelaksana', 'laporan']
 
 function deskripsiHeader({ modeLaporan, kotor, baru }: { modeLaporan: boolean; kotor: boolean; baru: boolean }): string {
   if (modeLaporan) return 'Laporan Perjalanan Dinas'
@@ -110,14 +112,17 @@ function Editor({
   const [galat, setGalat] = useState<string[]>([])
   const [dialogHapus, setDialogHapus] = useState(false)
   const [cobaSimpan, setCobaSimpan] = useState(false)
-  const [searchParams] = useSearchParams()
-  const tabAwal = searchParams.get('tab') as TabKunci | null
-  const [tab, setTab] = useState<TabKunci>(tabAwal ?? 'data')
+  const { params: paramUrl, ubah: ubahUrl } = useParamUrl()
+  const tabUrl = paramUrl.get('tab') as TabKunci | null
+  // Bukti dan laporan butuh surat tugas yang sudah tersimpan.
+  const tab: TabKunci = tabUrl && TAB_KUNCI.includes(tabUrl) && (id !== null || tabUrl === 'pelaksana') ? tabUrl : 'data'
+  const setTab = (k: TabKunci) => ubahUrl({ tab: k === 'data' ? null : k })
   const daftarBerkas = useDaftarBerkas(id)
   const laporanQuery = useLaporan(id ?? undefined)
   const slotSidebar = useSlotSidebar()
   const daftarPelaksana = useDaftarPelaksana(setSt, awal.pelaksana, st.pelaksana.length)
-  const [subBukti, setSubBukti] = useState<SubBukti>('bukti')
+  const subBukti: SubBukti = paramUrl.get('sub') === 'foto' ? 'foto' : 'bukti'
+  const setSubBukti = (k: SubBukti) => ubahUrl({ sub: k === 'foto' ? k : null })
   const alertRef = useRef<HTMLDivElement>(null)
   const kotor = stTerserialisasi !== baseline
   const { blocker, izinkanNavigasi } = usePenjagaPerubahan(kotor)
@@ -238,7 +243,7 @@ function Editor({
       toast.success('Surat tugas disimpan.')
       if (id === null) {
         izinkanNavigasi()
-        navigate(`/st/${dto.id}`, { replace: true })
+        navigate(`/st/${dto.id}${window.location.search}`, { replace: true })
       }
     } catch (error) {
       setGalat([pesanGalat(error)])

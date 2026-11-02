@@ -2,6 +2,9 @@ import { useState, type Dispatch, type SetStateAction } from 'react'
 import { pelaksanaKosong, type PelaksanaPayload, type SuratTugasPayload } from '@spjan/shared'
 
 import type { BagianPelaksana } from '@/lib/periksa'
+import { useParamUrl } from '@/lib/use-param-url'
+
+const BAGIAN: BagianPelaksana[] = ['perjalanan', 'transport', 'penginapan', 'uang_harian']
 
 /** Kunci stabil per kartu pelaksana agar state lokal kartu tidak bergeser ke kartu lain saat ada yang dihapus. */
 let urutanKunciPelaksana = 0
@@ -17,8 +20,14 @@ export function useDaftarPelaksana(
   jumlah: number,
 ) {
   const [kunci, setKunci] = useState(() => awal.map(kunciPelaksanaBaru))
-  const [aktif, setAktif] = useState(0)
-  const [bagian, setBagian] = useState<BagianPelaksana>('perjalanan')
+  const { params, ubah } = useParamUrl()
+  // Di alamat halaman ditulis mulai dari 1; nilai di luar rentang digeser ke pelaksana terdekat.
+  const nomorUrl = Number(params.get('pelaksana'))
+  const aktif = Math.max(0, Math.min(Number.isInteger(nomorUrl) && nomorUrl > 0 ? nomorUrl - 1 : 0, jumlah - 1))
+  const bagianUrl = params.get('bagian') as BagianPelaksana | null
+  const bagian: BagianPelaksana = bagianUrl && BAGIAN.includes(bagianUrl) ? bagianUrl : 'perjalanan'
+  const setAktif = (i: number) => ubah({ pelaksana: i > 0 ? String(i + 1) : null })
+  const setBagian = (b: BagianPelaksana) => ubah({ bagian: b === 'perjalanan' ? null : b })
 
   return {
     kunci,
@@ -37,7 +46,7 @@ export function useDaftarPelaksana(
     hapus: (i: number) => {
       setSt((s) => ({ ...s, pelaksana: s.pelaksana.filter((_, j) => j !== i) }))
       setKunci((k) => k.filter((_, j) => j !== i))
-      setAktif((a) => Math.max(0, i < a ? a - 1 : Math.min(a, jumlah - 2)))
+      setAktif(Math.max(0, i < aktif ? aktif - 1 : Math.min(aktif, jumlah - 2)))
     },
   }
 }

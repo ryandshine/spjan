@@ -3,6 +3,10 @@
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
 Terakhir diperbarui: 2026-11-01 (kabupaten dikunjungi per tujuan).
 
+## Navigasi lewat alamat halaman (2026-11-02)
+
+- `useParamUrl`: tab, pelaksana, bagian, sub bukti, dokumen, dan tab SBM ada di query string, jadi bertahan saat refresh dan bekerja dengan back/forward. Perubahan dalam satu klik digabung menjadi satu entri riwayat. Perubahan isi yang belum disimpan tetap hilang saat refresh (peramban memperingatkan).
+
 ## Kabupaten kepulauan at cost (2026-11-02)
 
 - `KAB_KEPULAUAN_AT_COST` (`pagu.ts`): kabupaten di luar tabel PMK, sekarang Sangihe, Siau Tagulandang Biaro, dan Talaud, masuk saran kota. Biaya kapal lewat `TIKET_KAPAL` dengan catatan at cost. Tabel SBM tidak diubah.
