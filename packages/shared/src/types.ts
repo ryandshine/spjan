@@ -55,7 +55,7 @@ export const JENIS_LABEL: Record<JenisBiaya, string> = {
   SEWA_BUS_BESAR: "Sewa kendaraan bus besar per hari",
   AIRPORT_TAX_BAGASI: "Airport tax / bagasi / retribusi",
   KERETA_BUS_LAIN: "Kereta api / bus / lainnya",
-  LAINNYA: "Lainnya",
+  LAINNYA: "Rincian bebas (ketik sendiri)",
   PENGINAPAN_LAIN: "Biaya penginapan lainnya",
   UANG_HARIAN_LAIN: "Uang harian lainnya",
 };

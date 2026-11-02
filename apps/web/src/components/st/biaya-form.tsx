@@ -65,6 +65,8 @@ export function BiayaBaris({
   const uraianLabel =
     biaya.jenis === 'TRANSPORT_DARAT' || biaya.jenis === 'TRANSPORT_JAKARTA_SEKITAR'
       ? 'Kab/kota tujuan (persis PMK)'
+      : biaya.jenis === 'LAINNYA'
+        ? 'Uraian biaya (ketik bebas), mis. Sewa perahu ke desa'
       : biaya.jenis === 'TIKET_PERGI' || biaya.jenis === 'TIKET_KEMBALI'
         ? 'Uraian tiket'
         : biaya.jenis === 'TAKSI_TERMINAL' || kendaraan
@@ -273,7 +275,7 @@ export function BiayaBaris({
           {perluUraian && biaya.jenis !== 'TRANSPORT_JAKARTA_SEKITAR' && !pilihDarat ? (
             <TextareaOtomatis
               aria-label={uraianLabel}
-              className={TEKS_KECIL}
+              className={cn(TEKS_KECIL, biaya.jenis === 'LAINNYA' && 'order-first')}
               placeholder={biaya.jenis === 'TAKSI_TERMINAL' ? 'Otomatis: taksi dari-ke bandara/terminal' : kendaraan ? `Otomatis: ${biaya.jenis === 'BBM_KENDARAAN' ? 'BBM' : 'E-Toll'} dari asal ke tujuan PP` : uraianLabel}
               value={biaya.uraian ?? ''}
               onChange={(e) => onUbah({ uraian: e.target.value || null })}
