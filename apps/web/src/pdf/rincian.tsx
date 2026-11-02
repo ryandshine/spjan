@@ -18,6 +18,34 @@ const s = StyleSheet.create({
   kanan: { textAlign: 'right' },
 })
 
+/** Tingkat kepadatan halaman, dari normal sampai batas terbaca 8pt. */
+const SKALA = [
+  { font: 9.5, lineHeight: 1.25, ttd: 40 },
+  { font: 9, lineHeight: 1.2, ttd: 34 },
+  { font: 8.5, lineHeight: 1.15, ttd: 28 },
+  { font: 8, lineHeight: 1.1, ttd: 22 },
+] as const
+
+/** Perkiraan baris teks satu biaya: lebar kolom dibagi lebar huruf rata-rata (setengah ukuran huruf). */
+function barisTeks(b: BarisBiaya, font: number): number {
+  const lebarHuruf = font * 0.5
+  const uraian = Math.ceil(b.uraian.length / ((b.qty ? 145 : 280) / lebarHuruf)) || 1
+  const ket = Math.ceil((b.keterangan ?? '').length / (112 / lebarHuruf)) || 1
+  return Math.max(uraian, ket)
+}
+
+/** Skala terbesar yang diperkirakan muat satu halaman; bila tidak ada, skala terkecil dan tabel lanjut ke halaman berikutnya. */
+function pilihSkalaRincian(p: PelaksanaHasil) {
+  const biaya = [...p.transport, ...p.uangHarian, ...p.representasi, ...p.penginapan]
+  const tinggiHalaman = 842 - 58
+  for (const k of SKALA) {
+    // 26 baris tetap (judul bagian, jumlah, terbilang, tanda tangan) dan 150pt jarak tetap, ditambah cadangan.
+    const baris = biaya.reduce((n, b) => n + barisTeks(b, k.font), 26)
+    if (baris * k.font * k.lineHeight + 2 * k.ttd + 150 <= tinggiHalaman) return k
+  }
+  return SKALA[SKALA.length - 1]!
+}
+
 const strip = (n: number): string => (n === 0 ? '-' : angka(n))
 
 function Baris({
@@ -94,8 +122,9 @@ function Bagian({ no, judul, baris, jumlah, tanda }: { no: string; judul: string
 export function RincianPage({ d, p }: { d: DataDokumen; p: PelaksanaHasil }) {
   const pp = d.pengaturan
   const uangHarian = [...p.uangHarian, ...p.representasi]
+  const skala = pilihSkalaRincian(p)
   return (
-    <Page size="A4" style={s.page}>
+    <Page size="A4" style={[s.page, { fontSize: skala.font, lineHeight: skala.lineHeight }]}>
       <View style={s.bingkai}>
         <Text style={s.judul}>RINCIAN  BIAYA  PERJALANAN  DINAS</Text>
         <View style={s.info}>
@@ -109,15 +138,20 @@ export function RincianPage({ d, p }: { d: DataDokumen; p: PelaksanaHasil }) {
           <Text>{p.teksTanggalSpd || d.teksTanggalSt}</Text>
         </View>
 
-        <Baris no="No." jumlah="Jumlah  Rp." ket="Keterangan" atas bawah>
-          <Text style={{ textAlign: 'center' }}>Rincian biaya</Text>
-        </Baris>
+        {/* fixed: judul kolom diulang bila tabel lanjut ke halaman berikutnya */}
+        <View fixed>
+          <Baris no="No." jumlah="Jumlah  Rp." ket="Keterangan" atas bawah>
+            <Text style={{ textAlign: 'center' }}>Rincian biaya</Text>
+          </Baris>
+        </View>
         <Baris tinggi={5} />
         <Bagian no="1" judul="Biaya transport pegawai :" baris={p.transport} jumlah={p.totalTransport} tanda />
         <Bagian no="2" judul="Uang harian :" baris={uangHarian} jumlah={p.totalUangHarian + p.totalRepresentasi} tanda={false} />
         <Bagian no="3" judul="Biaya Penginapan :" baris={p.penginapan} jumlah={p.totalPenginapan} tanda />
 
-        <View style={[s.baris, { borderTop: B, borderBottom: B }]} wrap={false}>
+        {/* Total dan tanda tangan selalu bersama di halaman terakhir */}
+        <View wrap={false}>
+        <View style={[s.baris, { borderTop: B, borderBottom: B }]}>
           <View style={{ flex: 1, paddingLeft: 22, paddingVertical: 2 }}>
             <Text>Jumlah    :</Text>
           </View>
@@ -126,20 +160,20 @@ export function RincianPage({ d, p }: { d: DataDokumen; p: PelaksanaHasil }) {
           </View>
           <View style={{ width: COL.ket, borderLeft: B, paddingHorizontal: 4, paddingVertical: 2 }} />
         </View>
-        <View style={{ borderBottom: B, paddingHorizontal: 22, paddingVertical: 2 }} wrap={false}>
+        <View style={{ borderBottom: B, paddingHorizontal: 22, paddingVertical: 2 }}>
           <Text>
             Terbilang :{'  '}
             {p.terbilang}
           </Text>
         </View>
 
-        <View style={{ flexDirection: 'row', paddingHorizontal: 22, paddingTop: 10 }} wrap={false}>
+        <View style={{ flexDirection: 'row', paddingHorizontal: 22, paddingTop: 10 }}>
           <View style={{ flex: 1 }}>
             <Text>{' '}</Text>
             <Text>Telah dibayar jumlah :</Text>
             <Text style={{ fontWeight: 700 }}>Rp {angka(p.total)}</Text>
             <Text>Bendahara Pengeluaran Pembantu</Text>
-            <View style={{ height: 40 }} />
+            <View style={{ height: skala.ttd }} />
             <Text>{pp.bendaharaNama}</Text>
             <Text>{nipCetak(pp.bendaharaNip)}</Text>
           </View>
@@ -148,13 +182,13 @@ export function RincianPage({ d, p }: { d: DataDokumen; p: PelaksanaHasil }) {
             <Text>Telah menerima uang sebesar :</Text>
             <Text style={{ fontWeight: 700 }}>Rp {angka(p.total)}</Text>
             <Text>Yang Menerima</Text>
-            <View style={{ height: 40 }} />
+            <View style={{ height: skala.ttd }} />
             <Text>{p.nama}</Text>
             <Text>{nipCetak(p.nip)}</Text>
           </View>
         </View>
 
-        <View style={{ borderTop: B, marginTop: 14, paddingTop: 8 }} wrap={false}>
+        <View style={{ borderTop: B, marginTop: 14, paddingTop: 8 }}>
           <Text style={{ textAlign: 'center', fontWeight: 700, fontSize: 11.5, marginBottom: 8 }}>PERHITUNGAN SPD RAMPUNG</Text>
           {(
             [
@@ -173,10 +207,11 @@ export function RincianPage({ d, p }: { d: DataDokumen; p: PelaksanaHasil }) {
           ))}
           <View style={{ marginLeft: 270, marginTop: 14, paddingBottom: 10 }}>
             <Text>Pejabat Pembuat Komitmen,</Text>
-            <View style={{ height: 40 }} />
+            <View style={{ height: skala.ttd }} />
             <Text>{pp.ppkNama}</Text>
             <Text>{pp.ppkNip}</Text>
           </View>
+        </View>
         </View>
       </View>
     </Page>
