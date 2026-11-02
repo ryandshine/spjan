@@ -1,4 +1,4 @@
-import { norm, provinsiDariKotaJabodetabek, type Sbm } from '@spjan/shared'
+import { KAB_KEPULAUAN_AT_COST, norm, provinsiDariKotaJabodetabek, type Sbm } from '@spjan/shared'
 
 /**
  * Saran kota tujuan: ibukota provinsi terpilih (tabel SBM hanya memuat tarif dari ibukota ke kab/kota, jadi ibukota sendiri tidak muncul
@@ -13,7 +13,7 @@ export function saranKota(sbm: Sbm | undefined, provinsi: string): string[] {
   const ibukota = [...new Set(baris.map((r) => r.ibukota))]
   if (kunci === 'D.K.I. JAKARTA') ibukota.push('Jakarta')
   const dariJakarta = sbm.transportJakarta.filter((t) => norm(provinsiDariKotaJabodetabek(t.kabKota) ?? '') === kunci).map((t) => t.kabKota)
-  const lainnya = [...new Set([...baris.map((r) => r.kabKota), ...dariJakarta])].filter((k) => !ibukota.includes(k)).sort((a, b) => a.localeCompare(b, 'id'))
+  const lainnya = [...new Set([...baris.map((r) => r.kabKota), ...dariJakarta, ...(KAB_KEPULAUAN_AT_COST[kunci] ?? [])])].filter((k) => !ibukota.includes(k)).sort((a, b) => a.localeCompare(b, 'id'))
   return [...ibukota, ...lainnya]
 }
 

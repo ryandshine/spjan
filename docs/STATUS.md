@@ -3,6 +3,10 @@
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
 Terakhir diperbarui: 2026-11-01 (kabupaten dikunjungi per tujuan).
 
+## Kabupaten kepulauan at cost (2026-11-02)
+
+- `KAB_KEPULAUAN_AT_COST` (`pagu.ts`): kabupaten di luar tabel PMK, sekarang Sangihe, Siau Tagulandang Biaro, dan Talaud, masuk saran kota. Biaya kapal lewat `TIKET_KAPAL` dengan catatan at cost. Tabel SBM tidak diubah.
+
 ## Arah taksi tempat kedudukan (2026-11-02)
 
 - Kolom `biaya.arah` (migrasi `1791126000030`): pergi, pulang, pp. Teks tanpa nama bandara atau kota untuk semua kedudukan. Data lama: jumlah 2 atau lebih dibaca pulang-pergi. Uraian yang diketik tetap dipakai (mis. ke stasiun/pelabuhan).

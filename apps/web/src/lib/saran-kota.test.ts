@@ -50,3 +50,10 @@ describe('peringatanKotaKedudukan', () => {
     expect(peringatanKotaKedudukan(SBM_2026, 'BALI', 'Makassar')).toMatch(/tidak ada dalam daftar/)
   })
 })
+
+describe('saranKota - kabupaten kepulauan', () => {
+  it('Sulawesi Utara memuat Sangihe, Siau Tagulandang Biaro, dan Talaud', () => {
+    const daftar = saranKota(SBM_2026, 'SULAWESI UTARA')
+    expect(daftar).toEqual(expect.arrayContaining(['Kab. Kepulauan Sangihe', 'Kab. Kepulauan Siau Tagulandang Biaro', 'Kab. Kepulauan Talaud']))
+  })
+})

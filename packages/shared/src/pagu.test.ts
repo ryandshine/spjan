@@ -81,3 +81,12 @@ describe("SBM fullboard dan sewa roda 4", () => {
     expect(catatan(Math.round(nilai * 1.5) + 1)).toContain("melebihi batas 150%");
   });
 });
+
+describe("kabupaten kepulauan at cost", () => {
+  it("tiket kapal diberi catatan at cost", () => {
+    expect(catatanBiaya(SBM_2026, { jenis: "TIKET_KAPAL", tarif: 500_000 }, KEDUDUKAN)).toContain("at cost");
+  });
+  it("kabupaten kepulauan tidak mengubah tabel transportasi darat", () => {
+    expect(SBM_2026.transportIbukota.some((r) => r.kabKota.includes("Sangihe"))).toBe(false);
+  });
+});

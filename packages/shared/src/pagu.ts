@@ -54,9 +54,15 @@ export function paguBiaya(sbm: Sbm, biaya: BiayaInput, provinsiKedudukan: string
   }
 }
 
+/** Kabupaten kepulauan yang tidak ada di tabel transportasi darat PMK; dicapai dengan kapal, biayanya at cost. */
+export const KAB_KEPULAUAN_AT_COST: Record<string, string[]> = {
+  "SULAWESI UTARA": ["Kab. Kepulauan Sangihe", "Kab. Kepulauan Siau Tagulandang Biaro", "Kab. Kepulauan Talaud"],
+};
+
 /** Catatan informatif; undefined bila tidak perlu (tiket ditangani terpisah). */
 export function catatanBiaya(sbm: Sbm, biaya: BiayaInput, provinsiKedudukan: string): string | undefined {
   if (biaya.jenis === "TIKET_PERGI" || biaya.jenis === "TIKET_KEMBALI") return undefined;
+  if (biaya.jenis === "TIKET_KAPAL") return "Tidak ada pagu di PMK: at cost sesuai tiket, lampirkan bukti.";
   const pagu = paguBiaya(sbm, biaya, provinsiKedudukan);
   if (!pagu.adaPagu) return "Tidak ada pagu di PMK: biaya riil, lampirkan bukti.";
   if (pagu.nilai === null) return "Tujuan/provinsi tidak ditemukan di tabel PMK (harga pasar/at cost).";
