@@ -1,6 +1,7 @@
 import { InfoIcon, TriangleAlertIcon } from 'lucide-react'
 import {
   daftarHariIso,
+  formatDaftarTanggal,
   isKotaJabodetabek,
   norm,
   parseTanggal,
@@ -18,10 +19,13 @@ import { KartuUangHarian } from '@/components/st/biaya-form'
 import { BlokForm } from '@/components/st/blok-form'
 import { DasarAturan } from '@/components/st/dasar-aturan'
 import { TabelRincianBebas } from '@/components/st/tabel-rincian-bebas'
+import { Badge } from '@/components/ui/badge'
 import { Istilah } from '@/components/ui/istilah'
 import { rupiah } from '@/lib/format'
 import { ubahBiaya, ubahEtape } from '@/lib/pelaksana-ubah'
+import { tanggalBentrokStatus, tetapkanStatusHari, type KolomStatusHari } from '@/lib/uang-harian'
 import { useTanggalTerpilih } from '@/lib/use-tanggal-terpilih'
+import { labelTanggal } from '@/lib/tanggal-label'
 
 function EtapeUangHarianCard({
   nomor,
@@ -48,12 +52,17 @@ function EtapeUangHarianCard({
   const tglAwal = parseTanggal(etape.berangkat)
   const tglAkhir = parseTanggal(etape.pulang)
   const listHari = tglAwal && tglAkhir && selisihHari(tglAwal, tglAkhir) >= 0 ? daftarHariIso(tglAwal, tglAkhir) : []
-  const fullboard = useTanggalTerpilih(etape, 'fullboardDates', listHari, onUbah)
-  const tanpaUangHarian = useTanggalTerpilih(etape, 'tanpaUangHarianDates', listHari, onUbah)
-  const uangHarian60 = useTanggalTerpilih(etape, 'uangHarian60Dates', listHari, onUbah)
+  // Satu hari hanya punya satu status: memilih tanggal di sini mengeluarkannya dari status lain.
+  const ubahStatus = (kolom: KolomStatusHari) => (patch: Partial<EtapePayload>) => onUbah(tetapkanStatusHari(etape, kolom, patch[kolom] ?? []))
+  const fullboard = useTanggalTerpilih(etape, 'fullboardDates', listHari, ubahStatus('fullboardDates'))
+  const tanpaUangHarian = useTanggalTerpilih(etape, 'tanpaUangHarianDates', listHari, ubahStatus('tanpaUangHarianDates'))
+  const uangHarian60 = useTanggalTerpilih(etape, 'uangHarian60Dates', listHari, ubahStatus('uangHarian60Dates'))
+  const bentrok = tanggalBentrokStatus(etape, listHari)
 
   const jmlFullboard = fullboard.jumlah
-  const jmlBiasa = listHari.length - jmlFullboard
+  const bukanPenuh = new Set([...tanpaUangHarian.aktif, ...fullboard.aktif, ...uangHarian60.aktif])
+  const tglPenuh = listHari.filter((t) => !bukanPenuh.has(t))
+  const jmlBiasa = tglPenuh.length
   const jmlTanpaUangHarian = tanpaUangHarian.jumlah
   const jmlUangHarian60 = uangHarian60.jumlah
   const isDalamKota = !!etape.dalamKota8Jam && listHari.length === 1
@@ -77,6 +86,29 @@ function EtapeUangHarianCard({
       </div>
 
       <div className="grid gap-4">
+        {listHari.length > 0 ? (
+          <div className="grid gap-1.5 rounded-lg border bg-muted/40 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-foreground">Uang harian SBM (lumpsum)</span>
+              <Badge variant="muted">Otomatis dari SBM</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {tglPenuh.length} dari {listHari.length} hari
+              {tarifHarian !== undefined && tglPenuh.length > 0 ? ` × ${rupiah(tarifHarian)} = ${rupiah(tglPenuh.length * tarifHarian)}` : ''}
+              {tglPenuh.length > 0 ? ` | ${formatDaftarTanggal(tglPenuh)}` : ''}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Hari lain mengikuti status di bawah: 60% {jmlUangHarian60} | paket rapat {jmlFullboard} | pihak lain {jmlTanpaUangHarian}. Tiap hari hanya punya satu status.
+            </p>
+            {bentrok.length > 0 ? (
+              <p className="flex items-start gap-1 text-xs font-medium text-warning-foreground">
+                <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                {bentrok.map(labelTanggal).join(', ')} tercatat di lebih dari satu status. Yang dipakai: pihak lain, lalu paket rapat, lalu 60%. Pilih ulang tanggalnya agar jelas.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         {tampilDalamKota ? (
           <div className="grid gap-1">
             <label className="flex cursor-pointer items-start gap-2.5 text-sm select-none">
@@ -116,7 +148,11 @@ function EtapeUangHarianCard({
 
         {listHari.length > 0 ? (
           <BagianTanggal
-            judul="Uang harian 60% (Lumpsum 60%)"
+            judul={
+              <>
+                Uang harian 60% (Lumpsum 60%) <Badge variant="muted" className="ml-1.5 align-middle">Otomatis dari SBM</Badge>
+              </>
+            }
             chip={`${jmlUangHarian60} dari ${listHari.length} hari (60%)`}
             petunjuk="Pilih tanggal yang mendapatkan uang harian 60% (mis. transpor lokal riil / tugas multi-lokasi / penugasan khusus SBM):"
             gaya="indigo"
@@ -151,7 +187,7 @@ function EtapeUangHarianCard({
           <BagianTanggal
             judul={
               <>
-                Ada paket rapat di hotel (<Istilah kata="Fullboard" />)
+                Ada paket rapat di hotel (<Istilah kata="Fullboard" />) <Badge variant="muted" className="ml-1.5 align-middle">Otomatis dari SBM</Badge>
               </>
             }
             chip={`${jmlFullboard} dari ${listHari.length} hari terpilih`}
@@ -179,7 +215,11 @@ function EtapeUangHarianCard({
 
         {listHari.length > 0 ? (
           <BagianTanggal
-            judul="Uang harian (lumpsum) ditanggung pihak lain"
+            judul={
+              <>
+                Uang harian (lumpsum) ditanggung pihak lain <Badge variant="muted" className="ml-1.5 align-middle">Tanpa biaya</Badge>
+              </>
+            }
             chip={`${jmlTanpaUangHarian} dari ${listHari.length} hari dinonaktifkan`}
             petunjuk="Pilih tanggal yang uang hariannya dibayarkan pihak lain (Rp0):"
             gaya="amber"
@@ -304,7 +344,7 @@ export function BlokUangHarian({
       </BlokForm>
 
       {hasil && (hasil.uangHarian.length > 0 || hasil.representasi.length > 0) ? (
-        <BlokForm judul="Hasil Hitungan Uang Harian Otomatis SBM">
+        <BlokForm judul="Hasil Hitungan Uang Harian (Otomatis dari SBM)">
           <KartuUangHarian
             uangHarian={hasil.uangHarian.filter((b) => !itemsUangHarianBebas.some((it) => it.biaya.uraian === b.uraian && it.biaya.tarif === b.tarif))}
             representasi={hasil.representasi}
@@ -315,9 +355,9 @@ export function BlokUangHarian({
       ) : null}
 
       <TabelRincianBebas
-        judul="Rincian Uang Harian / Saku Tambahan (Bebas / Riil)"
-        deskripsi="Tambahkan rincian uang harian atau uang saku kegiatan bebas yang perlu dibayarkan di luar tarif baku SBM (misal uang saku pendampingan lapangan, uang saku masyarakat, transport lokal harian)."
-        tombolLabel="Tambah Rincian Uang Harian Bebas"
+        judul="Uang Saku Tambahan (Manual)"
+        deskripsi="Manual, ditambahkan di atas uang harian SBM dan tidak menggantikannya: misal uang saku pendampingan lapangan, uang saku masyarakat, transport lokal harian."
+        tombolLabel="Tambah Uang Saku Tambahan"
         placeholderUraian="Contoh: Uang saku pendampingan lapangan KPS"
         satuanBawaan="hari"
         items={itemsUangHarianBebas}
