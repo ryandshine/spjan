@@ -81,9 +81,13 @@ export function BiayaBaris({
       <td className="p-2">
         <div className="grid gap-1.5">
           {biaya.jenis === 'LAINNYA' ? (
-            <div className="flex h-8 items-center rounded-md border border-dashed px-2.5 text-xs font-medium text-muted-foreground">
-              Rincian bebas (ketik sendiri)
-            </div>
+            <TextareaOtomatis
+              aria-label={uraianLabel}
+              className={TEKS_KECIL}
+              placeholder={uraianLabel}
+              value={biaya.uraian ?? ''}
+              onChange={(e) => onUbah({ uraian: e.target.value || null })}
+            />
           ) : (
           <Select
             aria-label="Jenis biaya"
@@ -279,10 +283,10 @@ export function BiayaBaris({
             value={biaya.keterangan ?? ''}
             onChange={(e) => onUbah({ keterangan: e.target.value || null })}
           />
-          {perluUraian && biaya.jenis !== 'TRANSPORT_JAKARTA_SEKITAR' && !pilihDarat ? (
+          {perluUraian && biaya.jenis !== 'LAINNYA' && biaya.jenis !== 'TRANSPORT_JAKARTA_SEKITAR' && !pilihDarat ? (
             <TextareaOtomatis
               aria-label={uraianLabel}
-              className={cn(TEKS_KECIL, biaya.jenis === 'LAINNYA' && 'order-first')}
+              className={TEKS_KECIL}
               placeholder={biaya.jenis === 'TAKSI_TERMINAL' ? 'Otomatis: taksi dari-ke bandara/terminal' : kendaraan ? `Otomatis: ${biaya.jenis === 'BBM_KENDARAAN' ? 'BBM' : 'E-Toll'} dari asal ke tujuan PP` : uraianLabel}
               value={biaya.uraian ?? ''}
               onChange={(e) => onUbah({ uraian: e.target.value || null })}
