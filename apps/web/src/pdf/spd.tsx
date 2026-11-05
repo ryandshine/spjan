@@ -1,12 +1,8 @@
 import { Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import {
   INSTANSI_BAWAAN,
-  angkaKata,
   daftarTujuan,
-  parseTanggal,
   proper,
-  selisihHari,
-  tanggalIndonesia,
   type EtapePayload,
   type PelaksanaHasil,
   type PelaksanaPayload,
@@ -14,6 +10,7 @@ import {
 
 import { nipCetak, type DataDokumen } from './data'
 import { PDF_FONT } from './fonts'
+import { lamaPerjalanan } from './lama-perjalanan'
 import { LOGO_KEMENHUT_BASE64 } from './logo'
 
 const B = '0.75pt solid #000'
@@ -240,26 +237,6 @@ function getTempatTujuan(etape: EtapePayload[] = [], kedudukan?: string | null):
   return `${unik.slice(0, -1).join(', ')} dan ${unik[unik.length - 1]}`
 }
 
-function getLamaPerjalanan(etape: EtapePayload[] = []): { lama: string; berangkat: string; kembali: string } {
-  if (etape.length === 0) return { lama: '-', berangkat: '-', kembali: '-' }
-  const first = etape[0]!
-  const last = etape[etape.length - 1]!
-  const tglA = parseTanggal(first.berangkat)
-  const tglB = parseTanggal(last.pulang || last.berangkat)
-
-  let durasi = 0
-  if (tglA && tglB) {
-    durasi = selisihHari(tglA, tglB) + 1
-  } else {
-    durasi = etape.length
-  }
-
-  const lama = durasi > 0 ? `${durasi} (${angkaKata(durasi)}) hari` : '-'
-  const berangkat = tanggalIndonesia(first.berangkat) || '-'
-  const kembali = tanggalIndonesia(last.pulang || last.berangkat) || '-'
-  return { lama, berangkat, kembali }
-}
-
 export function SpdPage({
   d,
   p,
@@ -271,7 +248,7 @@ export function SpdPage({
 }) {
   const pp = d.pengaturan
   const etape = payload?.etape ?? []
-  const { lama, berangkat, kembali } = getLamaPerjalanan(etape)
+  const { lama, berangkat, kembali } = lamaPerjalanan(etape)
   const maksud = etape.find((e) => e.kegiatan?.trim())?.kegiatan?.trim() || d.st.catatan || d.st.nomor || '-'
   const alatAngkut = getAlatAngkutan(payload)
   const tujuan = getTempatTujuan(etape, p.kotaKedudukan || pp.kotaKedudukan)
