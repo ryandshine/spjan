@@ -192,7 +192,8 @@ export type KodePeringatan =
   | "HOTEL_MELEBIHI_BATAS"
   | "TIKET_KOTA_SAMA"
   | "MALAM_BERLEBIH"
-  | "MALAM_BELUM_TERISI";
+  | "MALAM_BELUM_TERISI"
+  | "TUJUAN_KOSONG";
 
 export interface Peringatan {
   kode: KodePeringatan;

@@ -196,6 +196,16 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
   const nomor = `Etape ${i + 1}`;
   const a = parseTanggal(e.berangkat);
   const b = parseTanggal(e.pulang);
+  // Tujuan tambahan yang sama sekali belum diisi: pesan khusus agar pengguna tahu harus mengisi atau menghapusnya.
+  const kosongSemua = ![e.provinsi, e.kota, e.kegiatan, e.berangkat, e.pulang].some(ada);
+  if (p.etape.length > 1 && kosongSemua) {
+    peringatan.push({
+      kode: "TUJUAN_KOSONG",
+      pesan: `${nomor}: tujuan ini masih kosong, tidak ikut dihitung. Isi, atau hapus bila tidak dipakai.`,
+      etape: i,
+    });
+    return { peringatan };
+  }
   if (!ada(e.provinsi) || !ada(e.kota) || !a || !b) {
     peringatan.push({ kode: "DATA_BELUM_LENGKAP", pesan: `${nomor}: provinsi, kota, dan tanggal wajib diisi.`, etape: i });
     return { peringatan };

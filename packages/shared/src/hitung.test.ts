@@ -503,7 +503,7 @@ describe("hitungSpj - peringatan data", () => {
       "STATUS_PEGAWAI_KOSONG",
       "NIP_KOSONG",
       "NO_SPD_KOSONG",
-      "DATA_BELUM_LENGKAP",
+      "TUJUAN_KOSONG",
       "TANGGAL_SALAH",
       "TARIF_HOTEL_KOSONG",
     ]);
@@ -1175,5 +1175,24 @@ describe("hitungSpj - arah taksi tempat kedudukan", () => {
   it("tanpa nama kota, dan uraian ketikan tetap dipakai", () => {
     expect(baris({ arah: "pergi" }, "Makassar").uraian).toBe("Taksi dari tempat kedudukan - Bandara");
     expect(baris({ arah: "pulang", uraian: "Taksi dari Stasiun Gambir" }).uraian).toBe("Taksi dari Stasiun Gambir");
+  });
+});
+
+describe("hitungSpj - tujuan tambahan kosong", () => {
+  const kosong: EtapeInput = { provinsi: "", kota: "", kegiatan: "", berangkat: "", pulang: "" };
+  const kode = (etape: EtapeInput[]) =>
+    hitungSpj(spj([{ ...resa, biaya: [], etape }]), SBM_2026).pelaksana[0]!.peringatan.map((p) => [p.kode, p.etape]);
+
+  it("tujuan tambahan yang kosong diberi peringatan khusus dan tidak mengganggu tujuan lain", () => {
+    const h = hitungSpj(spj([{ ...resa, biaya: [], etape: [etapeBali({ hotelNama: "H", hotelTarif: 500_000 }), kosong] }]), SBM_2026).pelaksana[0]!;
+    expect(h.peringatan.map((p) => [p.kode, p.etape])).toEqual([["TUJUAN_KOSONG", 1]]);
+    expect(h.peringatan[0]!.pesan).toContain("Isi, atau hapus");
+    expect(h.totalUangHarian).toBeGreaterThan(0);
+  });
+  it("satu-satunya tujuan yang kosong tetap peringatan umum", () => {
+    expect(kode([kosong])).toEqual([["DATA_BELUM_LENGKAP", 0]]);
+  });
+  it("tujuan tambahan yang terisi sebagian tetap peringatan umum", () => {
+    expect(kode([etapeBali({ hotelNama: "H", hotelTarif: 500_000 }), { ...kosong, kota: "Ubud" }]).map(([k]) => k)).toEqual(["DATA_BELUM_LENGKAP"]);
   });
 });

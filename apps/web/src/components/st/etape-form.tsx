@@ -230,8 +230,15 @@ export function EtapeForm({
       {sisaPeringatan.length > 0 ? (
         <ul className="grid gap-1 text-xs text-warning-foreground">
           {sisaPeringatan.map((p, i) => (
-            <li key={i} className="flex items-start gap-1.5">
-              <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> {p.pesan}
+            <li key={i} className="flex flex-wrap items-start gap-x-2 gap-y-1">
+              <span className="flex items-start gap-1.5">
+                <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> {p.pesan}
+              </span>
+              {p.kode === 'TUJUAN_KOSONG' && bisaHapus ? (
+                <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={onHapus}>
+                  Hapus tujuan ini
+                </Button>
+              ) : null}
             </li>
           ))}
         </ul>
