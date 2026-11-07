@@ -132,6 +132,7 @@ describe("surat tugas", () => {
     const [r] = (await call("GET", "/api/surat-tugas")).json();
     const p = stResa.pelaksana[0]!;
     for (const kata of [p.nama, p.nip, p.noSpd!, p.etape[0]!.kota]) expect(r.kataKunci).toContain(kata);
+    expect(r.pelaksana).toEqual([{ nama: p.nama, nip: p.nip, noSpd: p.noSpd, total: r.total }]);
   });
 
   it("daftar memuat total dan jumlah peringatan yang sama dengan /hasil", async () => {

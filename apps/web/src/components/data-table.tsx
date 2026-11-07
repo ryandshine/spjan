@@ -23,6 +23,9 @@ export function DataTable<T>({
   kartuMobile,
   teksCari,
   petunjukCari = 'Cari...',
+  kata: kataLuar,
+  onKata,
+  diBawahCari,
 }: {
   kolom: Kolom<T>[]
   baris: T[]
@@ -33,8 +36,15 @@ export function DataTable<T>({
   /** Teks tambahan yang ikut dicari walau tidak tampil sebagai kolom. */
   teksCari?: (baris: T) => string
   petunjukCari?: string
+  /** Kata pencarian dikendalikan dari luar (bila halaman perlu memakainya juga). */
+  kata?: string
+  onKata?: (kata: string) => void
+  /** Isi tambahan di bawah kolom pencarian, mis. ringkasan hasil. */
+  diBawahCari?: ReactNode
 }) {
-  const [kata, setKata] = useState('')
+  const [kataSendiri, setKataSendiri] = useState('')
+  const kata = kataLuar ?? kataSendiri
+  const setKata = onKata ?? setKataSendiri
   const tersaring = useMemo(() => {
     // Spasi diabaikan agar NIP yang ditulis "1980 0120 ..." tetap cocok.
     const rapat = (s: string) => s.toLowerCase().replace(/\s+/g, '')
@@ -52,6 +62,7 @@ export function DataTable<T>({
           <Input value={kata} onChange={(e) => setKata(e.target.value)} placeholder={petunjukCari} aria-label={petunjukCari} className="pl-8" />
         </div>
       ) : null}
+      {diBawahCari}
       {kartuMobile ? (
         <div className="grid gap-3 md:hidden">
           {tampil.length === 0 ? (

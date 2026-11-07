@@ -53,6 +53,7 @@ export async function suratTugasRoutes(app: FastifyInstance, opts: { db: Db; sto
         jumlahPeringatan: spj ? spj.pelaksana.reduce((n, p) => n + p.peringatan.length, 0) : 0,
         tujuan: spj ? [...new Set(spj.pelaksana.map((p) => p.rute).filter((r) => r && r !== "-"))].join("; ") : "",
         komponen: spj ? rincianTotal(spj.pelaksana).filter((r) => r.nilai > 0) : [],
+        pelaksana: st.pelaksana.map((p, i) => ({ nama: p.nama, nip: p.nip, noSpd: p.noSpd ?? "", total: spj?.pelaksana[i]?.total ?? 0 })),
         kataKunci: st.pelaksana
           .flatMap((p) => [p.nama, p.nip, p.noSpd ?? "", p.jabatan, ...p.etape.flatMap((e) => [e.provinsi, e.kota, e.kegiatan, ...(e.kabupaten ?? [])])])
           .filter(Boolean)

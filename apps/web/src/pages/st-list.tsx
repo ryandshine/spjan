@@ -13,6 +13,8 @@ import { pesanGalat, rupiah, tanggalPendek, waktuPendek } from '@/lib/format'
 import { useDaftarSuratTugas, useHapusSuratTugas, useMe } from '@/lib/queries'
 import type { SuratTugasRingkasDto } from '@spjan/shared'
 
+import { pelaksanaCocok, ringkasCariOrang } from '@/lib/cari-st'
+
 function renderBadgeStatus(b: SuratTugasRingkasDto) {
   if (b.status === 'final') {
     return (
@@ -76,6 +78,23 @@ export default function SuratTugasListPage() {
   const me = useMe()
   const boleh = (b: SuratTugasRingkasDto) => me.data?.peran === 'admin' || (b.dibuatOleh !== null && b.dibuatOleh === me.data?.id)
   const [target, setTarget] = useState<SuratTugasRingkasDto | null>(null)
+  const [kata, setKata] = useState('')
+  const ringkasOrang = ringkasCariOrang(daftar.data ?? [], kata)
+  const blokCocok = (b: SuratTugasRingkasDto) => {
+    const cocok = pelaksanaCocok(b, kata)
+    if (cocok.length === 0) return null
+    return (
+      <ul className="mt-1 grid gap-0.5 text-xs">
+        {cocok.map((c) => (
+          <li key={c.nomor}>
+            <Link to={`/st/${b.id}?tab=pelaksana${c.nomor > 1 ? `&pelaksana=${c.nomor}` : ''}`} className="text-foreground hover:underline">
+              Cocok: <strong>{c.nama}</strong> (pelaksana {c.nomor}) · {rupiah(c.total)}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    )
+  }
 
   const kolom: Kolom<SuratTugasRingkasDto>[] = [
     {
@@ -83,9 +102,12 @@ export default function SuratTugasListPage() {
       teks: (b) => b.nomor,
       className: 'whitespace-nowrap',
       sel: (b) => (
-        <Link to={`/st/${b.id}`} className="font-medium text-primary hover:underline">
-          {b.nomor}
-        </Link>
+        <>
+          <Link to={`/st/${b.id}`} className="font-medium text-primary hover:underline">
+            {b.nomor}
+          </Link>
+          {blokCocok(b)}
+        </>
       ),
     },
     {
@@ -196,6 +218,17 @@ export default function SuratTugasListPage() {
           kolom={kolom}
           baris={daftar.data ?? []}
           kosong={daftar.isPending ? 'Memuat...' : 'Belum ada surat tugas.'}
+          kata={kata}
+          onKata={setKata}
+          diBawahCari={
+            ringkasOrang ? (
+              <p className="text-sm text-muted-foreground">
+                <strong className="text-foreground">{ringkasOrang.nama.join(', ')}</strong> ditemukan di{' '}
+                <strong className="text-foreground">{ringkasOrang.jumlahSpj} SPJ</strong> · total diterima{' '}
+                <strong className="text-foreground tabular-nums">{rupiah(ringkasOrang.total)}</strong>
+              </p>
+            ) : null
+          }
           teksCari={(b) => `${b.kataKunci} ${b.status === 'final' ? 'final terkunci' : 'draf'}`}
           petunjukCari="Cari nomor ST, nama, NIP, no. SPD, tujuan, kegiatan..."
           kartuMobile={(b) => (
@@ -205,6 +238,7 @@ export default function SuratTugasListPage() {
                   <Link to={`/st/${b.id}`} className="font-semibold text-sm text-primary hover:underline break-all">
                     {b.nomor}
                   </Link>
+                  {blokCocok(b)}
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {tanggalPendek(b.tanggal)} · {b.jumlahPelaksana} pelaksana · {b.dibuatOlehNama ?? '-'}
                   </p>
