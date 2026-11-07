@@ -127,6 +127,13 @@ describe("surat tugas", () => {
     expect(kode).toContain("DATA_BELUM_LENGKAP");
   });
 
+  it("daftar memuat kata kunci pencarian dari pelaksana dan tujuan", async () => {
+    await call("POST", "/api/surat-tugas", stResa);
+    const [r] = (await call("GET", "/api/surat-tugas")).json();
+    const p = stResa.pelaksana[0]!;
+    for (const kata of [p.nama, p.nip, p.noSpd!, p.etape[0]!.kota]) expect(r.kataKunci).toContain(kata);
+  });
+
   it("daftar memuat total dan jumlah peringatan yang sama dengan /hasil", async () => {
     const lengkap = (await call("POST", "/api/surat-tugas", stResa)).json();
     const draf = (

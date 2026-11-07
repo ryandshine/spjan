@@ -21,6 +21,8 @@ export function DataTable<T>({
   kosong = 'Tidak ada data.',
   maksBaris = 500,
   kartuMobile,
+  teksCari,
+  petunjukCari = 'Cari...',
 }: {
   kolom: Kolom<T>[]
   baris: T[]
@@ -28,21 +30,26 @@ export function DataTable<T>({
   kosong?: string
   maksBaris?: number
   kartuMobile?: (baris: T, indeks: number) => ReactNode
+  /** Teks tambahan yang ikut dicari walau tidak tampil sebagai kolom. */
+  teksCari?: (baris: T) => string
+  petunjukCari?: string
 }) {
   const [kata, setKata] = useState('')
   const tersaring = useMemo(() => {
-    const q = kata.trim().toLowerCase()
+    // Spasi diabaikan agar NIP yang ditulis "1980 0120 ..." tetap cocok.
+    const rapat = (s: string) => s.toLowerCase().replace(/\s+/g, '')
+    const q = rapat(kata)
     if (!q) return baris
-    return baris.filter((b) => kolom.some((k) => k.teks?.(b).toLowerCase().includes(q)))
-  }, [baris, kata, kolom])
+    return baris.filter((b) => kolom.some((k) => rapat(k.teks?.(b) ?? '').includes(q)) || rapat(teksCari?.(b) ?? '').includes(q))
+  }, [baris, kata, kolom, teksCari])
   const tampil = tersaring.slice(0, maksBaris)
 
   return (
     <div className="grid gap-3">
       {cari ? (
-        <div className="relative max-w-xs">
+        <div className="relative max-w-md">
           <SearchIcon className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-          <Input value={kata} onChange={(e) => setKata(e.target.value)} placeholder="Cari..." className="pl-8" />
+          <Input value={kata} onChange={(e) => setKata(e.target.value)} placeholder={petunjukCari} aria-label={petunjukCari} className="pl-8" />
         </div>
       ) : null}
       {kartuMobile ? (

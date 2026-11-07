@@ -269,6 +269,8 @@ export interface SuratTugasRingkasDto {
   tujuan: string;
   /** Rincian per komponen (hanya yang bernilai > 0), untuk daftar. */
   komponen: { label: string; nilai: number }[];
+  /** Teks tambahan untuk pencarian: nama, NIP, nomor SPD, jabatan pelaksana, serta kota, kabupaten, dan kegiatan tujuan. */
+  kataKunci: string;
   updatedAt: string;
 }
 

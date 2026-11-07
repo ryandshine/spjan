@@ -196,6 +196,8 @@ export default function SuratTugasListPage() {
           kolom={kolom}
           baris={daftar.data ?? []}
           kosong={daftar.isPending ? 'Memuat...' : 'Belum ada surat tugas.'}
+          teksCari={(b) => `${b.kataKunci} ${b.status === 'final' ? 'final terkunci' : 'draf'}`}
+          petunjukCari="Cari nomor ST, nama, NIP, no. SPD, tujuan, kegiatan..."
           kartuMobile={(b) => (
             <div className="rounded-lg border bg-card p-4 shadow-xs grid gap-3">
               <div className="flex items-start justify-between gap-2">
