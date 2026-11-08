@@ -14,6 +14,7 @@ import { useDaftarSuratTugas, useHapusSuratTugas, useMe } from '@/lib/queries'
 import type { SuratTugasRingkasDto } from '@spjan/shared'
 
 import { pelaksanaCocok, ringkasCariOrang } from '@/lib/cari-st'
+import { cn } from '@/lib/utils'
 
 function renderBadgeStatus(b: SuratTugasRingkasDto) {
   if (b.status === 'final') {
@@ -72,6 +73,33 @@ function DaftarTujuan({ tujuan }: { tujuan: string }) {
   )
 }
 
+/** Nama pelaksana: dua pertama, sisanya dibuka lewat tombol. Nama yang cocok dengan pencarian ditebalkan. */
+function DaftarPelaksana({ b, kata }: { b: SuratTugasRingkasDto; kata: string }) {
+  const [terbuka, setTerbuka] = useState(false)
+  if (b.pelaksana.length === 0) return <span className="text-muted-foreground">-</span>
+  const cocok = new Set(pelaksanaCocok(b, kata).map((c) => c.nomor))
+  const tampil = terbuka ? b.pelaksana : b.pelaksana.slice(0, 2)
+  const sisa = b.pelaksana.length - 2
+  return (
+    <div className="grid gap-1 py-0.5">
+      {tampil.map((p, idx) => (
+        <span key={idx} className={cn('text-xs leading-snug', terbuka ? 'break-words' : 'line-clamp-1', cocok.has(idx + 1) && 'font-semibold text-foreground')} title={p.nama}>
+          {idx + 1}. {p.nama}
+        </span>
+      ))}
+      {sisa > 0 ? (
+        <button
+          type="button"
+          onClick={() => setTerbuka((v) => !v)}
+          className="mt-0.5 w-fit cursor-pointer rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-primary/15 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          {terbuka ? 'Sembunyikan' : `+${sisa} pelaksana lainnya`}
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 export default function SuratTugasListPage() {
   const daftar = useDaftarSuratTugas()
   const hapus = useHapusSuratTugas()
@@ -124,9 +152,8 @@ export default function SuratTugasListPage() {
     },
     {
       judul: 'Pelaksana',
-      rataKanan: true,
-      className: 'whitespace-nowrap',
-      sel: (b) => b.jumlahPelaksana,
+      className: 'min-w-[180px] max-w-[240px]',
+      sel: (b) => <DaftarPelaksana b={b} kata={kata} />,
     },
     {
       judul: 'Pembuat',
@@ -249,6 +276,8 @@ export default function SuratTugasListPage() {
               <div className="border-t pt-2.5">
                 <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Tujuan</p>
                 <DaftarTujuan tujuan={b.tujuan} />
+                <p className="mt-2.5 mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Pelaksana</p>
+                <DaftarPelaksana b={b} kata={kata} />
               </div>
 
               <div className="rounded-md bg-muted/40 p-2.5 grid gap-1.5">
