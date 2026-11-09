@@ -39,7 +39,7 @@ export async function ekstrakSt(
   }
 
   const promptDasar = pakaiGambar ? PROMPT_ST : `${PROMPT_ST}\n\nIsi Dokumen Surat Tugas:\n${isi.teks}`;
-  const gambar = pakaiGambar ? isi.gambar.slice(0, 3) : undefined;
+  const gambar = pakaiGambar ? isi.gambar.slice(0, 8) : undefined;
   let prompt = promptDasar;
 
   for (let percobaan = 0; percobaan < 2; percobaan += 1) {

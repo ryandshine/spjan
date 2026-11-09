@@ -72,4 +72,12 @@ describe("ekstrakHotel", () => {
     });
     expect(klien.panggilan).toHaveLength(2);
   });
+
+  it("mengirim semua halaman gambar dan membuka pembungkus array/objek", async () => {
+    const wrappedHotel = JSON.stringify([JSON.parse(validHotelJson)]);
+    const klien = klienPalsu(() => wrappedHotel);
+    const { hasil } = await ekstrakHotel(klien, konf, { teks: "", gambar: ["hal1", "hal2"] });
+    expect(klien.panggilan[0]?.gambar).toEqual(["hal1", "hal2"]);
+    expect(hasil.namaHotel).toBe("The Royal Alana Yogyakarta");
+  });
 });

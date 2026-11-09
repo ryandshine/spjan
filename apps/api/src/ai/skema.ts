@@ -17,10 +17,26 @@ export function uraikanJsonAi(teks: string): unknown {
     if (match?.[1]) {
       return JSON.parse(match[1].trim());
     }
-    const awal = dipangkas.indexOf("{");
-    const akhir = dipangkas.lastIndexOf("}");
-    if (awal >= 0 && akhir > awal) {
-      return JSON.parse(dipangkas.slice(awal, akhir + 1));
+    const awalObj = dipangkas.indexOf("{");
+    const akhirObj = dipangkas.lastIndexOf("}");
+    const awalArr = dipangkas.indexOf("[");
+    const akhirArr = dipangkas.lastIndexOf("]");
+
+    const adaObj = awalObj >= 0 && akhirObj > awalObj;
+    const adaArr = awalArr >= 0 && akhirArr > awalArr;
+
+    if (adaObj && (!adaArr || awalObj < awalArr)) {
+      try {
+        return JSON.parse(dipangkas.slice(awalObj, akhirObj + 1));
+      } catch {}
+    }
+    if (adaArr) {
+      try {
+        return JSON.parse(dipangkas.slice(awalArr, akhirArr + 1));
+      } catch {}
+    }
+    if (adaObj) {
+      return JSON.parse(dipangkas.slice(awalObj, akhirObj + 1));
     }
     throw new Error("Format JSON tidak ditemukan dalam balasan model");
   }

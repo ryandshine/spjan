@@ -54,4 +54,33 @@ describe("ekstrakTransport", () => {
     expect(dipanggil).toBe(2);
     expect(hasil.totalBiaya).toBe(175000);
   });
+
+  it("mengirim semua halaman gambar dan menggabungkan array struk transportasi", async () => {
+    const arrayTransport = JSON.stringify([
+      {
+        kategori: "taksi",
+        penyedia: "Grab",
+        nomorKuitansi: "GRB-1",
+        tanggal: "2026-10-26",
+        uraian: "Grab Halim ke Manggala",
+        totalBiaya: 108000,
+      },
+      {
+        kategori: "taksi",
+        penyedia: "Grab",
+        nomorKuitansi: "GRB-2",
+        tanggal: "2026-10-28",
+        uraian: "Grab Manggala ke Halim",
+        totalBiaya: 95000,
+      },
+    ]);
+
+    const klien = klienPalsu(() => arrayTransport);
+    const { hasil } = await ekstrakTransport(klien, konf, { teks: "", gambar: ["hal1", "hal2"] });
+
+    expect(klien.panggilan[0]?.gambar).toEqual(["hal1", "hal2"]);
+    expect(hasil.kategori).toBe("taksi");
+    expect(hasil.totalBiaya).toBe(203000);
+    expect(hasil.uraian).toContain("Grab Halim ke Manggala, Grab Manggala ke Halim");
+  });
 });

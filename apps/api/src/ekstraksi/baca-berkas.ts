@@ -29,8 +29,11 @@ export interface IsiBerkas {
 
 const BATAS_TEKS = 12_000;
 const MIN_TEKS_PDF = 50;
-// Ekstraksi dokumen kedinasan (ST, tiket, invoice): ambil maksimal 3 lembar di awal.
-const MAKS_HALAMAN_BACA = 3;
+// Dokumen teks asli rata-rata memuat > 60 karakter per halaman. Bila rata-rata di bawah ini,
+// kemungkinan besar dokumen memuat gambar/screenshot yang hanya diberi sedikit teks caption.
+const MIN_TEKS_PER_HALAMAN = 60;
+// Ekstraksi dokumen kedinasan (ST, tiket, invoice): ambil maksimal 8 lembar di awal.
+const MAKS_HALAMAN_BACA = 8;
 
 export async function bacaIsi(mime: MimeBerkas, data: Buffer): Promise<IsiBerkas> {
   if (mime !== "application/pdf") return { teks: "", gambar: [data.toString("base64")] };
@@ -40,6 +43,7 @@ export async function bacaIsi(mime: MimeBerkas, data: Buffer): Promise<IsiBerkas
     const pdf = path.join(dir, "masuk.pdf");
     await writeFile(pdf, data);
     let teks: string;
+    let jumlahHalaman = 1;
     try {
       const { stdout } = await jalankan(
         "pdftotext",
@@ -50,13 +54,17 @@ export async function bacaIsi(mime: MimeBerkas, data: Buffer): Promise<IsiBerkas
         },
       );
       teks = rapatkanTeks(stdout);
+      jumlahHalaman = Math.max(1, stdout.match(/\f/g)?.length ?? 1);
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") {
         throw new AiGalat("GALAT_INTERNAL", "Utilitas sistem pembaca PDF (pdftotext) tidak ditemukan.");
       }
       throw new AiGalat("BERKAS_TIDAK_TERBACA", "PDF tidak dapat dibaca (rusak atau terkunci).");
     }
-    if (teks.length >= MIN_TEKS_PDF) return { teks: teks.slice(0, BATAS_TEKS), gambar: [] };
+    const rataTeksPerHalaman = teks.length / jumlahHalaman;
+    if (teks.length >= MIN_TEKS_PDF && rataTeksPerHalaman >= MIN_TEKS_PER_HALAMAN) {
+      return { teks: teks.slice(0, BATAS_TEKS), gambar: [] };
+    }
 
     try {
       await jalankan(

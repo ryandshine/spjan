@@ -79,4 +79,53 @@ describe("ekstrakTiket - beberapa halaman", () => {
     await ekstrakTiket(klien, konf, { teks: "", gambar: ["hal1", "hal2"] });
     expect(klien.panggilan[0]?.gambar).toEqual(["hal1", "hal2"]);
   });
+
+  it("menangani model yang mengembalikan array tiket (mis. Whoosh pergi dan pulang)", async () => {
+    const arrayTiketJson = JSON.stringify([
+      {
+        moda: "kereta",
+        maskapai: "PT Kereta Cepat Indonesia China",
+        kodeBooking: "GA14971281",
+        penumpang: "Yesi Afriani",
+        asal: "Tegalluar Summarecon",
+        tujuan: "Halim",
+        tanggal: "2026-10-26",
+        jam: "06:35",
+        nomorPenerbangan: "G1006",
+        tarif: 350000,
+        arah: "pergi",
+      },
+      {
+        moda: "kereta",
+        maskapai: "PT Kereta Cepat Indonesia China",
+        kodeBooking: "GA41125131",
+        penumpang: "Yesi Afriani",
+        asal: "Halim",
+        tujuan: "Tegalluar Summarecon",
+        tanggal: "2026-10-28",
+        jam: "14:00",
+        nomorPenerbangan: "G1033",
+        tarif: 350000,
+        arah: "kembali",
+      },
+      {
+        moda: "lainnya",
+        maskapai: "Grab",
+        tarif: 108000,
+      },
+    ]);
+
+    const klien = klienPalsu(() => arrayTiketJson);
+    const { hasil } = await ekstrakTiket(klien, konf, { teks: "", gambar: ["hal1", "hal2", "hal3"] });
+
+    expect(hasil.moda).toBe("kereta");
+    expect(hasil.maskapai).toBe("PT Kereta Cepat Indonesia China");
+    expect(hasil.penumpang).toBe("Yesi Afriani");
+    expect(hasil.tarif).toBe(700000);
+    expect(hasil.segmen).toHaveLength(2);
+    expect(hasil.segmen[0]?.arah).toBe("pergi");
+    expect(hasil.segmen[0]?.tarif).toBe(350000);
+    expect(hasil.segmen[1]?.arah).toBe("kembali");
+    expect(hasil.segmen[1]?.tarif).toBe(350000);
+  });
 });

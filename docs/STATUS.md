@@ -1,7 +1,14 @@
 # Status SPJAN
 
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
-Terakhir diperbarui: 2026-11-01 (kabupaten dikunjungi per tujuan).
+Terakhir diperbarui: 2026-11-09 (normalisasi ekstraksi multi-segmen tiket dan densitas teks pdf).
+
+## Normalisasi ekstraksi multi-segmen tiket dan densitas teks PDF (2026-11-09)
+
+- `ekstrakTiket` (`tiket.ts`): menambahkan fungsi `normalisasiHasilTiket` untuk menangani respon model AI dalam format JSON array (mis. dokumen gabungan tiket pergi-pulang Whoosh atau multi-tiket). Segmen perjalanan digabung, total tarif dijumlahkan, kode booking disatukan, dan item non-tiket disaring. Prompt tiket diperjelas agar mengabaikan struk ojek/taksi yang tercampur.
+- `bacaIsi` (`baca-berkas.ts`): menaikkan `MAKS_HALAMAN_BACA` dari 3 menjadi 8 halaman dan menambahkan deteksi densitas teks (`MIN_TEKS_PER_HALAMAN = 60`). Dokumen tangkapan layar/screenshot dengan teks caption pendek tetap dirender sebagai gambar agar terbaca model vision.
+- `transport.ts` & `hotel.ts`: mengirimkan seluruh gambar halaman dokumen ke model vision dan menambahkan fungsi normalisasi hasil array/objek.
+- `skema.ts`: parser `uraikanJsonAi` diperkuat agar dapat membaca array maupun objek JSON yang disertai teks di luar code block.
 
 ## Navigasi lewat alamat halaman (2026-11-02)
 
