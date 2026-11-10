@@ -1,10 +1,16 @@
 import type { UjiModelHasil } from "@spjan/shared";
 
+import sharp from "sharp";
+
 import { AiGalat, type KlienAi, type KonfigurasiAi } from "./klien.js";
 
-/** PNG 1x1 sah untuk menguji jalur gambar. */
-const PNG_UJI =
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==";
+/** PNG merah 64x64 untuk menguji jalur gambar (Qwen menolak sisi <= 10 px). */
+let pngUji: Promise<string> | null = null;
+export const gambarUji = () =>
+  (pngUji ??= sharp({ create: { width: 64, height: 64, channels: 3, background: "#ff0000" } })
+    .png()
+    .toBuffer()
+    .then((b) => b.toString("base64")));
 
 export async function ujiModel(klien: KlienAi, konf: KonfigurasiAi, jenis: "teks" | "gambar"): Promise<UjiModelHasil> {
   const model = jenis === "teks" ? konf.modelTeks : konf.modelGambar;
@@ -23,7 +29,7 @@ export async function ujiModel(klien: KlienAi, konf: KonfigurasiAi, jenis: "teks
       baseUrl: konf.llmUrl,
       model,
       prompt: jenis === "teks" ? "Balas dengan satu kata saja: ok" : "Gambar kecil ini berwarna apa? Jawab satu kata.",
-      ...(jenis === "gambar" ? { gambar: [PNG_UJI] } : {}),
+      ...(jenis === "gambar" ? { gambar: [await gambarUji()] } : {}),
       timeoutMs: 60_000,
     });
     return { ok: true, model, durasiMs: Date.now() - mulai, balasan: balasan.trim().slice(0, 200) };

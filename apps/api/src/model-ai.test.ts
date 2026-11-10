@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import sharp from "sharp";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { AiGalat } from "./ai/klien.js";
@@ -70,6 +71,9 @@ describe("model AI", () => {
     expect(res.json()).toMatchObject({ ok: true, model: "m-gambar" });
     expect(klien.panggilan[0]?.baseUrl).toBe("http://x:1");
     expect(klien.panggilan[0]?.gambar?.length).toBe(1);
+    // Qwen menolak gambar dengan sisi <= 10 px.
+    const meta = await sharp(Buffer.from(klien.panggilan[0]?.gambar?.[0] ?? "", "base64")).metadata();
+    expect([meta.width, meta.height]).toEqual([64, 64]);
   });
 
   it("galat model (pensiun) dilaporkan sebagai ok:false dengan kode dan pesan, bukan 500", async () => {
