@@ -45,14 +45,30 @@ describe("klien OpenAI-compatible (Qwen)", () => {
       max_tokens: 100,
       response_format: { type: "json_object" },
     });
+    expect(diterima).not.toHaveProperty("enable_thinking");
     const pesan = (diterima.messages as { content: { type: string; text?: string; image_url?: { url: string } }[] }[])[0];
     expect(pesan?.content[0]).toEqual({ type: "image_url", image_url: { url: "data:image/jpeg;base64,/9j/AAA" } });
     expect(pesan?.content[1]?.text).toContain(JSON.stringify(skema));
   });
 
-  it("tanpa API key dan key ditolak menjadi MODEL_TIDAK_TERSEDIA", async () => {
+  it("mematikan mode berpikir untuk DashScope", async () => {
+    let diterima: Record<string, unknown> = {};
+    const baseUrl = await mulai((req, res) => {
+      let body = "";
+      req.on("data", (c) => (body += c));
+      req.on("end", () => {
+        diterima = JSON.parse(body);
+        res.end(JSON.stringify({ choices: [{ message: { content: "ok" } }] }));
+      });
+    });
+    // Alamat lokal dengan penanda "dashscope" di path agar terdeteksi sebagai DashScope.
+    await buatKlienOpenAi("k").chat({ baseUrl: `${baseUrl}/dashscope/compatible-mode/v1`, model: "qwen-plus", prompt: "p" });
+    expect(diterima).toMatchObject({ enable_thinking: false });
+  });
+
+  it("tanpa API key dan key ditolak menjadi KUNCI_DITOLAK; 429 menjadi BATAS_PERMINTAAN", async () => {
     await expect(buatKlienOpenAi(undefined).chat({ baseUrl: "http://x/v1", model: "m", prompt: "p" })).rejects.toMatchObject({
-      kode: "MODEL_TIDAK_TERSEDIA",
+      kode: "KUNCI_DITOLAK",
     });
     const baseUrl = await mulai((_req, res) => {
       res.statusCode = 401;
@@ -60,7 +76,15 @@ describe("klien OpenAI-compatible (Qwen)", () => {
     });
     const galat = await buatKlienOpenAi("salah").chat({ baseUrl: `${baseUrl}/v1`, model: "m", prompt: "p" }).catch((e: unknown) => e);
     expect(galat).toBeInstanceOf(AiGalat);
-    expect((galat as AiGalat).message).toContain("API key ditolak");
+    expect((galat as AiGalat).kode).toBe("KUNCI_DITOLAK");
+    await new Promise<void>((ok) => server?.close(() => ok()));
+    const url429 = await mulai((_req, res) => {
+      res.statusCode = 429;
+      res.end("quota exceeded");
+    });
+    await expect(buatKlienOpenAi("k").chat({ baseUrl: `${url429}/v1`, model: "m", prompt: "p" })).rejects.toMatchObject({
+      kode: "BATAS_PERMINTAAN",
+    });
   });
 
   it("memilih format dari alamat dan menebak jenis gambar", () => {

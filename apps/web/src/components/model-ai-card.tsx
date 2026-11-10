@@ -71,7 +71,7 @@ function FormModelAi({ awal }: { awal: ModelAiDto }) {
           <Input id="modelTeks" value={teks} onChange={(e) => setTeks(e.target.value)} placeholder="mis. qwen-plus" />
         </Field>
         <Field label="Model gambar" htmlFor="modelGambar" hint="Harus mendukung gambar (vision).">
-          <Input id="modelGambar" value={gambar} onChange={(e) => setGambar(e.target.value)} placeholder="mis. qwen-vl-max" />
+          <Input id="modelGambar" value={gambar} onChange={(e) => setGambar(e.target.value)} placeholder="mis. qwen3-vl-plus" />
         </Field>
       </div>
       <div className="flex flex-wrap items-center gap-2">

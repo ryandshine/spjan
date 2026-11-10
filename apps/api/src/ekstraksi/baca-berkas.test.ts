@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { AiGalat } from "../ai/klien.js";
 import { PNG_1X1, pdfSederhana } from "../test-support/helpers.js";
-import { bacaIsi, rapatkanTeks } from "./baca-berkas.js";
+import sharp from "sharp";
+
+import { bacaIsi, kecilkanFoto, rapatkanTeks } from "./baca-berkas.js";
 
 describe("bacaIsi", () => {
   it("gambar: diteruskan sebagai base64 tanpa teks", async () => {
@@ -40,5 +42,25 @@ describe("bacaIsi", () => {
   it("rapatkanTeks: padding kolom dan baris kosong berlebih dirapatkan, isi dan batas kolom tetap", () => {
     const masuk = "Kamar        Deluxe          850.000   \n\n\n\n\nTotal    1.700.000\n";
     expect(rapatkanTeks(masuk)).toBe("Kamar  Deluxe  850.000\n\nTotal  1.700.000");
+  });
+});
+
+describe("kecilkanFoto", () => {
+  it("foto besar dikecilkan ke sisi terpanjang 2000 px dalam JPEG", async () => {
+    const besar = await sharp({ create: { width: 4000, height: 3000, channels: 3, background: "#808080" } })
+      .png({ compressionLevel: 0 })
+      .toBuffer();
+    const hasil = Buffer.from(await kecilkanFoto(besar), "base64");
+    const meta = await sharp(hasil).metadata();
+    expect(meta.format).toBe("jpeg");
+    expect([meta.width, meta.height]).toEqual([2000, 1500]);
+    expect(hasil.length).toBeLessThan(besar.length);
+  });
+
+  it("gambar kecil yang sudah hemat dan data rusak dikirim apa adanya", async () => {
+    const kecil = PNG_1X1;
+    expect(await kecilkanFoto(kecil)).toBe(kecil.toString("base64"));
+    const rusak = Buffer.from("bukan gambar");
+    expect(await kecilkanFoto(rusak)).toBe(rusak.toString("base64"));
   });
 });

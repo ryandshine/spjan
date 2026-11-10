@@ -18,7 +18,7 @@ export function buatKlienOpenAi(apiKey: string | undefined): KlienAi {
   return {
     async chat(p: PermintaanAi): Promise<string> {
       if (!apiKey) {
-        throw new AiGalat("MODEL_TIDAK_TERSEDIA", "API key Qwen belum diatur (DASHSCOPE_API_KEY atau QWEN_API_KEY).");
+        throw new AiGalat("KUNCI_DITOLAK", "API key Qwen belum diatur (QWEN_API_KEY atau DASHSCOPE_API_KEY).");
       }
       const prompt = p.skema ? `${p.prompt}\n\nJawab hanya dengan JSON yang sesuai JSON Schema berikut:\n${JSON.stringify(p.skema)}` : p.prompt;
       const gambar = p.gambar ?? [];
@@ -35,6 +35,8 @@ export function buatKlienOpenAi(apiKey: string | undefined): KlienAi {
         temperature: 0,
         ...(p.maksToken ? { max_tokens: p.maksToken } : {}),
         ...(p.skema ? { response_format: { type: "json_object" } } : {}),
+        // DashScope: keluaran JSON hanya didukung tanpa mode berpikir; matikan eksplisit.
+        ...(p.baseUrl.includes("dashscope") ? { enable_thinking: false } : {}),
         messages: [{ role: "user", content }],
       };
       let status: number;
@@ -56,7 +58,10 @@ export function buatKlienOpenAi(apiKey: string | undefined): KlienAi {
         throw new AiGalat("MODEL_TIDAK_TERSEDIA", `Layanan model tidak terjangkau di ${p.baseUrl}.`);
       }
       if (status === 401 || status === 403) {
-        throw new AiGalat("MODEL_TIDAK_TERSEDIA", `API key ditolak (${status}): ${ringkas(teks)}`);
+        throw new AiGalat("KUNCI_DITOLAK", `API key ditolak (${status}). Periksa QWEN_API_KEY di environment server.`);
+      }
+      if (status === 429) {
+        throw new AiGalat("BATAS_PERMINTAAN", `Kuota atau batas permintaan model tercapai: ${ringkas(teks)}`);
       }
       if (status < 200 || status >= 300) {
         throw new AiGalat("MODEL_TIDAK_TERSEDIA", `Layanan model menjawab ${status}: ${ringkas(teks)}`);

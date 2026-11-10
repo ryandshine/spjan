@@ -3,6 +3,7 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import sharp from "sharp";
 import type { MimeBerkas } from "@spjan/shared";
 
 import { AiGalat } from "../ai/klien.js";
@@ -35,8 +36,30 @@ const MIN_TEKS_PER_HALAMAN = 60;
 // Ekstraksi dokumen kedinasan (ST, tiket, invoice): ambil maksimal 8 lembar di awal.
 const MAKS_HALAMAN_BACA = 8;
 
+// Sama dengan render PDF (-scale-to 2000). Model memperkecil gambar besar sendiri, jadi detail yang dibaca tidak berkurang.
+const SISI_MAKS_FOTO = 2000;
+
+/**
+ * Salinan foto untuk model: sisi terpanjang maksimal 2000 px, JPEG kualitas 85, orientasi EXIF diterapkan.
+ * Berkas asli tidak diubah. Gambar yang tidak bisa diproses dikirim apa adanya.
+ */
+export async function kecilkanFoto(data: Buffer): Promise<string> {
+  try {
+    const hasil = await sharp(data, { failOn: "none" })
+      .rotate()
+      .resize({ width: SISI_MAKS_FOTO, height: SISI_MAKS_FOTO, fit: "inside", withoutEnlargement: true })
+      .flatten({ background: "#ffffff" })
+      .jpeg({ quality: 85, mozjpeg: true })
+      .toBuffer();
+    // Foto kecil yang sudah hemat tidak perlu diganti versi yang justru lebih besar.
+    return (hasil.length < data.length ? hasil : data).toString("base64");
+  } catch {
+    return data.toString("base64");
+  }
+}
+
 export async function bacaIsi(mime: MimeBerkas, data: Buffer): Promise<IsiBerkas> {
-  if (mime !== "application/pdf") return { teks: "", gambar: [data.toString("base64")] };
+  if (mime !== "application/pdf") return { teks: "", gambar: [await kecilkanFoto(data)] };
 
   const dir = await mkdtemp(path.join(os.tmpdir(), "spjan-pdf-"));
   try {

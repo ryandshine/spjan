@@ -72,7 +72,7 @@ interface Klaim {
   percobaan: number;
 }
 
-const DAPAT_DIULANG = new Set(["WAKTU_HABIS", "MODEL_TIDAK_TERSEDIA"]);
+const DAPAT_DIULANG = new Set(["WAKTU_HABIS", "MODEL_TIDAK_TERSEDIA", "BATAS_PERMINTAAN"]);
 const MAKS_PERCOBAAN = 2;
 
 /** Hanya nama jenis galat yang boleh dilog; pesan/stack/properti bisa memuat isi dokumen. */

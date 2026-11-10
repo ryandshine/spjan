@@ -28,6 +28,8 @@ export const KODE_GALAT_AI = [
   "WAKTU_HABIS",
   "BERKAS_TIDAK_TERBACA",
   "GALAT_INTERNAL",
+  "KUNCI_DITOLAK",
+  "BATAS_PERMINTAAN",
 ] as const;
 export type KodeGalatAi = (typeof KODE_GALAT_AI)[number];
 

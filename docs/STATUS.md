@@ -3,11 +3,15 @@
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
 Terakhir diperbarui: 2026-11-10 (model pembaca dokumen diganti ke Qwen).
 
-## Model AI ke Qwen Singapura (2026-11-10, belum di-commit)
+## Model AI ke Qwen Singapura (2026-11-10)
 
 - Klien baru `ai/openai.ts` (format OpenAI `chat/completions`, header Bearer). `ai/pilih.ts` memilih klien dari alamat: berakhiran `/vN` atau memuat `compatible-mode` = OpenAI, selain itu Ollama.
 - Env `QWEN_API_KEY` (atau `DASHSCOPE_API_KEY`) dan `QWEN_URL` (bawaan `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`). Bila ada key, alamat bawaan memakai Qwen; tanpa key tetap `OLLAMA_URL`.
 - Migrasi `1791126000031`: `llm_url` dikosongkan, `model_teks = qwen-plus`, `model_gambar = qwen-vl-max`. Bisa diganti di Pengaturan > Model AI.
+- Migrasi `1791126000032`: model gambar `qwen3-vl-plus` (bila masih `qwen-vl-max`). Permintaan ke DashScope mengirim `enable_thinking: false` (JSON hanya didukung tanpa mode berpikir).
+- Belum pasti: dokumentasi menyebut `max_tokens` sebaiknya tidak diisi saat JSON aktif; bila jawaban terpotong/ditolak, hapus `max_tokens`.
+- Foto unggahan (JPG/PNG/WebP) dikirim ke model sebagai salinan JPEG q85, sisi terpanjang 2000 px (`kecilkanFoto`, sharp); berkas asli tidak diubah.
+- Kode galat baru `KUNCI_DITOLAK` (401/403/key kosong, tidak diulang) dan `BATAS_PERMINTAAN` (429, diulang sekali oleh worker).
 - Skema JSON disisipkan ke prompt dan diminta `response_format: json_object` (tidak semua model Qwen mendukung `json_schema`).
 - Belum dicoba dengan key asli: setelah deploy, tekan "Uji model teks" dan "Uji model gambar" di Pengaturan.
 
