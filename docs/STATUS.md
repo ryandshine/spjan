@@ -1,7 +1,15 @@
 # Status SPJAN
 
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
-Terakhir diperbarui: 2026-11-09 (normalisasi ekstraksi multi-segmen tiket dan densitas teks pdf).
+Terakhir diperbarui: 2026-11-10 (model pembaca dokumen diganti ke Qwen).
+
+## Model AI ke Qwen Singapura (2026-11-10, belum di-commit)
+
+- Klien baru `ai/openai.ts` (format OpenAI `chat/completions`, header Bearer). `ai/pilih.ts` memilih klien dari alamat: berakhiran `/vN` atau memuat `compatible-mode` = OpenAI, selain itu Ollama.
+- Env `QWEN_API_KEY` (atau `DASHSCOPE_API_KEY`) dan `QWEN_URL` (bawaan `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`). Bila ada key, alamat bawaan memakai Qwen; tanpa key tetap `OLLAMA_URL`.
+- Migrasi `1791126000031`: `llm_url` dikosongkan, `model_teks = qwen-plus`, `model_gambar = qwen-vl-max`. Bisa diganti di Pengaturan > Model AI.
+- Skema JSON disisipkan ke prompt dan diminta `response_format: json_object` (tidak semua model Qwen mendukung `json_schema`).
+- Belum dicoba dengan key asli: setelah deploy, tekan "Uji model teks" dan "Uji model gambar" di Pengaturan.
 
 ## Normalisasi ekstraksi multi-segmen tiket dan densitas teks PDF (2026-11-09)
 

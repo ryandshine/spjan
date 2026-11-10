@@ -70,6 +70,7 @@ melayani langsung dan TIDAK boleh memakai `redirect-to-https`, kalau tidak terja
   BUKAN bagian dari database; cadangkan terpisah, mis.:
   `docker run --rm -v <proyek>_spjan-berkas:/d -v "$PWD":/b alpine tar czf /b/spjan-berkas.tgz -C /d .`
   (nama volume sebenarnya: `docker volume ls | grep spjan-berkas`).
+- Bila `QWEN_API_KEY` diisi di environment Dokploy, model dibaca lewat Qwen (Alibaba Model Studio Singapura, `QWEN_URL`); isi dokumen dikirim ke Alibaba Cloud. Tanpa key, dipakai Ollama di bawah.
 - Model dibaca lewat Ollama di host (`OLLAMA_URL`, bawaan `http://172.17.0.1:11434`). Nama model diatur di aplikasi:
   Pengaturan > Model AI (tombol "Uji model"). Model cloud dapat dipensiunkan tanpa pemberitahuan (HTTP 410), ganti di sana.
 - Isi dokumen yang dibaca model dikirim ke ollama.com (model cloud). Log worker ekstraksi hanya mencatat id berkas, model, status, kode galat, durasi (tanpa isi dokumen atau pesan galat).

@@ -5,7 +5,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { ZodError } from "zod";
 
 import type { KlienAi } from "./ai/klien.js";
-import { klienOllama } from "./ai/ollama.js";
+import { klienAi } from "./ai/pilih.js";
 import { SESSION_COOKIE, type SessionUser, userFromToken } from "./auth.js";
 import { FileBerkasStore, type BerkasStore } from "./berkas/store.js";
 import { config } from "./config.js";
@@ -39,7 +39,7 @@ export async function buildApp(db: Db, opts: { logger?: boolean; store?: BerkasS
     bodyLimit: 1_000_000,
   });
   const store = opts.store ?? new FileBerkasStore(config.BERKAS_DIR);
-  const klien = opts.klien ?? klienOllama;
+  const klien = opts.klien ?? klienAi;
 
   await app.register(helmet);
   await app.register(cookie);

@@ -20,6 +20,10 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - SESSION_TTL_DAYS=${SESSION_TTL_DAYS:-7}
       - OLLAMA_URL=${OLLAMA_URL:-http://172.17.0.1:11434}
+      # Qwen (Model Studio Singapura). Isi salah satu key di environment Dokploy.
+      - QWEN_API_KEY=${QWEN_API_KEY:-}
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
+      - QWEN_URL=${QWEN_URL:-https://dashscope-intl.aliyuncs.com/compatible-mode/v1}
     volumes:
       - spjan-berkas:/data/berkas
     networks:

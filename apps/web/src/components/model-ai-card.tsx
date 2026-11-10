@@ -63,15 +63,15 @@ function FormModelAi({ awal }: { awal: ModelAiDto }) {
   return (
     <form onSubmit={kirim} className="grid gap-4">
       {galat ? <Alert variant="destructive">{galat}</Alert> : null}
-      <Field label="Alamat Ollama" htmlFor="llmUrl">
+      <Field label="Alamat layanan model" hint="Kosongkan untuk memakai bawaan server. Alamat berakhiran /v1 memakai format OpenAI (Qwen); selain itu Ollama." htmlFor="llmUrl">
         <Input id="llmUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder={awal.bawaanUrl} />
       </Field>
       <div className="grid items-start gap-4 sm:grid-cols-2">
         <Field label="Model teks" htmlFor="modelTeks">
-          <Input id="modelTeks" value={teks} onChange={(e) => setTeks(e.target.value)} placeholder="gpt-oss:120b-cloud" />
+          <Input id="modelTeks" value={teks} onChange={(e) => setTeks(e.target.value)} placeholder="mis. qwen-plus" />
         </Field>
         <Field label="Model gambar" htmlFor="modelGambar" hint="Harus mendukung gambar (vision).">
-          <Input id="modelGambar" value={gambar} onChange={(e) => setGambar(e.target.value)} placeholder="mis. gemma4:cloud" />
+          <Input id="modelGambar" value={gambar} onChange={(e) => setGambar(e.target.value)} placeholder="mis. qwen-vl-max" />
         </Field>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -98,7 +98,7 @@ export function ModelAiCard() {
     <Card className="max-w-4xl">
       <CardHeader>
         <CardTitle>Model pembaca dokumen</CardTitle>
-        <CardDescription>Dokumen yang dibaca dikirim ke ollama.com bila memakai model cloud.</CardDescription>
+        <CardDescription>Dokumen yang dibaca dikirim ke layanan model (Qwen di Alibaba Cloud Singapura, atau ollama.com untuk model cloud Ollama).</CardDescription>
       </CardHeader>
       <CardContent>
         {data.isError ? <Alert variant="destructive">{pesanGalat(data.error)}</Alert> : null}

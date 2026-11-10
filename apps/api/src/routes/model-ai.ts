@@ -12,7 +12,7 @@ import { getModelAi, konfigurasiAi, saveModelAi } from "../repositories/model-ai
 const UjiSchema = z.object({ jenis: z.enum(["teks", "gambar"]) });
 
 export async function modelAiRoutes(app: FastifyInstance, opts: { db: Db; klien: KlienAi }): Promise<void> {
-  const dto = async (): Promise<ModelAiDto> => ({ ...(await getModelAi(opts.db)), bawaanUrl: config.OLLAMA_URL });
+  const dto = async (): Promise<ModelAiDto> => ({ ...(await getModelAi(opts.db)), bawaanUrl: config.LLM_URL_BAWAAN });
 
   app.get("/", async () => dto());
 

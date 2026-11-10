@@ -28,8 +28,8 @@ export async function saveModelAi(db: Db, p: ModelAiPayload): Promise<ModelAiPay
   return map(rows[0] as Row);
 }
 
-/** Konfigurasi yang benar-benar dipakai: URL dari DB, jika kosong dari env OLLAMA_URL. */
+/** Konfigurasi yang benar-benar dipakai: URL dari DB, jika kosong dari env (Qwen bila ada API key, selain itu OLLAMA_URL). */
 export async function konfigurasiAi(db: Db): Promise<KonfigurasiAi> {
   const p = await getModelAi(db);
-  return { llmUrl: p.llmUrl ?? config.OLLAMA_URL, modelTeks: p.modelTeks, modelGambar: p.modelGambar };
+  return { llmUrl: p.llmUrl ?? config.LLM_URL_BAWAAN, modelTeks: p.modelTeks, modelGambar: p.modelGambar };
 }

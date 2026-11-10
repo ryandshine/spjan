@@ -97,7 +97,7 @@ export const ModelAiPayloadSchema = z.object({
 export type ModelAiPayload = z.infer<typeof ModelAiPayloadSchema>;
 
 export interface ModelAiDto extends ModelAiPayload {
-  /** URL yang dipakai bila `llmUrl` null (dari env OLLAMA_URL). */
+  /** URL yang dipakai bila `llmUrl` null (dari env: Qwen bila ada API key, selain itu OLLAMA_URL). */
   bawaanUrl: string;
 }
 

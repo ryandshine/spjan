@@ -19,7 +19,19 @@ const envSchema = z.object({
   STARTUP_DB_RETRY_DELAY_MS: z.coerce.number().int().min(100).default(3000),
   BERKAS_DIR: z.string().min(1).default("./data/berkas"),
   OLLAMA_URL: z.string().min(1).default("http://172.17.0.1:11434"),
+  // Qwen lewat Alibaba Model Studio (DashScope) region Singapura, format OpenAI-compatible.
+  QWEN_URL: z.string().min(1).default("https://dashscope-intl.aliyuncs.com/compatible-mode/v1"),
+  QWEN_API_KEY: z.preprocess(kosongJadiUndefined, z.string().trim().min(1).optional()),
+  DASHSCOPE_API_KEY: z.preprocess(kosongJadiUndefined, z.string().trim().min(1).optional()),
 });
 
-export const config = envSchema.parse(process.env);
+const env = envSchema.parse(process.env);
+export const config = {
+  ...env,
+  QWEN_API_KEY: env.QWEN_API_KEY ?? env.DASHSCOPE_API_KEY,
+  /** Alamat model bila Pengaturan tidak mengisinya: Qwen bila ada API key, selain itu Ollama. */
+  get LLM_URL_BAWAAN(): string {
+    return this.QWEN_API_KEY ? env.QWEN_URL : env.OLLAMA_URL;
+  },
+};
 export type Config = typeof config;

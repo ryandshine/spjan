@@ -1,4 +1,4 @@
-import { klienOllama } from "./ai/ollama.js";
+import { klienAi } from "./ai/pilih.js";
 import { buildApp } from "./app.js";
 import { ensureAdmin, purgeExpiredSessions } from "./auth.js";
 import { config } from "./config.js";
@@ -36,8 +36,8 @@ async function start() {
   }
   await purgeExpiredSessions(pool);
   const store = new FileBerkasStore(config.BERKAS_DIR);
-  const app = await buildApp(pool, { store, klien: klienOllama });
-  const worker = bikinWorker({ db: pool, store, klien: klienOllama });
+  const app = await buildApp(pool, { store, klien: klienAi });
+  const worker = bikinWorker({ db: pool, store, klien: klienAi });
   worker.mulai();
   await app.listen({ host: config.HOST, port: config.PORT });
 
