@@ -7,7 +7,7 @@ import { ujiModel } from "../ai/uji.js";
 import { config } from "../config.js";
 import type { Db } from "../db.js";
 import { wajibAdmin } from "../izin.js";
-import { getModelAi, konfigurasiAi, saveModelAi } from "../repositories/model-ai.js";
+import { getModelAi, konfigurasiAi, pemakaianAi, saveModelAi } from "../repositories/model-ai.js";
 
 const UjiSchema = z.object({ jenis: z.enum(["teks", "gambar"]) });
 
@@ -20,6 +20,11 @@ export async function modelAiRoutes(app: FastifyInstance, opts: { db: Db; klien:
     wajibAdmin(req);
     await saveModelAi(opts.db, ModelAiPayloadSchema.parse(req.body));
     return dto();
+  });
+
+  app.get("/pemakaian", async (req) => {
+    wajibAdmin(req);
+    return pemakaianAi(opts.db);
   });
 
   app.post("/uji", async (req) => {

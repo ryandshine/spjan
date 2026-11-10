@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { hitungLamaHariSt } from "./naskah-st.js";
 import type { NaskahStPayload } from "./schemas.js";
+import { bidangPerluDicek } from "./perlu-dicek.js";
 import { parseTanggal, tanggalIndonesia } from "./teks.js";
 
 const tanggalIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format YYYY-MM-DD");
@@ -15,6 +16,7 @@ export const HasilEkstraksiUndanganSchema = z.object({
   nomorUndangan: teksNull(200),
   tanggalUndangan: tanggalIso.nullable(),
   penyelenggara: teksNull(300),
+  perluDicek: bidangPerluDicek,
 });
 export type HasilEkstraksiUndangan = z.infer<typeof HasilEkstraksiUndanganSchema>;
 

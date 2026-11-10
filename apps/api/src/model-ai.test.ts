@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { AiGalat } from "./ai/klien.js";
-import { closePool } from "./db.js";
+import { closePool, pool } from "./db.js";
 import { bersihkanData, klienPalsu, loginCookie, siapkanApp } from "./test-support/helpers.js";
 
 let app: FastifyInstance;
@@ -86,5 +86,32 @@ describe("model AI", () => {
 
   it("jenis uji tidak dikenal ditolak 400", async () => {
     expect((await call("POST", "/api/model-ai/uji", { jenis: "suara" })).statusCode).toBe(400);
+  });
+
+  it("pemakaian: dijumlahkan per bulan dan model, hanya yang memanggil model; operator ditolak 403", async () => {
+    await pool.query("truncate surat_tugas restart identity cascade");
+    const { rows } = await pool.query<{ id: number }>(
+      "insert into berkas (nama_asli, mime, ukuran, sha256) values ('a.png','image/png',1,'a1'), ('b.png','image/png',1,'b2'), ('c.png','image/png',1,'c3') returning id",
+    );
+    const [a, b, c] = rows.map((r) => r.id);
+    await pool.query(
+      `insert into ekstraksi (berkas_id, status, model, token_masuk, token_keluar, jumlah_panggilan, created_at) values
+         ($1, 'selesai', 'qwen3-vl-plus', 2500, 100, 2, now()),
+         ($2, 'gagal', 'qwen3-vl-plus', 500, 0, 1, now()),
+         ($3, 'selesai', 'qwen-plus', 0, 0, 0, now())`,
+      [a, b, c],
+    );
+    const res = await call("GET", "/api/model-ai/pemakaian");
+    expect(res.statusCode).toBe(200);
+    const bulan = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit" }).format(new Date());
+    expect(res.json()).toEqual([{ bulan, model: "qwen3-vl-plus", berkas: 2, panggilan: 3, tokenMasuk: 3000, tokenKeluar: 100 }]);
+
+    await call("POST", "/api/admin/pengguna", { username: "opr-pakai", nama: "Operator", peran: "operator", password: "sandi-operator-1" });
+    const login = await app.inject({ method: "POST", url: "/api/auth/login", payload: { username: "opr-pakai", password: "sandi-operator-1" } });
+    const raw = login.headers["set-cookie"];
+    const cookieOpr = (Array.isArray(raw) ? raw[0] : raw)!.split(";")[0]!;
+    const ditolak = await app.inject({ method: "GET", url: "/api/model-ai/pemakaian", headers: { cookie: cookieOpr } });
+    expect(ditolak.statusCode).toBe(403);
+    await pool.query("delete from users where username = 'opr-pakai'");
   });
 });

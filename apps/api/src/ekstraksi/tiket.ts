@@ -1,7 +1,7 @@
-import { HasilEkstraksiTiketSchema, type HasilEkstraksiTiket } from "@spjan/shared";
+import { gabungPerluDicek, HasilEkstraksiTiketSchema, type HasilEkstraksiTiket } from "@spjan/shared";
 
 import { AiGalat, type KlienAi, type KonfigurasiAi } from "../ai/klien.js";
-import { skemaJson, uraikanJsonAi } from "../ai/skema.js";
+import { PETUNJUK_PERLU_DICEK, skemaJson, uraikanJsonAi } from "../ai/skema.js";
 import type { IsiBerkas } from "./baca-berkas.js";
 
 export const SKEMA_EKSTRAKSI_TIKET = skemaJson(HasilEkstraksiTiketSchema);
@@ -32,6 +32,8 @@ Panduan membaca: format tiket berbeda-beda antar maskapai, agen perjalanan (OTA)
 
 PENTING:
 - Balas HANYA SATU JSON object {...}, BUKAN array [ ... ]. Jika ada beberapa tiket (mis. tiket pergi dan tiket pulang), gabungkan ke dalam satu objek JSON dengan mengisi array segmen dan jumlahkan total tarifnya.
+
+${PETUNJUK_PERLU_DICEK}
 
 Balas HANYA JSON yang valid sesuai skema.`;
 
@@ -169,6 +171,7 @@ export function normalisasiHasilTiket(raw: unknown): unknown {
       basisTarif: pertama.basisTarif ?? "total",
       arah: pertama.arah ?? "pergi",
       segmen: semuaSegmen.slice(0, 6),
+      perluDicek: gabungPerluDicek(itemsToMerge),
     };
   }
 

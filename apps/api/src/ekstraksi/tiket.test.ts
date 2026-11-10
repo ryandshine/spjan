@@ -107,6 +107,7 @@ describe("ekstrakTiket - beberapa halaman", () => {
         nomorPenerbangan: "G1033",
         tarif: 350000,
         arah: "kembali",
+        perluDicek: [{ kolom: "jam", alasan: "jam terpotong" }],
       },
       {
         moda: "lainnya",
@@ -122,6 +123,7 @@ describe("ekstrakTiket - beberapa halaman", () => {
     expect(hasil.maskapai).toBe("PT Kereta Cepat Indonesia China");
     expect(hasil.penumpang).toBe("Yesi Afriani");
     expect(hasil.tarif).toBe(700000);
+    expect(hasil.perluDicek).toEqual([{ kolom: "jam", alasan: "jam terpotong" }]);
     expect(hasil.segmen).toHaveLength(2);
     expect(hasil.segmen[0]?.arah).toBe("pergi");
     expect(hasil.segmen[0]?.tarif).toBe(350000);

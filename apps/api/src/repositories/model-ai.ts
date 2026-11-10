@@ -1,4 +1,4 @@
-import type { ModelAiPayload } from "@spjan/shared";
+import type { ModelAiPayload, PemakaianAiBaris } from "@spjan/shared";
 
 import type { KonfigurasiAi } from "../ai/klien.js";
 import { config } from "../config.js";
@@ -32,4 +32,22 @@ export async function saveModelAi(db: Db, p: ModelAiPayload): Promise<ModelAiPay
 export async function konfigurasiAi(db: Db): Promise<KonfigurasiAi> {
   const p = await getModelAi(db);
   return { llmUrl: p.llmUrl ?? config.LLM_URL_BAWAAN, modelTeks: p.modelTeks, modelGambar: p.modelGambar };
+}
+
+/** Pemakaian token 12 bulan terakhir, per bulan dan model; hanya pekerjaan yang benar-benar memanggil model. */
+export async function pemakaianAi(db: Db): Promise<PemakaianAiBaris[]> {
+  const { rows } = await db.query<PemakaianAiBaris>(
+    `select to_char(date_trunc('month', created_at at time zone 'Asia/Jakarta'), 'YYYY-MM') as bulan,
+            coalesce(model, '-') as model,
+            count(*)::int as berkas,
+            sum(jumlah_panggilan)::int as panggilan,
+            sum(token_masuk)::bigint::float8 as "tokenMasuk",
+            sum(token_keluar)::bigint::float8 as "tokenKeluar"
+       from ekstraksi
+      where jumlah_panggilan > 0
+        and created_at >= date_trunc('month', now() at time zone 'Asia/Jakarta') - interval '11 months'
+      group by 1, 2
+      order by 1 desc, 2`,
+  );
+  return rows;
 }

@@ -103,6 +103,17 @@ export interface ModelAiDto extends ModelAiPayload {
   bawaanUrl: string;
 }
 
+/** Pemakaian model per bulan (zona Asia/Jakarta) dan per model, dari tabel ekstraksi. */
+export interface PemakaianAiBaris {
+  /** YYYY-MM */
+  bulan: string;
+  model: string;
+  berkas: number;
+  panggilan: number;
+  tokenMasuk: number;
+  tokenKeluar: number;
+}
+
 export interface UjiModelHasil {
   ok: boolean;
   model: string | null;

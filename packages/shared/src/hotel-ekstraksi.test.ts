@@ -153,6 +153,14 @@ describe("petakanHotelKeUsulan", () => {
     expect(usulan[0]!.statusPlafon).toBe("sesuai");
     expect(usulan[0]!.plafonSbmPerMalam).toBe(2695000);
     expect(usulan[0]!.tarifRiilPerMalam).toBe(850000);
+    expect(usulan[0]!.peringatan).toEqual([]);
+
+    // Catatan "perlu dicek" dari model masuk ke daftar peringatan usulan yang sudah ada.
+    const ekstraksi = berkas[0]!.ekstraksi!;
+    const denganCatatan: BerkasDto[] = [
+      { ...berkas[0]!, ekstraksi: { ...ekstraksi, hasil: { ...(ekstraksi.hasil as object), perluDicek: [{ kolom: "totalBiaya", alasan: "angka terpotong" }] } } },
+    ];
+    expect(petakanHotelKeUsulan(denganCatatan, dummySt, SBM_2026)[0]!.peringatan).toContain("Perlu dicek: Total biaya (angka terpotong).");
   });
 
   it("mendeteksi jika tarif riil hotel melebihi batas SBM", () => {

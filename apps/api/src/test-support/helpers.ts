@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 
-import { AiGalat, type KlienAi, type PermintaanAi } from "../ai/klien.js";
+import { AiGalat, catatPemakaian, type KlienAi, type PermintaanAi } from "../ai/klien.js";
 import { buildApp } from "../app.js";
 import { ensureAdmin } from "../auth.js";
 import type { BerkasStore } from "../berkas/store.js";
@@ -141,13 +141,20 @@ export function pdfSederhana(teks: string, ukuranFont?: number): Buffer {
   return Buffer.from(out, "latin1");
 }
 
-/** Klien palsu: `balas` menerima permintaan dan mengembalikan teks balasan, atau melempar AiGalat. */
-export function klienPalsu(balas: (p: PermintaanAi, panggilanKe: number) => string | Promise<string>): KlienAi & { panggilan: PermintaanAi[] } {
+/**
+ * Klien palsu: `balas` menerima permintaan dan mengembalikan teks balasan, atau melempar AiGalat.
+ * `token` (opsional) ditambahkan ke penampung pemakaian per panggilan, sebelum `balas` dijalankan (seperti tagihan asli).
+ */
+export function klienPalsu(
+  balas: (p: PermintaanAi, panggilanKe: number) => string | Promise<string>,
+  token?: { masuk: number; keluar: number },
+): KlienAi & { panggilan: PermintaanAi[] } {
   const panggilan: PermintaanAi[] = [];
   return {
     panggilan,
     async chat(p) {
       panggilan.push(p);
+      if (token) catatPemakaian(p, token.masuk, token.keluar);
       return balas(p, panggilan.length);
     },
   };

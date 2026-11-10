@@ -125,6 +125,37 @@ describe("worker ekstraksi", () => {
     expect(klien.panggilan[0]?.prompt).toContain("ST.226");
   });
 
+  it("mencatat token dan jumlah panggilan (klasifikasi + ekstraksi) beserta model", async () => {
+    const klien = klienPalsu((_p, ke) => (ke === 1 ? hotel : hotelDetail), { masuk: 1000, keluar: 50 });
+    const worker = bikinWorker({ db: pool, store, klien });
+    const berkas = await tambah(pngUnik(31));
+    await worker.jalankanSekali();
+    expect(await ekstraksiTerakhir(berkas.id)).toMatchObject({
+      status: "selesai",
+      model: "m-gambar",
+      token_masuk: 2000,
+      token_keluar: 100,
+      jumlah_panggilan: 2,
+    });
+  });
+
+  it("token tetap dicatat dan dijumlahkan saat gagal lalu dicoba ulang", async () => {
+    const klien = klienPalsu(() => {
+      throw new AiGalat("WAKTU_HABIS", "lama");
+    }, { masuk: 300, keluar: 0 });
+    const worker = bikinWorker({ db: pool, store, klien });
+    const berkas = await tambah(pngUnik(32));
+    await worker.jalankanSekali();
+    await worker.jalankanSekali();
+    expect(await ekstraksiTerakhir(berkas.id)).toMatchObject({
+      status: "gagal",
+      model: "m-gambar",
+      token_masuk: 600,
+      jumlah_panggilan: 2,
+      percobaan: 2,
+    });
+  });
+
   it("model gambar belum diatur: gagal MODEL_BELUM_DIATUR tanpa ulang", async () => {
     await saveModelAi(pool, { llmUrl: null, modelTeks: "m-teks", modelGambar: null });
     const worker = bikinWorker({ db: pool, store, klien: klienPalsu(() => hotel) });

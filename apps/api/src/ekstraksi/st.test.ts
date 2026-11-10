@@ -101,6 +101,14 @@ describe("ekstrakSt", () => {
     const { hasil } = await ekstrakSt(klien, konf, { teks: "SURAT TUGAS...", gambar: [] });
     expect(hasil.pelaksana).toHaveLength(2);
     expect(hasil.pelaksana[1]?.etape).toEqual(hasil.pelaksana[0]?.etape);
+    expect(hasil.perluDicek).toEqual([{ kolom: "pelaksana[1].etape", alasan: "jadwal disalin dari pelaksana sebelumnya" }]);
+  });
+
+  it("prompt meminta catatan perluDicek dan skema memuatnya", async () => {
+    const klien = klienPalsu(() => validStJson);
+    await ekstrakSt(klien, konf, { teks: "SURAT TUGAS...", gambar: [] });
+    expect(klien.panggilan[0]?.prompt).toContain("perluDicek");
+    expect(JSON.stringify(klien.panggilan[0]?.skema)).toContain("perluDicek");
   });
 
   it("dokumen pindaian gambar memanggil model gambar", async () => {

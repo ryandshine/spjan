@@ -1,7 +1,7 @@
 import { HasilEkstraksiStSchema, type HasilEkstraksiSt } from "@spjan/shared";
 
 import { AiGalat, type KlienAi, type KonfigurasiAi } from "../ai/klien.js";
-import { skemaJson, uraikanJsonAi } from "../ai/skema.js";
+import { PETUNJUK_PERLU_DICEK, skemaJson, uraikanJsonAi } from "../ai/skema.js";
 import type { IsiBerkas } from "./baca-berkas.js";
 
 export const SKEMA_EKSTRAKSI_ST = skemaJson(HasilEkstraksiStSchema);
@@ -20,6 +20,8 @@ Baca dokumen Surat Tugas (ST) berikut dan ekstrak informasinya secara tepat ke d
 PENTING:
 - Setiap pelaksana WAJIB memiliki minimal 1 etape.
 - Jika tanggal atau tujuan pelaksana di baris tabel tidak tertulis secara spesifik (misalnya karena penggabungan baris tabel atau mengikuti baris sebelumnya), warisi tanggal dan tujuan dari baris di atasnya atau gunakan rentang tanggal dan lokasi utama pada diktum Surat Tugas (bagian Untuk). Jangan pernah mengosongkan etape ([]).
+
+${PETUNJUK_PERLU_DICEK}
 
 Balas HANYA JSON yang valid sesuai skema.`;
 
@@ -72,12 +74,19 @@ export async function ekstrakSt(
           },
         ];
 
-        for (const p of rawPelaksana) {
+        // Etape yang disalin adalah tebakan sistem: tandai agar pengguna mengeceknya.
+        const disalin: { kolom: string; alasan: string }[] = [];
+        rawPelaksana.forEach((p: any, i: number) => {
           if (!Array.isArray(p.etape) || p.etape.length === 0) {
             p.etape = etapeSebelumnya;
+            disalin.push({ kolom: `pelaksana[${i}].etape`, alasan: acuanEtape ? "jadwal disalin dari pelaksana sebelumnya" : "jadwal tidak terbaca, diisi nilai bawaan" });
           } else {
             etapeSebelumnya = p.etape;
           }
+        });
+        if (disalin.length > 0) {
+          const dariModel = Array.isArray((raw as any).perluDicek) ? (raw as any).perluDicek : [];
+          (raw as any).perluDicek = [...dariModel, ...disalin].slice(0, 10);
         }
       }
       const parsed = HasilEkstraksiStSchema.parse(raw);

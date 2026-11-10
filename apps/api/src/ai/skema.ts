@@ -42,3 +42,9 @@ export function uraikanJsonAi(teks: string): unknown {
   }
 }
 
+
+/** Petunjuk bersama untuk bidang `perluDicek` pada semua prompt ekstraksi. */
+export const PETUNJUK_PERLU_DICEK = `CATATAN PERLU DICEK:
+- Isi "perluDicek" dengan daftar { "kolom": <nama kolom JSON persis seperti di skema>, "alasan": <alasan singkat bahasa Indonesia> } HANYA untuk kolom yang nilainya Anda tebak, buram, terpotong, bertentangan, atau tidak tertera di dokumen.
+- Contoh: [{ "kolom": "totalBiaya", "alasan": "angka terpotong di foto" }]. Untuk kolom di dalam daftar, sebut urutannya, mis. "pelaksana[2].nip".
+- Bila semua kolom terbaca jelas, isi [] (array kosong). Maksimal 10 catatan.`;

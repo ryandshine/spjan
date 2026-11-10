@@ -7,6 +7,7 @@ export { SBM_2026 } from "./data/sbm-2026.js";
 export * from "./schemas.js";
 export * from "./st-model.js";
 export * from "./berkas.js";
+export * from "./perlu-dicek.js";
 export * from "./st-ekstraksi.js";
 export * from "./hotel-ekstraksi.js";
 export * from "./transport-ekstraksi.js";

@@ -1,4 +1,4 @@
-import { AiGalat, type KlienAi, type PermintaanAi } from "./klien.js";
+import { AiGalat, catatPemakaian, type KlienAi, type PermintaanAi } from "./klien.js";
 
 const ringkas = (teks: string) => teks.replace(/\s+/g, " ").slice(0, 200);
 
@@ -37,6 +37,7 @@ export const klienOllama: KlienAi = {
     }
     try {
       const balasan = JSON.parse(teks) as { message?: { content?: unknown }; prompt_eval_count?: number; eval_count?: number; done_reason?: string };
+      catatPemakaian(p, balasan.prompt_eval_count, balasan.eval_count);
       const isi = balasan.message?.content;
       if (typeof isi !== "string") throw new Error("tanpa isi");
       // Hanya angka pemakaian yang dicatat, tidak pernah isi dokumen atau jawaban.

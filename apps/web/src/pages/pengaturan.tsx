@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { PengaturanSchema, type PengaturanPayload } from '@spjan/shared'
 
 import { ModelAiCard } from '@/components/model-ai-card'
+import { PemakaianAiCard } from '@/components/pemakaian-ai-card'
 import { PageHeader } from '@/components/page-header'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -145,8 +146,9 @@ function FormPengaturan({ awal }: { awal: PengaturanPayload }) {
             </Bagian>
             <div className="md:hidden">{tombolSimpan()}</div>
           </form>
-        <div className="xl:sticky xl:top-24">
+        <div className="grid gap-6 xl:sticky xl:top-24">
           <ModelAiCard />
+          <PemakaianAiCard />
         </div>
       </div>
     </div>

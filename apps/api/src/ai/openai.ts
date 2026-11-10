@@ -1,4 +1,4 @@
-import { AiGalat, type KlienAi, type PermintaanAi } from "./klien.js";
+import { AiGalat, catatPemakaian, type KlienAi, type PermintaanAi } from "./klien.js";
 
 const ringkas = (teks: string) => teks.replace(/\s+/g, " ").slice(0, 200);
 
@@ -71,6 +71,7 @@ export function buatKlienOpenAi(apiKey: string | undefined): KlienAi {
           choices?: { message?: { content?: unknown }; finish_reason?: string }[];
           usage?: { prompt_tokens?: number; completion_tokens?: number };
         };
+        catatPemakaian(p, balasan.usage?.prompt_tokens, balasan.usage?.completion_tokens);
         const pilihan = balasan.choices?.[0];
         const isi = pilihan?.message?.content;
         if (typeof isi !== "string") throw new Error("tanpa isi");

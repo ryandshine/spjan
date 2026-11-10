@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { bidangPerluDicek, pesanPerluDicek } from "./perlu-dicek.js";
+
 import type { BerkasDto, StatusUsulan } from "./berkas.js";
 import type { EtapePayload, PelaksanaPayload, SuratTugasDto, SuratTugasPayload } from "./schemas.js";
 import { bersihkanGelarNama } from "./st-ekstraksi.js";
@@ -15,6 +17,7 @@ export const HasilEkstraksiHotelSchema = z.object({
   jumlahMalam: z.number().int().min(1).max(90),
   tarifPerMalam: z.number().int().nonnegative().nullable(),
   totalBiaya: z.number().int().nonnegative(),
+  perluDicek: bidangPerluDicek,
 });
 export type HasilEkstraksiHotel = z.infer<typeof HasilEkstraksiHotelSchema>;
 
@@ -71,7 +74,7 @@ export function petakanHotelKeUsulan(
     if (!parse.success) continue;
     const h = parse.data;
 
-    const peringatan: string[] = [];
+    const peringatan: string[] = pesanPerluDicek(h.perluDicek);
     const malam = h.jumlahMalam > 0 ? h.jumlahMalam : Math.max(hitungMalam(h.checkIn, h.checkOut), 1);
     const tarifRiilPerMalam =
       h.tarifPerMalam && h.tarifPerMalam > 0

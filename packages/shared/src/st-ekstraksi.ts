@@ -1,4 +1,6 @@
 import { z } from "zod";
+
+import { bidangPerluDicek, pesanPerluDicek } from "./perlu-dicek.js";
 import { SBM_2026 } from "./data/sbm-2026.js";
 import { INSTANSI_BAWAAN } from "./schemas.js";
 import type { BiayaPayload, PegawaiDto, PengaturanPayload, SuratTugasPayload } from "./schemas.js";
@@ -27,6 +29,7 @@ export const HasilEkstraksiStSchema = z.object({
   tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format YYYY-MM-DD"),
   kegiatan: z.string().trim().min(1).max(1000),
   pelaksana: z.array(PelaksanaEkstraksiStSchema).min(1).max(30),
+  perluDicek: bidangPerluDicek,
 });
 export type HasilEkstraksiSt = z.infer<typeof HasilEkstraksiStSchema>;
 
@@ -209,6 +212,6 @@ export function petakanStKeUsulan(
       pelaksana: pelaksanaPayload,
     },
     pelaksanaStatus,
-    peringatan,
+    peringatan: [...pesanPerluDicek(ekstraksi.perluDicek), ...peringatan],
   };
 }

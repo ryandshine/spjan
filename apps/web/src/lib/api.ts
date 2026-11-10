@@ -28,6 +28,7 @@ import type {
   SuratTugasDto,
   SuratTugasPayload,
   SuratTugasRingkasDto,
+  PemakaianAiBaris,
   UjiModelHasil,
   UpdateBerkasPayload,
   UpdateUsulanBerkasPayload,
@@ -139,6 +140,7 @@ export const api = {
     get: () => request<ModelAiDto>('GET', '/api/model-ai'),
     save: (p: ModelAiPayload) => request<ModelAiDto>('PUT', '/api/model-ai', p),
     uji: (jenis: 'teks' | 'gambar') => request<UjiModelHasil>('POST', '/api/model-ai/uji', { jenis }),
+    pemakaian: () => request<PemakaianAiBaris[]>('GET', '/api/model-ai/pemakaian'),
   },
 
   sbm: {

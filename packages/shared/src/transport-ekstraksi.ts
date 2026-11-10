@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { bidangPerluDicek, pesanPerluDicek } from "./perlu-dicek.js";
+
 import type { BerkasDto, StatusUsulan } from "./berkas.js";
 import type {
   PelaksanaPayload,
@@ -55,6 +57,7 @@ export const HasilEkstraksiTiketSchema = z.object({
   moda: ModaTiketSchema.optional().default("lainnya"),
   /** Semua arah perjalanan dalam dokumen; `tarif` di atas tetap total seluruh segmen. Kosong pada ekstraksi lama. */
   segmen: z.array(SegmenTiketSchema).max(6).optional().default([]),
+  perluDicek: bidangPerluDicek,
 });
 export type HasilEkstraksiTiket = z.infer<typeof HasilEkstraksiTiketSchema>;
 
@@ -73,6 +76,7 @@ export const HasilEkstraksiTransportSchema = z.object({
   tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format YYYY-MM-DD"),
   uraian: z.string().trim().min(1).max(300),
   totalBiaya: z.number().int().nonnegative(),
+  perluDicek: bidangPerluDicek,
 });
 export type HasilEkstraksiTransport = z.infer<
   typeof HasilEkstraksiTransportSchema
@@ -310,7 +314,7 @@ export function petakanTransportKeUsulan(
         const eiSegmen = pelaksana.etape.findIndex((e) => e.berangkat <= t.tanggal && e.pulang >= t.tanggal);
         const etapeIndex = eiSegmen >= 0 ? eiSegmen : pen.etapeIndex;
         const etape = pelaksana.etape[etapeIndex];
-        const peringatan: string[] = [...pen.peringatanBagi];
+        const peringatan: string[] = [...pen.peringatanBagi, ...pesanPerluDicek(tiket.perluDicek)];
         if (daftarSegmen.length > 1 && pembagian.rata) {
           peringatan.push(`Tiket memuat ${daftarSegmen.length} segmen tanpa harga terpisah; tarif dibagi rata. Periksa tarif.`);
         }
@@ -402,7 +406,7 @@ export function petakanTransportKeUsulan(
       const pelaksana = st.pelaksana[pelaksanaIndex];
       if (!pelaksana) continue;
       const etape = pelaksana.etape[etapeIndex];
-      const peringatan: string[] = [];
+      const peringatan: string[] = pesanPerluDicek(tr.perluDicek);
 
       let jenisBiaya: JenisBiaya = "TAKSI_TERMINAL";
       if (tr.kategori === "sewa_kendaraan") {

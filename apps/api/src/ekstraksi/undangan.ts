@@ -1,7 +1,7 @@
 import { HasilEkstraksiUndanganSchema, type HasilEkstraksiUndangan } from "@spjan/shared";
 
 import { AiGalat, type KlienAi, type KonfigurasiAi } from "../ai/klien.js";
-import { skemaJson, uraikanJsonAi } from "../ai/skema.js";
+import { PETUNJUK_PERLU_DICEK, skemaJson, uraikanJsonAi } from "../ai/skema.js";
 import type { IsiBerkas } from "./baca-berkas.js";
 
 export const SKEMA_EKSTRAKSI_UNDANGAN = skemaJson(HasilEkstraksiUndanganSchema);
@@ -17,6 +17,8 @@ Baca surat undangan (rapat, bimbingan teknis, sosialisasi, lokakarya, kunjungan,
 - penyelenggara: instansi pengirim/penyelenggara (mis. "Dinas Kehutanan Provinsi Jawa Barat")
 
 Panduan: tanggal bisa tertulis "Senin, 2 November 2026" atau "2 - 4 November 2026"; ubah ke YYYY-MM-DD. Jangan menebak: bila suatu nilai tidak tertera jelas, isi null. Jangan mengarang nomor atau tanggal.
+
+${PETUNJUK_PERLU_DICEK}
 
 Balas HANYA JSON yang valid sesuai skema.`;
 

@@ -12,6 +12,8 @@ Terakhir diperbarui: 2026-11-10 (model pembaca dokumen diganti ke Qwen).
 - Belum pasti: dokumentasi menyebut `max_tokens` sebaiknya tidak diisi saat JSON aktif; bila jawaban terpotong/ditolak, hapus `max_tokens`.
 - Foto unggahan (JPG/PNG/WebP) dikirim ke model sebagai salinan JPEG q85, sisi terpanjang 2000 px (`kecilkanFoto`, sharp); berkas asli tidak diubah.
 - Kode galat baru `KUNCI_DITOLAK` (401/403/key kosong, tidak diulang) dan `BATAS_PERMINTAAN` (429, diulang sekali oleh worker).
+- Pemakaian token per pekerjaan ekstraksi (migrasi `1791126000033`: `token_masuk`, `token_keluar`, `jumlah_panggilan`), dijumlahkan lintas klasifikasi, ekstraksi, dan coba ulang, termasuk yang gagal. Kartu "Pemakaian model AI" di Pengaturan (`GET /api/model-ai/pemakaian`, admin), 12 bulan per model, tanpa rupiah. Naskah ST dengan AI belum tercatat.
+- `perluDicek` (opsional, isian rusak diabaikan) di skema ST/hotel/tiket/transport/undangan: kolom yang ditebak/buram menurut model, plus etape ST yang disalin sistem. Ditampilkan sebagai baris di daftar `peringatan` usulan yang sudah ada (`pesanPerluDicek`). Undangan belum punya tampilan peringatan.
 - Skema JSON disisipkan ke prompt dan diminta `response_format: json_object` (tidak semua model Qwen mendukung `json_schema`).
 - Belum dicoba dengan key asli: setelah deploy, tekan "Uji model teks" dan "Uji model gambar" di Pengaturan.
 

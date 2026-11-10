@@ -23,6 +23,7 @@ export const keys = {
   pegawai: (aktif: boolean) => ['pegawai', aktif] as const,
   pengaturan: ['pengaturan'] as const,
   modelAi: ['model-ai'] as const,
+  pemakaianAi: ['model-ai', 'pemakaian'] as const,
   sbmVersi: ['sbm', 'versi'] as const,
   sbm: (id: number) => ['sbm', id] as const,
   stList: ['st', 'list'] as const,
@@ -158,6 +159,10 @@ export function useHasilSuratTugas(id: number | undefined) {
 
 export function useModelAi() {
   return useQuery({ queryKey: keys.modelAi, queryFn: api.modelAi.get })
+}
+
+export function usePemakaianAi() {
+  return useQuery({ queryKey: keys.pemakaianAi, queryFn: api.modelAi.pemakaian })
 }
 
 export function useSimpanModelAi() {

@@ -1,7 +1,7 @@
 import { HasilEkstraksiHotelSchema, type HasilEkstraksiHotel } from "@spjan/shared";
 
 import { AiGalat, type KlienAi, type KonfigurasiAi } from "../ai/klien.js";
-import { skemaJson, uraikanJsonAi } from "../ai/skema.js";
+import { PETUNJUK_PERLU_DICEK, skemaJson, uraikanJsonAi } from "../ai/skema.js";
 import type { IsiBerkas } from "./baca-berkas.js";
 
 export const SKEMA_EKSTRAKSI_HOTEL = skemaJson(HasilEkstraksiHotelSchema);
@@ -19,6 +19,8 @@ Periksa dokumen atau foto invoice, bill, folio, atau kuitansi hotel berikut, lal
 
 PENTING:
 - Balas HANYA SATU JSON object {...}, BUKAN array [ ... ].
+
+${PETUNJUK_PERLU_DICEK}
 
 Balas HANYA JSON yang valid sesuai skema.`;
 

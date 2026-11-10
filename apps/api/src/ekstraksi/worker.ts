@@ -1,6 +1,6 @@
 import type { JenisBerkas, MimeBerkas } from "@spjan/shared";
 
-import { AiGalat, type KlienAi, type KonfigurasiAi } from "../ai/klien.js";
+import { AiGalat, pemakaianKosong, type KlienAi, type KonfigurasiAi } from "../ai/klien.js";
 import type { BerkasStore } from "../berkas/store.js";
 import type { Db } from "../db.js";
 import { konfigurasiAi } from "../repositories/model-ai.js";
@@ -96,6 +96,9 @@ export function bikinWorker(opsi: WorkerOpsi) {
   async function proses(k: Klaim): Promise<void> {
     const mulai = Date.now();
     let model: string | null = null;
+    // Semua panggilan model untuk pekerjaan ini (klasifikasi, ekstraksi, coba ulang JSON) dijumlahkan di sini.
+    const pemakaian = pemakaianKosong();
+    const klienHitung: KlienAi = { chat: (p) => klien.chat({ ...p, pemakaian }) };
     try {
       const { rows } = await db.query<{ id: number; mime: MimeBerkas; sha256: string; jenis: JenisBerkas }>(
         "select id, mime, sha256, jenis from berkas where id = $1",
@@ -110,7 +113,7 @@ export function bikinWorker(opsi: WorkerOpsi) {
       // Isi berkas yang sama persis sudah pernah diekstrak: pakai hasilnya, tanpa membaca ulang dan tanpa memanggil model.
       const dipakaiUlang = await cariHasilSama(db, berkas, konf);
       if (dipakaiUlang) console.log(`[ekstraksi] berkas=${k.berkasId} memakai hasil berkas identik (tanpa panggilan model)`);
-      const hasil = dipakaiUlang ?? (await ekstrak({ berkas, isi: await bacaIsi(berkas.mime, data), konf, klien }));
+      const hasil = dipakaiUlang ?? (await ekstrak({ berkas, isi: await bacaIsi(berkas.mime, data), konf, klien: klienHitung }));
       model = hasil.model;
       if ("connect" in db && typeof (db as any).connect === "function") {
         const client = await (db as any).connect();
@@ -151,6 +154,18 @@ export function bikinWorker(opsi: WorkerOpsi) {
         [k.id, ulang ? "antre" : "gagal", galat.kode, galat.message],
       );
       console.warn(`[ekstraksi] berkas=${k.berkasId} status=${ulang ? "antre" : "gagal"} kode=${galat.kode} durasi=${Date.now() - mulai}ms`);
+    } finally {
+      // Token tetap ditagih walau ekstraksi gagal; dijumlahkan lintas percobaan.
+      if (pemakaian.panggilan > 0) {
+        await db
+          .query(
+            `update ekstraksi set token_masuk = token_masuk + $2, token_keluar = token_keluar + $3,
+                    jumlah_panggilan = jumlah_panggilan + $4, model = coalesce(model, $5)
+              where id = $1`,
+            [k.id, pemakaian.tokenMasuk, pemakaian.tokenKeluar, pemakaian.panggilan, pemakaian.model],
+          )
+          .catch((error: unknown) => console.error(`[ekstraksi] berkas=${k.berkasId} gagal mencatat pemakaian jenis=${namaGalat(error)}`));
+      }
     }
   }
 

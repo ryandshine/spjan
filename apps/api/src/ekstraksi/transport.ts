@@ -1,7 +1,7 @@
-import { HasilEkstraksiTransportSchema, type HasilEkstraksiTransport } from "@spjan/shared";
+import { gabungPerluDicek, HasilEkstraksiTransportSchema, type HasilEkstraksiTransport } from "@spjan/shared";
 
 import { AiGalat, type KlienAi, type KonfigurasiAi } from "../ai/klien.js";
-import { skemaJson, uraikanJsonAi } from "../ai/skema.js";
+import { PETUNJUK_PERLU_DICEK, skemaJson, uraikanJsonAi } from "../ai/skema.js";
 import type { IsiBerkas } from "./baca-berkas.js";
 
 export const SKEMA_EKSTRAKSI_TRANSPORT = skemaJson(HasilEkstraksiTransportSchema);
@@ -17,6 +17,8 @@ Periksa dokumen kuitansi, tanda terima, bukti transaksi, atau struk transportasi
 
 PENTING:
 - Balas HANYA SATU JSON object {...}, BUKAN array [ ... ]. Jika dokumen memuat beberapa struk/kuitansi transportasi (misalnya beberapa perjalanan taksi atau sewa mobil beberapa hari), jumlahkan seluruh biaya ke totalBiaya, gabungkan rincian perjalanan ke uraian, dan gunakan tanggal perjalanan pertama.
+
+${PETUNJUK_PERLU_DICEK}
 
 Balas HANYA JSON yang valid sesuai skema.`;
 
@@ -80,6 +82,7 @@ export function normalisasiHasilTransport(raw: unknown): unknown {
       tanggal: pertama.tanggal ?? new Date().toISOString().slice(0, 10),
       uraian: uraianGabung ?? pertama.uraian ?? null,
       totalBiaya,
+      perluDicek: gabungPerluDicek(items),
     };
   }
 
