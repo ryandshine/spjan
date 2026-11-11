@@ -117,6 +117,15 @@ export async function tambahBerkas(
     [input.stId, sha256],
   );
   if (ada[0]) {
+    // Pembacaan terakhir gagal (mis. model lama yang kehabisan kredit): unggah ulang = baca ulang,
+    // supaya pengguna tidak terjebak pada galat lama. Yang antre/berjalan/selesai dibiarkan.
+    await db.query(
+      `insert into ekstraksi (berkas_id)
+       select b.id from berkas b
+         join lateral (select status from ekstraksi where berkas_id = b.id order by id desc limit 1) e on true
+        where b.id = $1 and e.status = 'gagal' and b.jenis not in ('dokumentasi', 'laporan')`,
+      [ada[0].id],
+    );
     const dto = await getBerkas(db, ada[0].id);
     return { dto: dto as BerkasDto, duplikat: true };
   }

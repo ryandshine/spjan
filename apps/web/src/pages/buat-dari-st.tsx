@@ -12,11 +12,12 @@ import {
   UsersIcon,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { parseTanggal, selisihHari } from '@spjan/shared'
 import { tanggalPendek, pesanGalat } from '@/lib/format'
 import { api } from '@/lib/api'
-import { useBerkas, useUsulanSt, useBuatStDariBerkas } from '@/lib/queries'
+import { useBerkas, useUsulanSt, useBuatStDariBerkas, useUlangiEkstraksiBerkas } from '@/lib/queries'
 import { PageHeader } from '@/components/page-header'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -44,6 +45,17 @@ export default function BuatDariStPage() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const [berkasId, setBerkasId] = useState<number | null>(null)
+  const qc = useQueryClient()
+  const ulangi = useUlangiEkstraksiBerkas()
+
+  async function ulangiPembacaan(id: number) {
+    try {
+      await ulangi.mutateAsync(id)
+      toast.success('Pembacaan ulang dijadwalkan.')
+    } catch (err) {
+      toast.error(`Gagal menjadwalkan ulang: ${pesanGalat(err)}`)
+    }
+  }
   const [mengunggah, setMengunggah] = useState(false)
   const [pesanUnggah, setPesanUnggah] = useState<string | null>(null)
 
@@ -69,8 +81,12 @@ export default function BuatDariStPage() {
       setMengunggah(true)
       setPesanUnggah(null)
       const res = await api.berkas.unggah(file)
+      // Berkas identik bisa masih tersimpan di cache dengan status lama (mis. gagal, lalu diantrekan ulang oleh server).
+      qc.setQueryData(['berkas', res.berkas.id], res.berkas)
       setBerkasId(res.berkas.id)
-      if (res.duplikat) {
+      if (res.duplikat && res.berkas.ekstraksi?.status === 'antre') {
+        toast.info('Berkas identik telah ada; dibaca ulang karena pembacaan sebelumnya gagal.')
+      } else if (res.duplikat) {
         toast.info('Berkas identik telah ada, menggunakan data berkas yang tersimpan.')
       } else {
         toast.success('Berkas berhasil diunggah. Mulai diproses.')
@@ -212,6 +228,15 @@ export default function BuatDariStPage() {
                     <div>
                       <p className="font-medium">Ekstraksi berkas gagal</p>
                       <p className="text-xs mt-0.5">{berkas.ekstraksi.galat ?? 'Terjadi kesalahan saat memproses berkas.'}</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        disabled={ulangi.isPending}
+                        onClick={() => void ulangiPembacaan(berkas.id)}
+                      >
+                        <RotateCcwIcon className="size-4" /> Ulangi pembacaan
+                      </Button>
                     </div>
                   </div>
                 </Alert>

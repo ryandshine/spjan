@@ -67,6 +67,20 @@ describe("unggah berkas", () => {
     expect(rows[0].n).toBe(1);
   });
 
+  it("unggah ulang berkas yang pembacaannya gagal memasukkannya lagi ke antrean", async () => {
+    const pertama = await unggah("a.png", pngUnik(3));
+    const id = pertama.json().berkas.id;
+    await pool.query("update ekstraksi set status = 'gagal', kode_galat = 'MODEL_TIDAK_TERSEDIA', galat = 'Ollama menjawab 402' where berkas_id = $1", [id]);
+    const kedua = await unggah("a.png", pngUnik(3));
+    expect(kedua.json()).toMatchObject({ duplikat: true, berkas: { id, ekstraksi: { status: "antre", galat: null } } });
+    const { rows } = await pool.query("select status from ekstraksi where berkas_id = $1 order by id", [id]);
+    expect(rows.map((r) => r.status)).toEqual(["gagal", "antre"]);
+
+    // Yang sedang antre atau selesai tidak ditambah lagi.
+    await unggah("a.png", pngUnik(3));
+    expect((await pool.query("select count(*)::int as n from ekstraksi where berkas_id = $1", [id])).rows[0].n).toBe(2);
+  });
+
   it("memisahkan daftar berkas per ST dan berkas tanpa ST", async () => {
     const stId = await buatSt();
     await unggah("lepas.png", pngUnik(3));
