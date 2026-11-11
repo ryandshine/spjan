@@ -494,7 +494,7 @@ export function BuktiPanel({
                                   Ubah
                                 </Button>
                               </div>
-                            ) : hotelItem.pelaksanaIndex >= 0 ? (
+                            ) : hotelItem.pelaksanaIndex >= 0 && !hotelItem.bacaUlang ? (
                               <Badge variant="outline" className="text-[11px] gap-1 text-muted-foreground">
                                 <Loader2Icon className="size-3 animate-spin text-primary" />
                                 Menerapkan ke {pelaksanaList[hotelItem.pelaksanaIndex]?.nama || hotelItem.pelaksanaNama}...
@@ -502,12 +502,13 @@ export function BuktiPanel({
                             ) : (
                               <div className="flex flex-col gap-1">
                                 <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
-                                  <AlertCircleIcon className="size-3" /> Tamu tidak cocok pelaksana ST
+                                  <AlertCircleIcon className="size-3" />{' '}
+                                  {hotelItem.bacaUlang ? 'Hasil baca ulang: periksa lalu terapkan' : 'Tamu tidak cocok pelaksana ST'}
                                 </span>
                                 <div className="flex flex-wrap items-center gap-1.5">
                                   {pelaksanaList.length > 0 ? (
                                     <select
-                                      value={pilihanPelaksana[`hotel-${hotelItem.berkasId}`] ?? 0}
+                                      value={pilihanPelaksana[`hotel-${hotelItem.berkasId}`] ?? Math.max(hotelItem.pelaksanaIndex, 0)}
                                       onChange={(e) =>
                                         setPilihanPelaksana((prev) => ({
                                           ...prev,
@@ -529,7 +530,7 @@ export function BuktiPanel({
                                     disabled={pelaksanaList.length === 0 || updateUsulan.isPending}
                                     className="h-7 text-xs px-2.5 gap-1"
                                     onClick={() => {
-                                      const targetIdx = pilihanPelaksana[`hotel-${hotelItem.berkasId}`] ?? 0
+                                      const targetIdx = pilihanPelaksana[`hotel-${hotelItem.berkasId}`] ?? Math.max(hotelItem.pelaksanaIndex, 0)
                                       void handleKonfirmasiHotel(hotelItem, targetIdx)
                                     }}
                                   >
@@ -581,7 +582,7 @@ export function BuktiPanel({
                                         Ubah
                                       </Button>
                                     </div>
-                                  ) : tItem.pelaksanaIndex >= 0 ? (
+                                  ) : tItem.pelaksanaIndex >= 0 && !tItem.bacaUlang ? (
                                     <Badge variant="outline" className="text-[11px] gap-1 text-muted-foreground">
                                       <Loader2Icon className="size-3 animate-spin text-primary" />
                                       Menerapkan ke {pelaksanaList[tItem.pelaksanaIndex]?.nama || tItem.pelaksanaNama}...
@@ -589,7 +590,8 @@ export function BuktiPanel({
                                   ) : (
                                     <div className="flex flex-col gap-1">
                                       <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
-                                        <AlertCircleIcon className="size-3" /> Penumpang tidak cocok pelaksana ST
+                                        <AlertCircleIcon className="size-3" />{' '}
+                                        {tItem.bacaUlang ? 'Hasil baca ulang: periksa lalu terapkan' : 'Penumpang tidak cocok pelaksana ST'}
                                       </span>
                                       <div className="flex flex-wrap items-center gap-1.5">
                                         {pelaksanaList.length > 0 ? (
