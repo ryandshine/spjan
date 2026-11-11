@@ -6,7 +6,8 @@ Terakhir diperbarui: 2026-11-11 (tarif uang harian manual).
 ## Tarif uang harian manual (2026-11-11)
 
 - `etape.uangHarianTarif` (migrasi `1791126000034`, null = SBM). `hitungSpj` memakai tarif manual untuk uang harian penuh dan 60% (fullboard tetap SBM; tambahan lain lewat tabel manual). Melebihi SBM = peringatan `UANG_HARIAN_MELEBIHI_SBM`, tidak diblokir. Provinsi tanpa SBM tetap dihitung bila tarif manual diisi.
-- UI: isian "Tarif per hari" di blok uang harian per tujuan (placeholder = SBM, tanda Otomatis/Diubah manual, "Kembalikan ke SBM"). Mengubah centang dalam kota > 8 jam mengosongkan tarif manual. Peringatan menunjuk isian lewat `lib/periksa.ts` (`-uang-harian`).
+- UI: isian "Tarif per hari" di blok uang harian per tujuan (placeholder = SBM, tanda Otomatis/Diubah manual, "Kembalikan ke SBM"). Mengubah centang dalam kota > 8 jam mengosongkan tarif manual dan tarif lain.
+- `etape.uangHarianTarifLain` (jsonb, migrasi `1791126000035`): kartu "Tarif lain" bertanggal di blok uang harian; tanggal lain memakai tarif utama (manual/SBM). Kartu pertama yang memuat tanggal menang. Satu tarif = satu baris rincian; hari 60% = 60% dari tarif kartunya; status per hari tetap didahulukan. Peringatan menunjuk isian lewat `lib/periksa.ts` (`-uang-harian`).
 
 ## Model AI ke Qwen Singapura (2026-11-10)
 

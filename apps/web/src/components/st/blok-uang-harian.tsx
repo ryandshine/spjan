@@ -1,4 +1,4 @@
-import { InfoIcon, RotateCcwIcon, TriangleAlertIcon } from 'lucide-react'
+import { CheckIcon, InfoIcon, PlusIcon, RotateCcwIcon, Trash2Icon, TriangleAlertIcon } from 'lucide-react'
 import {
   daftarHariIso,
   formatAngka,
@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button'
 import { Istilah } from '@/components/ui/istilah'
 import { Label } from '@/components/ui/label'
 import { rupiah } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import { ubahBiaya, ubahEtape } from '@/lib/pelaksana-ubah'
 import { tanggalBentrokStatus, tetapkanStatusHari, type KolomStatusHari } from '@/lib/uang-harian'
 import { useTanggalTerpilih } from '@/lib/use-tanggal-terpilih'
@@ -70,6 +71,13 @@ function EtapeUangHarianCard({
   const bukanPenuh = new Set([...tanpaUangHarian.aktif, ...fullboard.aktif, ...uangHarian60.aktif])
   const tglPenuh = listHari.filter((t) => !bukanPenuh.has(t))
   const jmlBiasa = tglPenuh.length
+  // Tarif lain per tanggal: kartu pertama yang memuat tanggal itu yang dipakai (sama seperti mesin hitung).
+  const tarifLain = etape.uangHarianTarifLain ?? []
+  const pemilikTanggal = new Map<string, number>()
+  tarifLain.forEach((k, j) => k.tanggal.forEach((t) => (listHari.includes(t) && !pemilikTanggal.has(t) ? pemilikTanggal.set(t, j) : null)))
+  const tglUtama = tglPenuh.filter((t) => !pemilikTanggal.has(t))
+  const ubahTarifLain = (j: number, patch: Partial<{ tarif: number; tanggal: string[] }>) =>
+    onUbah({ uangHarianTarifLain: tarifLain.map((k, x) => (x === j ? { ...k, ...patch } : k)) })
   const jmlTanpaUangHarian = tanpaUangHarian.jumlah
   const jmlUangHarian60 = uangHarian60.jumlah
   const isDalamKota = !!etape.dalamKota8Jam && listHari.length === 1
@@ -133,9 +141,9 @@ function EtapeUangHarianCard({
               <p className="text-xs font-medium text-warning-foreground">Tarif melebihi batas SBM {rupiah(tarifSbm)}.</p>
             ) : null}
             <p className="text-xs text-muted-foreground tabular-nums">
-              {tglPenuh.length} dari {listHari.length} hari
-              {tarifHarian !== undefined && tglPenuh.length > 0 ? ` × ${rupiah(tarifHarian)} = ${rupiah(tglPenuh.length * tarifHarian)}` : ''}
-              {tglPenuh.length > 0 ? ` | ${formatDaftarTanggal(tglPenuh)}` : ''}
+              {tglUtama.length} dari {listHari.length} hari
+              {tarifHarian !== undefined && tglUtama.length > 0 ? ` × ${rupiah(tarifHarian)} = ${rupiah(tglUtama.length * tarifHarian)}` : ''}
+              {tglUtama.length > 0 ? ` | ${formatDaftarTanggal(tglUtama)}` : ''}
             </p>
             <p className="text-xs text-muted-foreground">
               Hari lain mengikuti status di bawah: 60% {jmlUangHarian60} | paket rapat {jmlFullboard} | pihak lain {jmlTanpaUangHarian}. Tiap hari hanya punya satu status.
@@ -146,6 +154,79 @@ function EtapeUangHarianCard({
                 {bentrok.map(labelTanggal).join(', ')} tercatat di lebih dari satu status. Yang dipakai: pihak lain, lalu paket rapat, lalu 60%. Pilih ulang tanggalnya agar jelas.
               </p>
             ) : null}
+            {tarifLain.map((k, j) => {
+              const milik = listHari.filter((t) => pemilikTanggal.get(t) === j)
+              const dibayar = milik.filter((t) => tglPenuh.includes(t))
+              const idKartu = `${idTarif}-lain-${j + 1}`
+              return (
+                <div key={j} className="grid gap-3 rounded-lg border bg-card/40 p-3.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-foreground">Tarif lain {j + 1}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={terkunci}
+                      title={`Hapus tarif lain ${j + 1}`}
+                      aria-label={`Hapus tarif lain ${j + 1}`}
+                      onClick={() => onUbah({ uangHarianTarifLain: tarifLain.filter((_, x) => x !== j) })}
+                    >
+                      <Trash2Icon className="text-destructive" />
+                    </Button>
+                  </div>
+                  <div className="grid items-end gap-2 sm:grid-cols-[1fr_13rem]">
+                    <span className="text-xs text-muted-foreground">{tarifSbm !== undefined ? `Batas SBM ${rupiah(tarifSbm)}` : 'Batas SBM belum tersedia'}</span>
+                    <div className="grid gap-1">
+                      <Label htmlFor={idKartu}>Tarif per hari</Label>
+                      <RupiahInput awalan className="font-mono" id={idKartu} disabled={terkunci} value={k.tarif || null} onChange={(v) => ubahTarifLain(j, { tarif: v ?? 0 })} />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2" role="group" aria-label={`Tanggal untuk tarif lain ${j + 1}`}>
+                    {listHari.map((t) => {
+                      const dipilih = milik.includes(t)
+                      const terpakai = pemilikTanggal.has(t) && !dipilih
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          aria-pressed={dipilih}
+                          disabled={terkunci || terpakai}
+                          title={terpakai ? 'Sudah dipilih di tarif lain' : undefined}
+                          onClick={() => ubahTarifLain(j, { tanggal: dipilih ? k.tanggal.filter((x) => x !== t) : [...k.tanggal, t].sort() })}
+                          className={cn(
+                            'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-40',
+                            dipilih ? 'border-primary bg-primary text-primary-foreground' : 'border-input bg-card text-foreground hover:bg-accent',
+                          )}
+                        >
+                          {dipilih ? <CheckIcon className="size-3.5 stroke-[3]" aria-hidden /> : null}
+                          {labelTanggal(t)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span className="text-muted-foreground">{dibayar.length > 0 ? formatDaftarTanggal(dibayar) : ''}</span>
+                    <span className="font-mono font-semibold tabular-nums">
+                      {dibayar.length} hari × {rupiah(k.tarif)} = {rupiah(dibayar.length * k.tarif)}
+                    </span>
+                  </div>
+                  {tarifSbm !== undefined && k.tarif > tarifSbm ? (
+                    <p className="text-xs font-medium text-warning-foreground">Tarif melebihi batas SBM {rupiah(tarifSbm)}.</p>
+                  ) : null}
+                  {milik.length === 0 ? <p className="text-xs font-medium text-warning-foreground">Belum ada tanggal yang dipilih.</p> : null}
+                </div>
+              )
+            })}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              disabled={terkunci}
+              onClick={() => onUbah({ uangHarianTarifLain: [...tarifLain, { tarif: tarifHarian ?? 0, tanggal: [] }] })}
+            >
+              <PlusIcon /> Tambah tarif lain
+            </Button>
           </div>
         ) : null}
 
@@ -159,8 +240,8 @@ function EtapeUangHarianCard({
                 checked={etape.dalamKota8Jam ?? false}
                 onChange={(e) => {
                   const aktif = e.target.checked
-                  // Tarif dalam kota dan luar kota berbeda: tarif manual lama tidak berlaku lagi.
-                  onUbah({ dalamKota8Jam: aktif, uangHarianTarif: null, ...(aktif && hari === 1 ? { malamOverride: 0 } : {}) })
+                  // Tarif dalam kota dan luar kota berbeda: tarif manual dan tarif lain yang lama tidak berlaku lagi.
+                  onUbah({ dalamKota8Jam: aktif, uangHarianTarif: null, uangHarianTarifLain: [], ...(aktif && hari === 1 ? { malamOverride: 0 } : {}) })
                 }}
               />
               <span>

@@ -135,6 +135,8 @@ export interface EtapeInput {
   uangHarian60Dates?: string[];
   /** Tarif uang harian per hari yang diisi manual; kosong = tarif SBM. Melebihi SBM hanya diberi peringatan. */
   uangHarianTarif?: number | null;
+  /** Tarif uang harian lain untuk tanggal tertentu; tanggal lain memakai uangHarianTarif (atau SBM). Kartu pertama yang memuat tanggal menang. */
+  uangHarianTarifLain?: { tarif: number; tanggal: string[] }[];
 }
 
 export type ArahTaksi = "pergi" | "pulang" | "pp";

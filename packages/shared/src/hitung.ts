@@ -224,12 +224,18 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
   // Tarif manual mengalahkan SBM; melebihi SBM hanya diberi peringatan (pengguna tetap bisa mengubah).
   const tarifManual = e.uangHarianTarif ?? null;
   const tarifHarian = tarifManual ?? tarifSbm;
-  if (tarifManual !== null && tarifSbm !== undefined && tarifManual > tarifSbm) {
-    peringatan.push({
-      kode: "UANG_HARIAN_MELEBIHI_SBM",
-      pesan: `${nomor}: tarif uang harian ${formatRp(tarifManual)} melebihi SBM ${formatRp(tarifSbm)}.`,
-      etape: i,
-    });
+  const tarifLain = e.uangHarianTarifLain ?? [];
+  if (tarifSbm !== undefined) {
+    const diperiksa = new Set<number>();
+    for (const t of [...(tarifManual !== null ? [tarifManual] : []), ...tarifLain.map((k) => k.tarif)]) {
+      if (t <= tarifSbm || diperiksa.has(t)) continue;
+      diperiksa.add(t);
+      peringatan.push({
+        kode: "UANG_HARIAN_MELEBIHI_SBM",
+        pesan: `${nomor}: tarif uang harian ${formatRp(t)} melebihi SBM ${formatRp(tarifSbm)}.`,
+        etape: i,
+      });
+    }
   }
   if (tarifHarian === undefined) {
     peringatan.push({
@@ -283,7 +289,16 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
     : `Lumpsum/Prov. ${proper(e.provinsi)} Tanggal ${rincian}`;
 
   hasil.uangHarian = [];
-  if (tglFullboard.length === 0 && tglTanpaUangHarian.length === 0 && tglUangHarian60.length === 0) {
+  // Tarif per tanggal: kartu tarif lain pertama yang memuat tanggal itu, selain itu tarif utama (manual atau SBM).
+  const tarifTanggal = (tgl: string): number => tarifLain.find((k) => k.tanggal.includes(tgl))?.tarif ?? tarifHarian;
+  /** Kelompokkan tanggal per tarif, urut kemunculan pertama, supaya satu tarif menjadi satu baris rincian. */
+  const perTarif = (tanggal: string[]): [number, string[]][] => {
+    const peta = new Map<number, string[]>();
+    for (const t of tanggal) peta.set(tarifTanggal(t), [...(peta.get(tarifTanggal(t)) ?? []), t]);
+    return [...peta.entries()];
+  };
+  const adaTarifLain = listHari.some((t) => tarifTanggal(t) !== tarifHarian);
+  if (tglFullboard.length === 0 && tglTanpaUangHarian.length === 0 && tglUangHarian60.length === 0 && !adaTarifLain) {
     hasil.uangHarian.push({
       uraian: "",
       qty: hari,
@@ -293,29 +308,29 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
       keterangan: ketHarian,
     });
   } else {
-    if (tglBiasa.length > 0) {
+    for (const [tarif, tanggal] of perTarif(tglBiasa)) {
       hasil.uangHarian.push({
         uraian: "",
-        qty: tglBiasa.length,
+        qty: tanggal.length,
         satuan: "hari",
-        tarif: tarifHarian,
-        jumlah: tglBiasa.length * tarifHarian,
+        tarif,
+        jumlah: tanggal.length * tarif,
         keterangan: dalamKota
-          ? `Dalam kota (> 8 jam)/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tglBiasa)}`
-          : `Lumpsum/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tglBiasa)}`,
+          ? `Dalam kota (> 8 jam)/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tanggal)}`
+          : `Lumpsum/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tanggal)}`,
       });
     }
-    if (tglUangHarian60.length > 0) {
-      const tarif60 = Math.round(tarifHarian * 0.6);
+    for (const [tarif, tanggal] of perTarif(tglUangHarian60)) {
+      const tarif60 = Math.round(tarif * 0.6);
       hasil.uangHarian.push({
         uraian: "Uang harian (60%) :",
-        qty: tglUangHarian60.length,
+        qty: tanggal.length,
         satuan: "hari",
         tarif: tarif60,
-        jumlah: tglUangHarian60.length * tarif60,
+        jumlah: tanggal.length * tarif60,
         keterangan: dalamKota
-          ? `Dalam kota (60%)/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tglUangHarian60)}`
-          : `Lumpsum (60%)/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tglUangHarian60)}`,
+          ? `Dalam kota (60%)/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tanggal)}`
+          : `Lumpsum (60%)/Prov. ${proper(e.provinsi)} Tanggal ${formatDaftarTanggal(tanggal)}`,
       });
     }
     if (tglFullboard.length > 0) {

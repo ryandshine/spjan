@@ -31,6 +31,7 @@ export const EtapePayloadSchema = z.object({
   tanpaUangHarianDates: z.array(tanggalWajib).optional(),
   uangHarian60Dates: z.array(tanggalWajib).optional(),
   uangHarianTarif: rupiah.nullish(),
+  uangHarianTarifLain: z.array(z.object({ tarif: rupiah, tanggal: z.array(tanggalWajib) })).max(30).optional(),
 });
 
 export const BiayaPayloadSchema = z.object({

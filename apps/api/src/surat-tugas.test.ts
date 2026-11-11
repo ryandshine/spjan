@@ -34,7 +34,7 @@ describe("surat tugas", () => {
         ...p,
         pangkatGolongan: "",
         instansi: "Direktorat Pengendalian Perhutanan Sosial",
-        etape: p.etape.map((e) => ({ ...e, kabupaten: [], uangHarianTarif: null })),
+        etape: p.etape.map((e) => ({ ...e, kabupaten: [], uangHarianTarif: null, uangHarianTarifLain: [] })),
       })),
     });
     expect(typeof createdAt).toBe("string");
@@ -115,6 +115,14 @@ describe("surat tugas", () => {
     const hasil = (await call("GET", `/api/surat-tugas/${id}/hasil`)).json();
     expect(hasil.suratTugas.pelaksana[0].etape[0].uangHarianTarif).toBe(123_000);
     expect(hasil.hasil.pelaksana[0].uangHarian[0].tarif).toBe(123_000);
+
+    const etape0 = dasar.etape[0]!;
+    const lain = [{ tarif: 99_000, tanggal: [etape0.pulang] }];
+    const denganLain = { ...stResa, pelaksana: [{ ...dasar, etape: [{ ...etape0, uangHarianTarif: 123_000, uangHarianTarifLain: lain }] }] };
+    expect((await call("PUT", `/api/surat-tugas/${id}`, denganLain)).statusCode).toBe(200);
+    const hasilLain = (await call("GET", `/api/surat-tugas/${id}/hasil`)).json();
+    expect(hasilLain.suratTugas.pelaksana[0].etape[0].uangHarianTarifLain).toEqual(lain);
+    expect(hasilLain.hasil.pelaksana[0].uangHarian.map((b: { tarif: number }) => b.tarif)).toContain(99_000);
 
     const tanpa = { ...stResa, pelaksana: [{ ...dasar, etape: [{ ...dasar.etape[0]!, uangHarianTarif: null }] }] };
     expect((await call("PUT", `/api/surat-tugas/${id}`, tanpa)).statusCode).toBe(200);

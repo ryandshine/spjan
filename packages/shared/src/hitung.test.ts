@@ -1246,3 +1246,53 @@ describe("hitungSpj - tarif uang harian manual (uangHarianTarif)", () => {
     expect(h.peringatan.some((w) => w.kode === "UANG_HARIAN_MELEBIHI_SBM")).toBe(false);
   });
 });
+
+describe("hitungSpj - tarif uang harian lain per tanggal (uangHarianTarifLain)", () => {
+  const etape4Hari = {
+    provinsi: "D.I. YOGYAKARTA",
+    kota: "Yogyakarta",
+    kegiatan: "Koordinasi",
+    berangkat: "2026-09-10",
+    pulang: "2026-09-13",
+    hotelNama: "Hotel Yogya",
+    hotelTarif: 500_000,
+  };
+  const hitung = (e: Partial<EtapeInput>) => hitungSpj(spj([{ ...riandi, etape: [{ ...etape4Hari, ...e }] }]), SBM_2026).pelaksana[0]!;
+
+  it("2 hari tarif utama, 2 hari tarif lain: dua baris rincian bertanggal", () => {
+    const h = hitung({ uangHarianTarif: 200_000, uangHarianTarifLain: [{ tarif: 150_000, tanggal: ["2026-09-12", "2026-09-13"] }] });
+    expect(h.uangHarian).toEqual([
+      { uraian: "", qty: 2, satuan: "hari", tarif: 200_000, jumlah: 400_000, keterangan: "Lumpsum/Prov. D.I. Yogyakarta Tanggal 10 s.d. 11 September 2026" },
+      { uraian: "", qty: 2, satuan: "hari", tarif: 150_000, jumlah: 300_000, keterangan: "Lumpsum/Prov. D.I. Yogyakarta Tanggal 12 s.d. 13 September 2026" },
+    ]);
+    expect(h.totalUangHarian).toBe(700_000);
+  });
+
+  it("tarif utama kosong = SBM; tanggal di luar perjalanan dan ganda diabaikan; melebihi SBM diberi peringatan", () => {
+    const h = hitung({
+      uangHarianTarifLain: [
+        { tarif: 500_000, tanggal: ["2026-09-13", "2026-09-20"] },
+        { tarif: 100_000, tanggal: ["2026-09-13"] },
+      ],
+    });
+    expect(h.uangHarian.map((b) => [b.qty, b.tarif])).toEqual([
+      [3, 420_000],
+      [1, 500_000],
+    ]);
+    expect(h.peringatan).toContainEqual({ kode: "UANG_HARIAN_MELEBIHI_SBM", pesan: "Etape 1: tarif uang harian Rp500.000 melebihi SBM Rp420.000.", etape: 0 });
+  });
+
+  it("hari 60% memakai 60% tarif kartunya; hari pihak lain tidak dibayar", () => {
+    const h = hitung({
+      uangHarianTarif: 200_000,
+      uangHarianTarifLain: [{ tarif: 150_000, tanggal: ["2026-09-12", "2026-09-13"] }],
+      uangHarian60Dates: ["2026-09-12"],
+      tanpaUangHarianDates: ["2026-09-13"],
+    });
+    expect(h.uangHarian.map((b) => [b.uraian, b.qty, b.tarif])).toEqual([
+      ["", 2, 200_000],
+      ["Uang harian (60%) :", 1, 90_000],
+    ]);
+    expect(h.totalUangHarian).toBe(490_000);
+  });
+});
