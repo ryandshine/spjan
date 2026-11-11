@@ -1,7 +1,13 @@
 # Status SPJAN
 
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
-Terakhir diperbarui: 2026-11-11 (tarif uang harian manual).
+Terakhir diperbarui: 2026-11-11 (validasi editor naskah ST).
+
+## Validasi dan penjaga perubahan editor naskah ST (2026-11-11, belum di-commit)
+
+- `st-naskah-editor.tsx` mengikuti pola editor SPJ: validasi `NaskahStPayloadSchema` (langsung setelah percobaan simpan pertama gagal), galat di tiap isian, ringkasan di `BannerGalatSimpan`, galat server di banner (bukan toast), `usePenjagaPerubahan` + `DialogTinggalkanHalaman`, deskripsi header sesuai keadaan, tombol Simpan nonaktif tanpa perubahan. "Lanjutkan ke SPJ" ditolak bila ada perubahan belum disimpan (SPJ dibuat dari naskah tersimpan).
+- Pesan galat naskah dibuat lokal (`pesanIsuNaskah`/`petaGalatNaskah`, berbahasa Indonesia untuk teks/angka/daftar), karena `pesanValidasi`/`petaGalat` bersama belum punya label naskah dan meneruskan teks bawaan zod (Inggris) untuk batas panjang. Editor SPJ masih punya kekurangan yang sama untuk galat panjang teks.
+- Tersisa dari tinjauan UI: alur naskah ST → SPJ (tiga pintu masuk), nama menu/judul, pencarian daftar naskah, warna mentah, ukuran judul bagian.
 
 ## Pembagian tiket rombongan (2026-11-11)
 

@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -19,12 +19,15 @@ import {
   formatRentangWaktuSt,
   hitungLamaHariSt,
   evaluasiTataLetakSt,
+  NaskahStPayloadSchema,
   tanggalIndonesia,
   type NaskahStDto,
   type NaskahStPayload,
   type NaskahStPelaksanaPayload,
 } from '@spjan/shared'
 
+import { BannerGalatSimpan } from '@/components/st/banner-st'
+import { DialogTinggalkanHalaman } from '@/components/st/dialog-editor-st'
 import { IsiDariUndangan } from '@/components/st/isi-dari-undangan'
 import { NaskahPratinjau } from '@/components/st/naskah-pratinjau'
 import { PageHeader } from '@/components/page-header'
@@ -46,7 +49,74 @@ import {
   useSimpanNaskahSt,
 } from '@/lib/queries'
 import { unduhBlob } from '@/lib/unduh'
+import { usePenjagaPerubahan } from '@/lib/use-penjaga-perubahan'
 import { cn } from '@/lib/utils'
+
+/** Label kolom naskah untuk ringkasan galat, format sama dengan `pesanValidasi` editor SPJ. */
+const LABEL_KOLOM: Record<string, string> = {
+  nomor: 'Nomor surat tugas',
+  tanggal: 'Tanggal surat tugas',
+  tempatNaskah: 'Tempat penandatanganan',
+  maksudTugas: 'Maksud penugasan',
+  lokasiTugas: 'Lokasi penugasan',
+  tanggalMulai: 'Tanggal mulai',
+  tanggalSelesai: 'Tanggal selesai',
+  dasarSpesifik: 'Dasar penugasan',
+  pelaporanHari: 'Batas waktu laporan',
+  pembebananAnggaran: 'Pembebanan anggaran',
+  penandatanganJabatan: 'Jabatan penandatangan',
+  penandatanganNama: 'Nama pejabat',
+  penandatanganNip: 'NIP pejabat',
+  pelaksana: 'Pelaksana',
+  tembusan: 'Tembusan',
+  dasarHukum: 'Dasar hukum',
+  lamaHari: 'Lama tugas',
+  modeNomor: 'Format nomor',
+  nama: 'Nama',
+  nip: 'NIP',
+  jabatan: 'Jabatan',
+}
+
+type IsuZod = { path: ReadonlyArray<PropertyKey>; message: string; code: string; origin?: unknown }
+
+const DAFTAR_BERNOMOR = new Set(['pelaksana', 'tembusan', 'dasarHukum'])
+
+/** Pesan berbahasa Indonesia untuk satu isu; dipakai banner dan isian agar keduanya sama. */
+function pesanIsuNaskah(i: IsuZod): string {
+  if (i.code === 'too_small' && i.origin === 'string') return 'wajib diisi'
+  if (i.code === 'too_big' && i.origin === 'string') return 'terlalu panjang'
+  if (i.code === 'too_small' && i.origin === 'array') return 'minimal satu'
+  if ((i.code === 'too_small' || i.code === 'too_big') && i.origin === 'number') return 'di luar batas yang diizinkan'
+  return i.message
+}
+
+/** Peta galat per kolom (kunci path zod digabung titik), dengan pesan yang sama seperti ringkasan. */
+function petaGalatNaskah(isu: ReadonlyArray<IsuZod>): Record<string, string> {
+  const peta: Record<string, string> = {}
+  for (const i of isu) {
+    const kunci = i.path.map(String).join('.')
+    if (!(kunci in peta)) peta[kunci] = pesanIsuNaskah(i)
+  }
+  return peta
+}
+
+/** Kalimat ringkasan galat dengan lokasi (Pelaksana 2 > Nama: wajib diisi). */
+function pesanRingkasan(isu: ReadonlyArray<IsuZod>): string[] {
+  return isu.map((i) => {
+    const bagian: string[] = []
+    for (let k = 0; k < i.path.length; k += 1) {
+      const kunci = String(i.path[k])
+      const berikut = i.path[k + 1]
+      if (DAFTAR_BERNOMOR.has(kunci) && typeof berikut === 'number') {
+        bagian.push(`${LABEL_KOLOM[kunci]} ${berikut + 1}`)
+        k += 1
+      } else {
+        bagian.push(LABEL_KOLOM[kunci] ?? kunci)
+      }
+    }
+    return `${bagian.join(' > ')}: ${pesanIsuNaskah(i)}`
+  })
+}
 
 /** Kartu pilihan format nomor surat (SRIKANDI / manual). */
 function PilihanFormat({
@@ -115,6 +185,26 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
 
   const [form, setForm] = useState<NaskahStPayload>(awal)
   const [sedangUnduh, setSedangUnduh] = useState(false)
+  const formTerserialisasi = useMemo(() => JSON.stringify(form), [form])
+  const [baseline, setBaseline] = useState(formTerserialisasi)
+  const kotor = formTerserialisasi !== baseline
+  const { blocker, izinkanNavigasi } = usePenjagaPerubahan(kotor)
+  const [cobaSimpan, setCobaSimpan] = useState(false)
+  const [galatServer, setGalatServer] = useState<string[]>([])
+  const alertRef = useRef<HTMLDivElement>(null)
+
+  // Setelah percobaan simpan pertama yang gagal, validasi berjalan langsung: galat hilang sendiri begitu isiannya diperbaiki.
+  const isuLive = useMemo(() => {
+    if (!cobaSimpan) return []
+    const r = NaskahStPayloadSchema.safeParse(form)
+    return r.success ? [] : r.error.issues
+  }, [cobaSimpan, form])
+  const peta = useMemo(() => petaGalatNaskah(isuLive), [isuLive])
+  const pesanTampil = [...pesanRingkasan(isuLive), ...galatServer]
+
+  function gulirKeBanner() {
+    window.setTimeout(() => alertRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
+  }
 
   /** Ubah sebagian isian formulir. */
   function ubah(patch: Partial<NaskahStPayload>) {
@@ -169,33 +259,27 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
   }
 
   async function handleSimpan() {
-    if (!form.maksudTugas.trim()) {
-      toast.error('Maksud penugasan wajib diisi.')
+    const cek = NaskahStPayloadSchema.safeParse(form)
+    if (!cek.success) {
+      setCobaSimpan(true)
+      setGalatServer([])
+      toast.error('Ada isian yang belum benar. Lihat kolom bertanda merah.')
+      gulirKeBanner()
       return
     }
-    if (!form.lokasiTugas.trim()) {
-      toast.error('Lokasi / tempat penugasan wajib diisi.')
-      return
-    }
-    if (form.pelaksana.length === 0) {
-      toast.error('Minimal harus ada satu personil pelaksana tugas.')
-      return
-    }
-    for (const [i, p] of form.pelaksana.entries()) {
-      if (!p.nama.trim()) {
-        toast.error(`Nama pelaksana #${i + 1} belum diisi.`)
-        return
-      }
-    }
-
+    setCobaSimpan(false)
+    setGalatServer([])
     try {
-      const res = await simpanMutation.mutateAsync(form)
+      const res = await simpanMutation.mutateAsync(cek.data)
+      setBaseline(formTerserialisasi)
       toast.success(isEdit ? 'Naskah surat tugas berhasil diperbarui!' : 'Naskah surat tugas berhasil dibuat!')
       if (!isEdit && res?.id) {
+        izinkanNavigasi()
         navigate(`/st-naskah/${res.id}`, { replace: true })
       }
     } catch (err) {
-      toast.error(pesanGalat(err))
+      setGalatServer([pesanGalat(err)])
+      gulirKeBanner()
     }
   }
 
@@ -226,6 +310,11 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
       toast.info('Simpan naskah surat tugas terlebih dahulu sebelum membuat SPJ.')
       return
     }
+    // SPJ dibuat dari naskah yang tersimpan di server, jadi perubahan yang belum disimpan tidak ikut.
+    if (kotor) {
+      toast.info('Simpan perubahan naskah terlebih dahulu sebelum melanjutkan ke SPJ.')
+      return
+    }
     try {
       const res = await buatSpjMutation.mutateAsync(stId)
       toast.success('Draf SPJ berhasil dibuat dari naskah ST!')
@@ -247,7 +336,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
     <div className="space-y-6">
       <PageHeader
         title={isEdit ? `Edit Surat Tugas: ${form.nomor}` : 'Buat Surat Tugas Baru'}
-        description="Penyusunan naskah dinas penugasan resmi format SRIKANDI TTE & Microsoft Word."
+        description={kotor ? 'Ada perubahan yang belum disimpan.' : isEdit ? 'Tersimpan.' : 'Isi data lalu simpan.'}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Link to="/st-naskah" className={buttonVariants({ variant: 'outline' })}>
@@ -273,12 +362,14 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                 <ArrowRightIcon className="size-4" /> Lanjutkan ke SPJ
               </Button>
             ) : null}
-            <Button disabled={simpanMutation.isPending} onClick={handleSimpan}>
+            <Button disabled={simpanMutation.isPending || (isEdit && !kotor)} onClick={handleSimpan}>
               <SaveIcon className="size-4" /> Simpan
             </Button>
           </div>
         }
       />
+
+      <BannerGalatSimpan pesan={pesanTampil} alertRef={alertRef} />
 
       {/* Grid 2 Kolom: Form Input (Kiri) dan Pratinjau Naskah Resmi (Kanan) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
@@ -315,7 +406,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
 
               {form.modeNomor === 'manual' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                  <Field label="Nomor Surat Tugas" htmlFor="st-nomor" mode="wajib">
+                  <Field label="Nomor Surat Tugas" htmlFor="st-nomor" error={peta.nomor} mode="wajib">
                     <Input
                       id="st-nomor"
                       placeholder="ST.245/PPS/PEMPS/PSL.04.02/B/10/2026"
@@ -323,7 +414,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                       onChange={(e) => ubah({ nomor: e.target.value })}
                     />
                   </Field>
-                  <Field label="Tanggal Surat" htmlFor="st-tanggal" mode="opsional">
+                  <Field label="Tanggal Surat" htmlFor="st-tanggal" error={peta.tanggal} mode="opsional">
                     <InputTanggal
                       id="st-tanggal"
                       label="Tanggal surat"
@@ -335,7 +426,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
               ) : null}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Tempat Penandatanganan" htmlFor="st-tempat" mode="wajib">
+                <Field label="Tempat Penandatanganan" htmlFor="st-tempat" error={peta.tempatNaskah} mode="wajib">
                   <Input
                     id="st-tempat"
                     placeholder="Jakarta"
@@ -356,6 +447,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
               <Field
                 label="Maksud Penugasan / Kegiatan"
                 htmlFor="st-maksud"
+                error={peta.maksudTugas}
                 mode="wajib"
                 hint="Otomatis mengisi bagian Menimbang dan butir penugasan Untuk"
               >
@@ -368,7 +460,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                 />
               </Field>
 
-              <Field label="Lokasi / Tempat Penugasan" htmlFor="st-lokasi" mode="wajib">
+              <Field label="Lokasi / Tempat Penugasan" htmlFor="st-lokasi" error={peta.lokasiTugas} mode="wajib">
                 <Input
                   id="st-lokasi"
                   placeholder="Ruang Rapat CIFOR, Jl. Raya Cifor, Kota Bogor"
@@ -378,7 +470,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
               </Field>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
-                <Field label="Tanggal Mulai" htmlFor="st-mulai" mode="wajib">
+                <Field label="Tanggal Mulai" htmlFor="st-mulai" error={peta.tanggalMulai} mode="wajib">
                   <InputTanggal
                     id="st-mulai"
                     label="Tanggal Mulai"
@@ -387,7 +479,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                   />
                 </Field>
 
-                <Field label="Tanggal Selesai" htmlFor="st-selesai" mode="wajib">
+                <Field label="Tanggal Selesai" htmlFor="st-selesai" error={peta.tanggalSelesai} mode="wajib">
                   <InputTanggal
                     id="st-selesai"
                     label="Tanggal Selesai"
@@ -417,6 +509,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
               <Field
                 label="Surat Undangan / Nota Dinas / Disposisi Rujukan"
                 htmlFor="st-dasar-spesifik"
+                error={peta.dasarSpesifik}
                 mode="opsional"
                 hint="Dicantumkan sebagai butir dasar penugasan spesifik (misal nomor surat undangan)"
               >
@@ -471,8 +564,14 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
               </div>
 
               {form.pelaksana.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                <div
+                  className={cn(
+                    'rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground',
+                    peta.pelaksana && 'border-destructive',
+                  )}
+                >
                   Belum ada pelaksana. Pilih dari master pegawai di atas atau klik Pelaksana Bebas.
+                  {peta.pelaksana ? <p className="mt-1 text-xs text-destructive">{peta.pelaksana}</p> : null}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -520,7 +619,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <Field label="Nama Lengkap & Gelar" htmlFor={`st-pel-nama-${idx}`} mode="wajib" className="sm:col-span-2">
+                        <Field label="Nama Lengkap & Gelar" htmlFor={`st-pel-nama-${idx}`} error={peta[`pelaksana.${idx}.nama`]} mode="wajib" className="sm:col-span-2">
                           <Input
                             id={`st-pel-nama-${idx}`}
                             placeholder="Sukardi, S.Hut., M.Si."
@@ -528,7 +627,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                             onChange={(e) => ubahPelaksana(idx, { nama: e.target.value })}
                           />
                         </Field>
-                        <Field label="Jabatan" htmlFor={`st-pel-jabatan-${idx}`}>
+                        <Field label="Jabatan" htmlFor={`st-pel-jabatan-${idx}`} error={peta[`pelaksana.${idx}.jabatan`]}>
                           <Input
                             id={`st-pel-jabatan-${idx}`}
                             placeholder="PEH Ahli Madya"
@@ -536,7 +635,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                             onChange={(e) => ubahPelaksana(idx, { jabatan: e.target.value })}
                           />
                         </Field>
-                        <Field label="NIP (Opsional)" htmlFor={`st-pel-nip-${idx}`}>
+                        <Field label="NIP (Opsional)" htmlFor={`st-pel-nip-${idx}`} error={peta[`pelaksana.${idx}.nip`]}>
                           <Input
                             id={`st-pel-nip-${idx}`}
                             placeholder="197501012000031001"
@@ -558,7 +657,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
               <CardTitle className="text-base">5. Pembebanan Anggaran & Pelaporan</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Field label="Pembebanan Anggaran" htmlFor="st-anggaran" mode="wajib">
+              <Field label="Pembebanan Anggaran" htmlFor="st-anggaran" error={peta.pembebananAnggaran} mode="wajib">
                 <Textarea
                   id="st-anggaran"
                   rows={2}
@@ -568,7 +667,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                 />
               </Field>
 
-              <Field label="Batas Waktu Laporan Tertulis (Hari Kerja)" htmlFor="st-lapor" mode="opsional">
+              <Field label="Batas Waktu Laporan Tertulis (Hari Kerja)" htmlFor="st-lapor" error={peta.pelaporanHari} mode="opsional">
                 <Input
                   id="st-lapor"
                   type="number"
@@ -589,7 +688,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Jabatan Penandatangan" htmlFor="st-pj-jabatan" mode="wajib">
+                <Field label="Jabatan Penandatangan" htmlFor="st-pj-jabatan" error={peta.penandatanganJabatan} mode="wajib">
                   <Input
                     id="st-pj-jabatan"
                     placeholder="Direktur,"
@@ -597,7 +696,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                     onChange={(e) => ubah({ penandatanganJabatan: e.target.value })}
                   />
                 </Field>
-                <Field label="Nama Pejabat" htmlFor="st-pj-nama" mode="wajib">
+                <Field label="Nama Pejabat" htmlFor="st-pj-nama" error={peta.penandatanganNama} mode="wajib">
                   <Input
                     id="st-pj-nama"
                     placeholder="Dr. Marcus Octavianus Susatyo, S.Hut., M.P."
@@ -605,7 +704,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                     onChange={(e) => ubah({ penandatanganNama: e.target.value })}
                   />
                 </Field>
-                <Field label="NIP Pejabat" htmlFor="st-pj-nip" mode="opsional">
+                <Field label="NIP Pejabat" htmlFor="st-pj-nip" error={peta.penandatanganNip} mode="opsional">
                   <Input
                     id="st-pj-nip"
                     placeholder="196810191998031001"
@@ -692,6 +791,8 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
           />
         </div>
       </div>
+
+      <DialogTinggalkanHalaman blocker={blocker} />
     </div>
   )
 }
