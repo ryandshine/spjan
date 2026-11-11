@@ -2,6 +2,7 @@ import {
   daftarHariIso,
   etapeKosong,
   keBentukKartu,
+  norm,
   parseTanggal,
   selisihHari,
   type EtapePayload,
@@ -29,6 +30,22 @@ export function sesuaikanKodeAkun(kodeAkun: string, sumberDana: SumberDana): str
 }
 
 /**
+ * Bukti hotel yang sama sering diunggah sebagai beberapa berkas (invoice, bukti bayar, folio, foto). Kuitansi dianggap
+ * salinan bila sudah ada kartu kuitansi dengan nama hotel dan tarif sama yang mencakup semua malamnya; bila tanggalnya
+ * di luar perjalanan, jumlah malamnya harus sama.
+ */
+function salinanKuitansi(kartu: NonNullable<EtapePayload['hotelTambahan']>, usulan: UsulanHotelItem, dalamPerjalanan: string[]): boolean {
+  const nama = norm(usulan.ekstraksi.namaHotel)
+  return kartu.some(
+    (r) =>
+      r.sumber === 'kuitansi' &&
+      norm(r.nama) === nama &&
+      r.tarif === usulan.tarifRiilPerMalam &&
+      (dalamPerjalanan.length > 0 ? dalamPerjalanan.every((t) => r.tanggal.includes(t)) : r.malamKuitansi === usulan.malam),
+  )
+}
+
+/**
  * Satu kuitansi menjadi satu kartu penginapan, malamnya dari check-in s.d. sehari sebelum check-out.
  * Malam yang sudah terisi kartu lain tidak diambil; selisihnya tampil sebagai "periksa" di kartu.
  */
@@ -44,6 +61,7 @@ function tambahKartuKuitansi(etape: EtapePayload, usulan: UsulanHotelItem): Etap
   const keluar = parseTanggal(usulan.ekstraksi.checkOut)
   const malamKuitansi = masuk && keluar && selisihHari(masuk, keluar) > 0 ? daftarHariIso(masuk, keluar).slice(0, -1) : []
   const dalamPerjalanan = malamKuitansi.filter((t) => malamPerjalanan.includes(t))
+  if (salinanKuitansi(kartu, usulan, dalamPerjalanan)) return etape
   const kosong = malamPerjalanan.filter((t) => !terpakai.has(t))
   // Tanggal kuitansi di luar perjalanan: pakai malam kosong sejumlah malam kuitansi, pengguna diminta memeriksa.
   const tanggal = dalamPerjalanan.length > 0 ? dalamPerjalanan.filter((t) => !terpakai.has(t)) : kosong.slice(0, usulan.malam)

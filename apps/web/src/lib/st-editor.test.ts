@@ -269,4 +269,32 @@ describe('terapkanHotelKeEtape - kartu kuitansi', () => {
     st = terapkanHotelKeEtape(st, 0, 0, kuitansi(2, '2026-10-02', '2026-10-04', 2))
     expect(st.pelaksana[0]!.etape[0]!.hotelTambahan!.map((r) => r.tanggal)).toEqual([['2026-10-01', '2026-10-02'], ['2026-10-03']])
   })
+
+  // Bukti hotel yang sama sering diunggah sebagai beberapa berkas (invoice, bukti bayar, folio, foto).
+  const salinan = (berkasId: number, checkIn: string, checkOut: string, malam: number, nama = 'Planet Holiday Hotel', tarif = 680_000) =>
+    ({ berkasId, malam, tarifRiilPerMalam: tarif, ekstraksi: { namaHotel: nama, checkIn, checkOut } }) as unknown as UsulanHotelItem
+
+  it('berkas lain berisi kuitansi yang sama (hotel, tarif, malam sudah tercakup) tidak menjadi kartu baru', () => {
+    let st = terapkanHotelKeEtape(stDasar(), 0, 0, salinan(1, '2026-10-01', '2026-10-03', 2))
+    st = terapkanHotelKeEtape(st, 0, 0, salinan(2, '2026-10-01', '2026-10-03', 2, 'PLANET HOLIDAY HOTEL '))
+    st = terapkanHotelKeEtape(st, 0, 0, salinan(3, '2026-10-01', '2026-10-02', 1))
+    expect(st.pelaksana[0]!.etape[0]!.hotelTambahan!.map((r) => [r.berkasId, r.tanggal])).toEqual([[1, ['2026-10-01', '2026-10-02']]])
+  })
+
+  it('kuitansi di luar tanggal perjalanan: hotel, tarif, dan jumlah malam sama dianggap salinan', () => {
+    let st = terapkanHotelKeEtape(stDasar(), 0, 0, salinan(1, '2026-09-01', '2026-09-03', 2))
+    st = terapkanHotelKeEtape(st, 0, 0, salinan(2, '2026-09-01', '2026-09-03', 2))
+    expect(st.pelaksana[0]!.etape[0]!.hotelTambahan).toHaveLength(1)
+  })
+
+  it('hotel sama tetapi tarif lain, atau malam yang belum tercakup, tetap menjadi kartu sendiri', () => {
+    let st = terapkanHotelKeEtape(stDasar(), 0, 0, salinan(1, '2026-10-01', '2026-10-03', 2))
+    st = terapkanHotelKeEtape(st, 0, 0, salinan(2, '2026-10-03', '2026-10-04', 1, 'Planet Holiday Hotel', 750_000))
+    st = terapkanHotelKeEtape(st, 0, 0, salinan(3, '2026-10-02', '2026-10-05', 3))
+    expect(st.pelaksana[0]!.etape[0]!.hotelTambahan!.map((r) => [r.berkasId, r.tanggal])).toEqual([
+      [1, ['2026-10-01', '2026-10-02']],
+      [2, ['2026-10-03']],
+      [3, ['2026-10-04']],
+    ])
+  })
 })

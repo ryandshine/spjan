@@ -152,6 +152,9 @@ function Editor({
 
   async function terapkanUsulanHotel(pelaksanaIdx: number, etapeIdx: number, usulan: UsulanHotelItem) {
     const stBaru = terapkanHotelKeEtape(st, pelaksanaIdx, etapeIdx, usulan)
+    if (stBaru.pelaksana[pelaksanaIdx]?.etape[etapeIdx] === st.pelaksana[pelaksanaIdx]?.etape[etapeIdx]) {
+      toast.info('Kuitansi ini sudah tercakup kartu penginapan yang ada; tidak ditambahkan lagi.')
+    }
     setSt(stBaru)
     if (id !== null) {
       await simpan.mutateAsync({ id, payload: stBaru })

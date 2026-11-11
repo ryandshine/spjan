@@ -14,6 +14,8 @@ Terakhir diperbarui: 2026-11-10 (model pembaca dokumen diganti ke Qwen).
 - Kode galat baru `KUNCI_DITOLAK` (401/403/key kosong, tidak diulang) dan `BATAS_PERMINTAAN` (429, diulang sekali oleh worker).
 - Pemakaian token per pekerjaan ekstraksi (migrasi `1791126000033`: `token_masuk`, `token_keluar`, `jumlah_panggilan`), dijumlahkan lintas klasifikasi, ekstraksi, dan coba ulang, termasuk yang gagal. Kartu "Pemakaian model AI" di Pengaturan (`GET /api/model-ai/pemakaian`, admin), 12 bulan per model, tanpa rupiah. Naskah ST dengan AI belum tercatat.
 - `perluDicek` (opsional, isian rusak diabaikan) di skema ST/hotel/tiket/transport/undangan: kolom yang ditebak/buram menurut model, plus etape ST yang disalin sistem. Ditampilkan sebagai baris di daftar `peringatan` usulan yang sudah ada (`pesanPerluDicek`). Undangan belum punya tampilan peringatan.
+- Kuitansi hotel salinan (berkas lain dengan hotel dan tarif sama yang malamnya sudah tercakup kartu kuitansi; di luar tanggal perjalanan: jumlah malam sama) tidak dibuatkan kartu baru (`salinanKuitansi` di `lib/st-editor.ts`); usulannya tetap ditandai diterapkan. Kartu kembar lama tidak dibersihkan otomatis.
+- Unggah ulang berkas identik yang pembacaan terakhirnya gagal = masuk antrean lagi; Buat dari ST punya tombol "Ulangi pembacaan".
 - Skema JSON disisipkan ke prompt dan diminta `response_format: json_object` (tidak semua model Qwen mendukung `json_schema`).
 - Belum dicoba dengan key asli: setelah deploy, tekan "Uji model teks" dan "Uji model gambar" di Pengaturan.
 
