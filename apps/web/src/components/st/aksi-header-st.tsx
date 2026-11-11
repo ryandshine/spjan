@@ -9,7 +9,7 @@ import { MenuAksi } from '@/components/ui/menu-aksi'
 export function PeringatanBelumSimpan({ menyimpan, onSimpan }: { menyimpan: boolean; onSimpan: () => void }) {
   return (
     <div className="flex items-center gap-2 rounded-md border border-warning/50 bg-warning/10 px-3 py-1.5 text-sm">
-      Data surat tugas belum disimpan
+      Data SPJ belum disimpan
       <Button size="sm" onClick={onSimpan} disabled={menyimpan}>
         <SaveIcon /> {menyimpan ? 'Menyimpan...' : 'Simpan'}
       </Button>
@@ -82,8 +82,8 @@ export function AksiHeaderSt({
           </Button>
           {id !== null ? (
             <MenuAksi
-              label="Atur surat tugas"
-              item={[{ label: 'Hapus surat tugas', ikon: <Trash2Icon className="size-4" />, bahaya: true, onPilih: onHapus }]}
+              label="Atur SPJ"
+              item={[{ label: 'Hapus SPJ', ikon: <Trash2Icon className="size-4" />, bahaya: true, onPilih: onHapus }]}
             />
           ) : null}
         </>

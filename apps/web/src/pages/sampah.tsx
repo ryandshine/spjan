@@ -52,7 +52,7 @@ export default function SampahPage() {
   const kolomBerkas: Kolom<ItemBerkas>[] = [
     { judul: 'Berkas', teks: (b) => b.namaAsli, sel: (b) => <span className="font-medium">{b.namaAsli}</span> },
     { judul: 'Jenis', teks: (b) => b.jenis, sel: (b) => b.jenis },
-    { judul: 'Surat tugas', sel: (b) => (b.stId !== null ? `#${b.stId}` : '-') },
+    { judul: 'SPJ', sel: (b) => (b.stId !== null ? `#${b.stId}` : '-') },
     { judul: 'Dihapus oleh', sel: (b) => b.dihapusOleh ?? '-' },
     { judul: 'Dihapus', sel: (b) => <span className="text-muted-foreground">{waktuPendek(b.dihapusPada)}</span> },
     {
@@ -72,14 +72,14 @@ export default function SampahPage() {
 
   return (
     <div className="grid gap-8">
-      <PageHeader title="Tempat Sampah" description="Surat tugas dan berkas yang dihapus tersimpan di sini. Hapus permanen tidak bisa dibatalkan." />
+      <PageHeader title="Tempat Sampah" description="SPJ dan berkas yang dihapus tersimpan di sini. Hapus permanen tidak bisa dibatalkan." />
       {sampah.isError ? (
         <Alert variant="destructive">{pesanGalat(sampah.error)}</Alert>
       ) : (
         <>
           <section className="grid gap-3">
-            <h2 className="text-base font-semibold">Surat tugas</h2>
-            <DataTable kolom={kolomSt} baris={sampah.data?.suratTugas ?? []} kosong={sampah.isPending ? 'Memuat...' : 'Tidak ada surat tugas di tempat sampah.'} />
+            <h2 className="text-base font-semibold">SPJ</h2>
+            <DataTable kolom={kolomSt} baris={sampah.data?.suratTugas ?? []} kosong={sampah.isPending ? 'Memuat...' : 'Tidak ada SPJ di tempat sampah.'} />
           </section>
           <section className="grid gap-3">
             <h2 className="text-base font-semibold">Berkas</h2>

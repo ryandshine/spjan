@@ -9,7 +9,7 @@ import { SlotSidebarContext } from '@/lib/slot-sidebar'
 import { cn } from '@/lib/utils'
 
 const NAV = [
-  { to: '/st-naskah', label: 'Buat Surat Tugas', end: false },
+  { to: '/st-naskah', label: 'Naskah Surat Tugas', end: false },
   { to: '/', label: 'SPJ Perjalanan Dinas', end: true },
   { to: '/pegawai', label: 'Pegawai', end: false },
   { to: '/sbm', label: 'Tabel SBM', end: false },

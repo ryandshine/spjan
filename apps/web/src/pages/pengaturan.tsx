@@ -80,7 +80,7 @@ function FormPengaturan({ awal }: { awal: PengaturanPayload }) {
       <PageHeader
         lengket
         title="Pengaturan"
-        description="Data satuan kerja, pejabat, dan model pembaca dokumen yang dipakai di semua surat tugas."
+        description="Data satuan kerja, pejabat, dan model pembaca dokumen yang dipakai di semua SPJ."
         actions={tombolSimpan('hidden md:inline-flex')}
       />
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
@@ -109,7 +109,7 @@ function FormPengaturan({ awal }: { awal: PengaturanPayload }) {
               {teks('pjNama', 'Pejabat yang bertanggung jawab - nama')}
               {teks('pjNip', 'Pejabat yang bertanggung jawab - NIP')}
               {teks('pjJabatan', 'Pejabat yang bertanggung jawab - jabatan', { kelas: 'sm:col-span-2' })}
-              {teks('pembuatDaftarNama', 'Pembuat daftar - nama (opsional)', { opsional: true, hint: 'Kosong = pelaksana pertama pada surat tugas.' })}
+              {teks('pembuatDaftarNama', 'Pembuat daftar - nama (opsional)', { opsional: true, hint: 'Kosong = pelaksana pertama pada SPJ.' })}
               {teks('pembuatDaftarNip', 'Pembuat daftar - NIP (opsional)', { opsional: true })}
             </Bagian>
             <Bagian judul="Tempat kedudukan">

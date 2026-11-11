@@ -111,7 +111,7 @@ export default function BuatDariStPage() {
         berkasId,
         payload: usulan.payload,
       })
-      toast.success('Draf Surat Tugas berhasil dibuat!')
+      toast.success('Draf SPJ dibuat.')
       navigate(`/st/${hasil.id}`)
     } catch (err) {
       toast.error(pesanGalat(err))
@@ -407,7 +407,7 @@ export default function BuatDariStPage() {
                       </>
                     ) : (
                       <>
-                        <CheckCircle2Icon className="size-4" /> Buat Draf Surat Tugas <ArrowRightIcon className="size-4 ml-1" />
+                        <CheckCircle2Icon className="size-4" /> Buat Draf SPJ <ArrowRightIcon className="size-4 ml-1" />
                       </>
                     )}
                   </Button>

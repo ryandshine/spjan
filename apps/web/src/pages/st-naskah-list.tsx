@@ -29,7 +29,7 @@ export default function NaskahStListPage() {
     try {
       setSedangBuatSpjId(id)
       const res = await buatSpj.mutateAsync(id)
-      toast.success('SPJ berhasil dibuat dari naskah ST!')
+      toast.success('Draf SPJ dibuat dari naskah surat tugas.')
       navigate(`/st/${res.spjId}`)
     } catch (err) {
       toast.error(pesanGalat(err))
@@ -103,7 +103,7 @@ export default function NaskahStListPage() {
           <Link
             to={`/st/${b.spjId}`}
             className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-            title="Lihat SPJ terkait di modul keuangan"
+            title="Buka SPJ dari naskah ini"
           >
             <FileTextIcon className="size-3" /> SPJ Terbit
           </Link>
@@ -114,7 +114,7 @@ export default function NaskahStListPage() {
             className="h-7 text-xs gap-1 border-primary/40 text-primary hover:bg-primary/10"
             disabled={sedangBuatSpjId === b.id}
             onClick={() => handleBuatSpj(b.id)}
-            title="Buat draf SPJ keuangan langsung dari ST ini"
+            title="Buat draf SPJ dari naskah ini"
           >
             <ArrowRightIcon className="size-3" /> Buat SPJ
           </Button>
@@ -153,17 +153,17 @@ export default function NaskahStListPage() {
             <Link
               to={`/st-naskah/${b.id}`}
               className={buttonVariants({ variant: 'ghost', size: 'icon' })}
-              title="Edit naskah Surat Tugas"
+              title="Ubah naskah surat tugas"
             >
               <PencilIcon className="size-3.5" />
             </Link>
             <Button
               variant="ghost"
               size="icon"
-              aria-label={`Hapus ST ${b.nomor}`}
+              aria-label={`Hapus naskah ${b.nomor}`}
               disabled={!boleh(b)}
               onClick={() => setTargetHapus(b)}
-              title={!boleh(b) ? 'Hanya pembuat atau admin yang boleh menghapus' : 'Hapus ST'}
+              title={!boleh(b) ? 'Hanya pembuat atau admin yang boleh menghapus' : 'Hapus naskah'}
             >
               <Trash2Icon className="size-3.5 text-destructive" />
             </Button>
@@ -176,12 +176,12 @@ export default function NaskahStListPage() {
   return (
     <div>
       <PageHeader
-        title="Surat Tugas (ST / SPT)"
+        title="Naskah Surat Tugas"
         description="Penyusunan naskah dinas penugasan resmi Direktorat Pengendalian Perhutanan Sosial (format SRIKANDI TTE & Word)."
         actions={
           <div className="flex items-center gap-2">
             <Link to="/st-naskah/baru" className={buttonVariants()}>
-              <PlusIcon className="size-4" /> Buat Surat Tugas Baru
+              <PlusIcon className="size-4" /> Buat naskah
             </Link>
           </div>
         }
@@ -193,7 +193,7 @@ export default function NaskahStListPage() {
         <DataTable
           kolom={kolom}
           baris={daftar.data ?? []}
-          kosong={daftar.isPending ? 'Memuat naskah surat tugas...' : 'Belum ada surat tugas yang dibuat.'}
+          kosong={daftar.isPending ? 'Memuat...' : 'Belum ada naskah surat tugas.'}
         />
       )}
 
@@ -201,7 +201,7 @@ export default function NaskahStListPage() {
       <Dialog open={targetHapus !== null} onOpenChange={(open) => !open && setTargetHapus(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Hapus Surat Tugas?</DialogTitle>
+            <DialogTitle>Hapus naskah surat tugas?</DialogTitle>
             <DialogDescription>
               Naskah surat tugas <strong>{targetHapus?.nomor}</strong> akan dihapus permanen. Aksi ini tidak dapat dibatalkan.
             </DialogDescription>
@@ -216,7 +216,7 @@ export default function NaskahStListPage() {
               onClick={async () => {
                 if (!targetHapus) return
                 await hapus.mutateAsync(targetHapus.id)
-                toast.success('Surat tugas berhasil dihapus.')
+                toast.success('Naskah surat tugas dihapus.')
                 setTargetHapus(null)
               }}
             >

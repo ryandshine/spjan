@@ -45,7 +45,7 @@ export function DialogKunciSt({
     <Dialog open={buka} onOpenChange={onBukaChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{kunci ? 'Tandai surat tugas selesai?' : 'Buka kunci surat tugas?'}</DialogTitle>
+          <DialogTitle>{kunci ? 'Tandai SPJ selesai?' : 'Buka kunci SPJ?'}</DialogTitle>
           <DialogDescription>
             {kunci
               ? `${nomor} akan dikunci: data, bukti, dan laporan tidak bisa diubah atau dihapus sampai kunci dibuka. Dokumen tetap bisa dilihat dan dicetak.`

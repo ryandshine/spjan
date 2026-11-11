@@ -227,7 +227,7 @@ export function RingkasanSt({ hasil, status, onPerbaiki, className }: { hasil: S
   const st = teksStatus(status)
 
   return (
-    <Card className={cn('flex flex-col gap-4 p-5', className)} aria-label="Ringkasan surat tugas" role="complementary">
+    <Card className={cn('flex flex-col gap-4 p-5', className)} aria-label="Ringkasan SPJ" role="complementary">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-base font-semibold">Ringkasan</h2>
         <Badge variant="muted">{hasil.pelaksana.length} pelaksana</Badge>
@@ -295,7 +295,7 @@ export function RingkasanRingkas({
   const [bukaDialog, setBukaDialog] = useState(false)
 
   return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border bg-card px-4 py-3" role="complementary" aria-label="Ringkasan surat tugas">
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border bg-card px-4 py-3" role="complementary" aria-label="Ringkasan SPJ">
       <p className="flex items-baseline gap-2" title={hasil.terbilang} aria-live="polite">
         <span className="text-sm text-muted-foreground">Total SPTB</span>
         <span className="font-mono text-lg font-bold text-primary tabular-nums">{rupiah(hasil.total)}</span>

@@ -86,7 +86,7 @@ function DialogBuat({ buka, onBukaChange, pegawaiAwal }: { buka: boolean; onBuka
               </Select>
             </Field>
           )}
-          <Field label="Peran" htmlFor="pg-peran" mode="wajib" hint="Operator menyusun SPJ dan hanya mengubah surat tugas buatannya. Admin bisa semuanya.">
+          <Field label="Peran" htmlFor="pg-peran" mode="wajib" hint="Operator menyusun SPJ dan hanya mengubah SPJ buatannya. Admin bisa semuanya.">
             <Select id="pg-peran" value={form.peran} onChange={(e) => setForm({ ...form, peran: e.target.value as Peran })}>
               {PERAN.map((p) => (
                 <option key={p} value={p}>
@@ -234,7 +234,7 @@ export default function PenggunaPage() {
     <div>
       <PageHeader
         title="Pengguna"
-        description="Satu orang satu akun. Operator hanya mengubah surat tugas buatannya; admin bisa semuanya."
+        description="Satu orang satu akun. Operator hanya mengubah SPJ buatannya; admin bisa semuanya."
         actions={
           <Button onClick={() => setBuat(true)}>
             <PlusIcon /> Tambah pengguna

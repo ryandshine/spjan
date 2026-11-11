@@ -244,7 +244,7 @@ export default function SuratTugasListPage() {
         <DataTable
           kolom={kolom}
           baris={daftar.data ?? []}
-          kosong={daftar.isPending ? 'Memuat...' : 'Belum ada surat tugas.'}
+          kosong={daftar.isPending ? 'Memuat...' : 'Belum ada SPJ.'}
           kata={kata}
           onKata={setKata}
           diBawahCari={
@@ -323,14 +323,14 @@ export default function SuratTugasListPage() {
       <DialogKonfirmasiPassword
         buka={target !== null}
         onBukaChange={(b) => !b && setTarget(null)}
-        judul="Hapus surat tugas?"
+        judul="Hapus SPJ?"
         deskripsi={`${target?.nomor ?? ''} beserta pelaksana, tujuan, biaya, dan berkasnya dipindah ke tempat sampah. Admin masih bisa memulihkannya.`}
         labelAksi="Hapus"
         bahaya
         onKonfirmasi={async ({ password }) => {
           if (!target) return
           await hapus.mutateAsync({ id: target.id, password })
-          toast.success('Surat tugas dipindah ke tempat sampah.')
+          toast.success('SPJ dipindah ke tempat sampah.')
         }}
       />
     </div>

@@ -243,7 +243,7 @@ function Editor({
     try {
       const dto = await simpan.mutateAsync({ id, payload: cek.data })
       tandaiTersimpan(st)
-      toast.success('Surat tugas disimpan.')
+      toast.success('SPJ disimpan.')
       if (id === null) {
         izinkanNavigasi()
         navigate(`/st/${dto.id}${window.location.search}`, { replace: true })
@@ -256,7 +256,7 @@ function Editor({
   async function konfirmasiHapus(password: string) {
     if (id === null) return
     await hapus.mutateAsync({ id, password })
-    toast.success('Surat tugas dipindah ke tempat sampah.')
+    toast.success('SPJ dipindah ke tempat sampah.')
     izinkanNavigasi()
     navigate('/', { replace: true })
   }
@@ -265,7 +265,7 @@ function Editor({
     if (id === null) return
     try {
       await kunciSt.mutateAsync({ id, kunci: true })
-      toast.success('Surat tugas ditandai selesai dan dikunci.')
+      toast.success('SPJ ditandai selesai dan dikunci.')
     } catch (error) {
       toast.error(pesanGalat(error))
     }
@@ -341,7 +341,7 @@ function Editor({
     }
   } else if (tab === 'bukti') {
     navSebelumnya = {
-      label: 'Sebelumnya: Data ST',
+      label: 'Sebelumnya: Data surat tugas',
       onClick: () => {
         setTab('data')
         window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -454,7 +454,7 @@ function Editor({
         }
       } else {
         navBerikutnya = {
-          label: 'Simpan Surat Tugas',
+          label: 'Simpan SPJ',
           onClick: () => void kirim(),
         }
       }
@@ -516,7 +516,7 @@ function Editor({
     <div>
       <PageHeader
         lengket={!modeLaporan}
-        title={id === null ? 'Surat tugas baru' : st.nomor || 'Surat tugas'}
+        title={id === null ? 'SPJ baru' : st.nomor || 'SPJ'}
         description={!bolehUbah ? `Hanya lihat: dibuat oleh ${pembuat ?? 'pengguna lain'}.` : dikunci ? 'Selesai dan terkunci. Buka kunci untuk mengubah.' : deskripsiHeader({ modeLaporan, kotor, baru: id === null })}
         actions={aksiHeader}
       />
@@ -533,7 +533,7 @@ function Editor({
               aktif={tab}
               onPilih={pilihTab}
               idAwal="st-menu"
-              label="Langkah surat tugas"
+              label="Langkah SPJ"
               progres={progres}
               anak={{
                 pelaksana: (
@@ -554,7 +554,7 @@ function Editor({
           )
         : null}
       <div className="md:hidden">
-        <LangkahSt item={langkah} aktif={tab} onPilih={pilihTab} idAwal="st" label="Langkah surat tugas" progres={progres} />
+        <LangkahSt item={langkah} aktif={tab} onPilih={pilihTab} idAwal="st" label="Langkah SPJ" progres={progres} />
       </div>
 
       <div className={cn('grid items-start gap-6', !modeLaporan && 'xl:grid-cols-[minmax(0,1fr)_18rem]')}>
@@ -603,7 +603,7 @@ function Editor({
               <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
                 <p>Simpan data surat tugas terlebih dahulu untuk mengunggah bukti pengeluaran.</p>
                 <Button className="mt-3" onClick={() => void kirim()}>
-                  Simpan Data ST &amp; Buka Unggah Bukti
+                  Simpan Data Surat Tugas &amp; Buka Unggah Bukti
                 </Button>
               </div>
             </TabPanel>
@@ -683,20 +683,20 @@ function Editor({
       <DialogKonfirmasiPassword
         buka={dialogKunci === 'buka'}
         onBukaChange={(b) => !b && setDialogKunci(null)}
-        judul="Buka kunci surat tugas?"
+        judul="Buka kunci SPJ?"
         deskripsi={`${st.nomor} akan bisa diubah lagi. Pembukaan kunci dicatat di log audit beserta alasannya.`}
         labelAksi="Buka kunci"
         perluAlasan
         onKonfirmasi={async ({ password, alasan }) => {
           if (id === null) return
           await kunciSt.mutateAsync({ id, kunci: false, password, alasan })
-          toast.success('Kunci dibuka. Surat tugas bisa diubah lagi.')
+          toast.success('Kunci dibuka. SPJ bisa diubah lagi.')
         }}
       />
       <DialogKonfirmasiPassword
         buka={dialogHapus}
         onBukaChange={setDialogHapus}
-        judul="Hapus surat tugas?"
+        judul="Hapus SPJ?"
         deskripsi={`${st.nomor} beserta pelaksana, tujuan, biaya, dan berkasnya dipindah ke tempat sampah. Admin masih bisa memulihkannya.`}
         labelAksi="Hapus"
         bahaya
@@ -719,7 +719,7 @@ export default function StEditorPage() {
   const sbm = useSbm(versiId)
   const me = useMe()
 
-  if (!idValid) return <Alert variant="destructive">Alamat surat tugas tidak valid.</Alert>
+  if (!idValid) return <Alert variant="destructive">Alamat SPJ tidak valid.</Alert>
   const galat = pengaturan.error ?? versi.error ?? st.error ?? sbm.error
   if (galat) return <Alert variant="destructive">{pesanGalat(galat)}</Alert>
   if (!pengaturan.data || !sbm.data || !me.data || (id !== null && !st.data)) {

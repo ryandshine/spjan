@@ -339,7 +339,7 @@ export function BuktiPanel({
           <div className="flex items-center gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
             <AlertCircleIcon className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <span>
-              Ada <strong>{totalUnmatched} berkas</strong> yang nama di dokumennya belum cocok dengan nama pelaksana ST. Silakan tentukan pelaksana pada baris berkas di bawah.
+              Ada <strong>{totalUnmatched} berkas</strong> yang nama di dokumennya belum cocok dengan nama pelaksana SPJ. Silakan tentukan pelaksana pada baris berkas di bawah.
             </span>
           </div>
         )}
@@ -503,7 +503,7 @@ export function BuktiPanel({
                               <div className="flex flex-col gap-1">
                                 <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
                                   <AlertCircleIcon className="size-3" />{' '}
-                                  {hotelItem.bacaUlang ? 'Hasil baca ulang: periksa lalu terapkan' : 'Tamu tidak cocok pelaksana ST'}
+                                  {hotelItem.bacaUlang ? 'Hasil baca ulang: periksa lalu terapkan' : 'Tamu tidak cocok pelaksana SPJ'}
                                 </span>
                                 <div className="flex flex-wrap items-center gap-1.5">
                                   {pelaksanaList.length > 0 ? (
@@ -591,7 +591,7 @@ export function BuktiPanel({
                                     <div className="flex flex-col gap-1">
                                       <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
                                         <AlertCircleIcon className="size-3" />{' '}
-                                        {tItem.bacaUlang ? 'Hasil baca ulang: periksa lalu terapkan' : 'Penumpang tidak cocok pelaksana ST'}
+                                        {tItem.bacaUlang ? 'Hasil baca ulang: periksa lalu terapkan' : 'Penumpang tidak cocok pelaksana SPJ'}
                                       </span>
                                       <div className="flex flex-wrap items-center gap-1.5">
                                         {pelaksanaList.length > 0 ? (

@@ -6,12 +6,12 @@ import { useAudit } from '@/lib/queries'
 import type { LogAuditDto } from '@spjan/shared'
 
 const LABEL_AKSI: Record<string, string> = {
-  'st.buat': 'Buat surat tugas',
+  'st.buat': 'Buat SPJ',
   'st.kunci': 'Tandai selesai (kunci)',
   'st.buka_kunci': 'Buka kunci',
-  'st.hapus': 'Hapus surat tugas',
-  'st.pulihkan': 'Pulihkan surat tugas',
-  'st.hapus_permanen': 'Hapus permanen surat tugas',
+  'st.hapus': 'Hapus SPJ',
+  'st.pulihkan': 'Pulihkan SPJ',
+  'st.hapus_permanen': 'Hapus permanen SPJ',
   'berkas.hapus': 'Hapus berkas',
   'berkas.pulihkan': 'Pulihkan berkas',
   'berkas.hapus_permanen': 'Hapus permanen berkas',
@@ -26,7 +26,7 @@ export default function AuditPage() {
     { judul: 'Waktu', sel: (l) => <span className="whitespace-nowrap text-muted-foreground">{waktuPendek(l.waktu)}</span> },
     { judul: 'Pengguna', teks: (l) => l.username, sel: (l) => <span className="font-medium">{l.username}</span> },
     { judul: 'Aksi', teks: (l) => LABEL_AKSI[l.aksi] ?? l.aksi, sel: (l) => LABEL_AKSI[l.aksi] ?? l.aksi },
-    { judul: 'Surat tugas', sel: (l) => (l.stId !== null ? `#${l.stId}` : '-') },
+    { judul: 'SPJ', sel: (l) => (l.stId !== null ? `#${l.stId}` : '-') },
     { judul: 'Alasan / rincian', teks: (l) => l.alasan ?? '', sel: (l) => l.alasan ?? (l.detail ? <code className="text-xs text-muted-foreground">{JSON.stringify(l.detail)}</code> : '-') },
   ]
   return (

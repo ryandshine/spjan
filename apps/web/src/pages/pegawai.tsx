@@ -114,7 +114,7 @@ export default function PegawaiPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{dialog?.pegawai ? 'Ubah pegawai' : 'Tambah pegawai'}</DialogTitle>
-            <DialogDescription>NIP harus unik. Status dapat diubah kapan saja; surat tugas lama tidak ikut berubah.</DialogDescription>
+            <DialogDescription>NIP harus unik. Status dapat diubah kapan saja; SPJ lama tidak ikut berubah.</DialogDescription>
           </DialogHeader>
           {dialog ? <FormPegawai awal={dialog.pegawai} onSelesai={() => setDialog(null)} /> : null}
         </DialogContent>

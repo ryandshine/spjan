@@ -272,7 +272,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
     try {
       const res = await simpanMutation.mutateAsync(cek.data)
       setBaseline(formTerserialisasi)
-      toast.success(isEdit ? 'Naskah surat tugas berhasil diperbarui!' : 'Naskah surat tugas berhasil dibuat!')
+      toast.success('Naskah surat tugas disimpan.')
       if (!isEdit && res?.id) {
         izinkanNavigasi()
         navigate(`/st-naskah/${res.id}`, { replace: true })
@@ -317,7 +317,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
     }
     try {
       const res = await buatSpjMutation.mutateAsync(stId)
-      toast.success('Draf SPJ berhasil dibuat dari naskah ST!')
+      toast.success('Draf SPJ dibuat dari naskah surat tugas.')
       navigate(`/st/${res.spjId}`)
     } catch (err) {
       toast.error(pesanGalat(err))
@@ -335,7 +335,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
   return (
     <div className="space-y-6">
       <PageHeader
-        title={isEdit ? `Edit Surat Tugas: ${form.nomor}` : 'Buat Surat Tugas Baru'}
+        title={isEdit ? (form.modeNomor === 'manual' && form.nomor ? form.nomor : 'Naskah surat tugas') : 'Naskah surat tugas baru'}
         description={kotor ? 'Ada perubahan yang belum disimpan.' : isEdit ? 'Tersimpan.' : 'Isi data lalu simpan.'}
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -357,7 +357,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
                 className="gap-1 border-primary/40 text-primary hover:bg-primary/10"
                 disabled={buatSpjMutation.isPending}
                 onClick={handleBuatSpj}
-                title="Buat draf SPJ keuangan langsung dari ST ini"
+                title="Buat draf SPJ dari naskah ini"
               >
                 <ArrowRightIcon className="size-4" /> Lanjutkan ke SPJ
               </Button>
@@ -752,7 +752,7 @@ function NaskahStEditorForm({ awal, stId }: { awal: NaskahStPayload; stId?: numb
           <div className="flex items-center justify-between px-1">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Pratinjau Naskah Dinas
+                Pratinjau Naskah Surat Tugas
               </span>
               {evaluasiTataLetak.alasanLampiran === 'kapasitas_halaman' ? (
                 <span

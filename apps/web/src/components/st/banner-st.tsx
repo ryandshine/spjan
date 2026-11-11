@@ -19,14 +19,14 @@ export function BannerStatusSt({
   if (!bolehUbah) {
     return (
       <Alert className="mb-5">
-        Surat tugas ini dibuat oleh {pembuat ?? 'pengguna lain'}. Anda tercantum sebagai pelaksana, jadi bisa melihat serta mengunduh dokumen dan berkasnya; perubahan hanya oleh pembuat atau admin.
+        SPJ ini dibuat oleh {pembuat ?? 'pengguna lain'}. Anda tercantum sebagai pelaksana, jadi bisa melihat serta mengunduh dokumen dan berkasnya; perubahan hanya oleh pembuat atau admin.
       </Alert>
     )
   }
   if (!dikunci) return null
   return (
     <Alert className="mb-5 flex flex-wrap items-center justify-between gap-2">
-      <span>Surat tugas ini sudah ditandai selesai dan terkunci, jadi data, bukti, dan laporan tidak bisa diubah. Dokumen tetap bisa dicetak.</span>
+      <span>SPJ ini sudah ditandai selesai dan terkunci, jadi data, bukti, dan laporan tidak bisa diubah. Dokumen tetap bisa dicetak.</span>
       <Button size="sm" variant="outline" onClick={onBukaKunci}>
         <LockOpenIcon /> Buka kunci
       </Button>

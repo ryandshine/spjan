@@ -298,7 +298,7 @@ export function PelaksanaCard({
           <DialogHeader>
             <DialogTitle>Hapus pelaksana {nomor}?</DialogTitle>
             <DialogDescription>
-              {p.nama || `Pelaksana ${nomor}`} beserta tujuan perjalanan dan biayanya dihapus dari surat tugas ini. Perubahan baru tersimpan saat Anda menekan Simpan.
+              {p.nama || `Pelaksana ${nomor}`} beserta tujuan perjalanan dan biayanya dihapus dari SPJ ini. Perubahan baru tersimpan saat Anda menekan Simpan.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
