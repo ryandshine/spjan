@@ -783,6 +783,12 @@ describe("petakanTransportKeUsulan - rincian per penumpang dari AI (rincianPenum
     expect(h[0]?.peringatan.join(" ")).toContain("tidak sama dengan total");
   });
 
+  it("selisih pembulatan sampai Rp1 per baris rincian tidak diberi peringatan", () => {
+    const bulat = rincian.map((r, i) => (i === 0 ? { ...r, tarif: r.tarif - 1 } : r));
+    const h = petakanTransportKeUsulan([berkas(1, { rincianPenumpang: bulat })] as unknown as BerkasDto[], st);
+    expect(h[0]?.peringatan.join(" ")).not.toContain("tidak sama dengan total");
+  });
+
   it("orang yang sama di arah yang sama dari berkas lain booking yang sama dihitung sekali", () => {
     const h = petakanTransportKeUsulan([berkas(1, {}), berkas(2, { nomorTiket: "880-9", segmen: [pergi, pulangB] })] as unknown as BerkasDto[], st);
     expect(h).toHaveLength(6);

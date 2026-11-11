@@ -398,7 +398,8 @@ export function petakanTransportKeUsulan(
       if (rincian.length > 0) {
         // AI sudah membaca dan memperkirakan jatah tiap orang per arah: dipakai apa adanya, kode hanya memeriksa.
         const jumlahRincian = rincian.reduce((a, r) => a + r.tarif, 0);
-        const selisih = jumlahRincian !== tiket.tarif
+        // Pembagian rata yang dibulatkan bisa meleset Rp1 per baris; selisih sebesar itu bukan kesalahan baca.
+        const selisih = Math.abs(jumlahRincian - tiket.tarif) > rincian.length
           ? [`Perlu dicek: rincian per penumpang berjumlah ${jumlahRincian.toLocaleString("id-ID")}, tidak sama dengan total tiket ${tiket.tarif.toLocaleString("id-ID")}.`]
           : [];
         const tidakCocok = rincian.filter((r) => cocokNama(st, r.pelaksana || r.nama) < 0 && cocokNama(st, r.nama) < 0).length;
