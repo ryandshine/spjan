@@ -9,6 +9,7 @@ Terakhir diperbarui: 2026-11-11 (tarif uang harian manual).
 - `petakanTransportKeUsulan`: berkas dengan kode booking, penumpang, dan jadwal sama = salinan (dihitung dari satu berkas wakil, sebaiknya yang harga per arahnya lengkap; `salinanBookingTiket` untuk keterangan di panel bukti). Total = jumlah harga per arah bila lebih besar dari `tarif`. Satu arah per booking dihitung sekali per orang lintas berkas.
 - `segmen[].penumpangArah` (opsional, isian rusak diabaikan): bila ada dan harga tiap arah tertera, harga arah dibagi ke penumpang arah itu saja. Prompt tiket meminta total semua arah, harga per arah, dan penumpangArah. Hasil baca lama perlu "Ulangi pembacaan" agar penumpangArah terisi.
 - Data ST yang sudah tersimpan tidak diubah; biaya tiket dobel perlu dirapikan manual.
+- Baca ulang berkas yang sudah selesai: tombol ulangi di panel bukti kini juga untuk status selesai. `EkstraksiDto.bacaUlang` (ada ekstraksi selesai sebelumnya) dibawa ke item usulan; usulan baca ulang tidak diterapkan otomatis (`sinkronkanSemuaUsulanOtomatis` dan efek di `st-editor.tsx`), hanya manual.
 
 ## Tarif uang harian manual (2026-11-11)
 

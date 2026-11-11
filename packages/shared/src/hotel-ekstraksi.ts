@@ -25,6 +25,8 @@ export type StatusPlafonHotel = "sesuai" | "melebihi" | "tanpa_plafon";
 
 export interface UsulanHotelItem {
   berkasId: number;
+  /** Berasal dari pembacaan ulang berkas yang sudah pernah selesai dibaca: tinjau manual, jangan diterapkan otomatis. */
+  bacaUlang?: boolean;
   namaBerkas: string;
   ekstraksi: HasilEkstraksiHotel;
   usulanStatus: StatusUsulan;
@@ -172,6 +174,7 @@ export function petakanHotelKeUsulan(
       namaBerkas: b.namaAsli,
       ekstraksi: h,
       usulanStatus: b.ekstraksi?.usulanStatus ?? "menunggu",
+      bacaUlang: b.ekstraksi?.bacaUlang ?? false,
       pelaksanaId: pelId,
       pelaksanaIndex,
       etapeIndex,

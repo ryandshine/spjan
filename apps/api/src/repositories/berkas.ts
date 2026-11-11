@@ -26,13 +26,15 @@ interface Row {
   e_usulan_status: StatusUsulan | null;
   e_created_at: Date | null;
   e_selesai_at: Date | null;
+  e_baca_ulang: boolean | null;
 }
 
 const SELECT_BERKAS = `
   select b.id, b.st_id, b.pelaksana_id, b.nama_asli, b.mime, b.ukuran, b.sha256, b.jenis, b.keterangan, b.created_at,
          e.id as e_id, e.status as e_status, e.model as e_model, e.hasil as e_hasil,
          e.kode_galat as e_kode_galat, e.galat as e_galat, e.usulan_status as e_usulan_status,
-         e.created_at as e_created_at, e.selesai_at as e_selesai_at
+         e.created_at as e_created_at, e.selesai_at as e_selesai_at,
+         exists (select 1 from ekstraksi e2 where e2.berkas_id = b.id and e2.id < e.id and e2.status = 'selesai') as e_baca_ulang
     from berkas b
     left join lateral (select * from ekstraksi where berkas_id = b.id order by id desc limit 1) e on true`;
 
@@ -62,6 +64,7 @@ function map(r: Row): BerkasDto {
             usulanStatus: r.e_usulan_status,
             createdAt: r.e_created_at.toISOString(),
             selesaiAt: r.e_selesai_at ? r.e_selesai_at.toISOString() : null,
+            bacaUlang: r.e_baca_ulang ?? false,
           },
   };
 }

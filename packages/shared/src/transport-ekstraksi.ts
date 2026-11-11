@@ -86,6 +86,8 @@ export type HasilEkstraksiTransport = z.infer<
 
 export interface UsulanTransportItem {
   berkasId: number;
+  /** Berasal dari pembacaan ulang berkas yang sudah pernah selesai dibaca: tinjau manual, jangan diterapkan otomatis. */
+  bacaUlang?: boolean;
   namaBerkas: string;
   kategoriBerkas: "tiket" | "transport";
   ekstraksi: HasilEkstraksiTiket | HasilEkstraksiTransport;
@@ -497,6 +499,7 @@ export function petakanTransportKeUsulan(
           kategoriBerkas: "tiket",
           ekstraksi: t,
           usulanStatus: b.ekstraksi?.usulanStatus ?? "menunggu",
+          bacaUlang: b.ekstraksi?.bacaUlang ?? false,
           jumlahPenerima: alokasi.length,
           pelaksanaId,
           pelaksanaIndex,
@@ -553,6 +556,7 @@ export function petakanTransportKeUsulan(
         kategoriBerkas: "transport",
         ekstraksi: tr,
         usulanStatus: b.ekstraksi?.usulanStatus ?? "menunggu",
+        bacaUlang: b.ekstraksi?.bacaUlang ?? false,
         jumlahPenerima: 1,
         pelaksanaId,
         pelaksanaIndex,

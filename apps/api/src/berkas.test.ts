@@ -145,6 +145,16 @@ describe("isi, hapus, dan ulang", () => {
     expect((await call("GET", "/api/berkas/999999")).statusCode).toBe(404);
   });
 
+  it("ulang pada berkas yang sudah selesai dibaca menandai bacaUlang (usulannya tidak diterapkan otomatis)", async () => {
+    const { berkas } = (await unggah("tiket.png", pngUnik(78))).json();
+    expect(berkas.ekstraksi.bacaUlang).toBe(false);
+    // Ulang pada pembacaan yang belum pernah selesai bukan baca ulang.
+    expect((await call("POST", `/api/berkas/${berkas.id}/ulang`)).json().ekstraksi.bacaUlang).toBe(false);
+    await pool.query("update ekstraksi set status = 'selesai' where berkas_id = $1", [berkas.id]);
+    const ulang = (await call("POST", `/api/berkas/${berkas.id}/ulang`)).json();
+    expect(ulang.ekstraksi).toMatchObject({ status: "antre", bacaUlang: true });
+  });
+
   it("GET /:id/isi mengembalikan byte asli dengan tipe dan nama berkas", async () => {
     const isi = pngUnik(8);
     const { berkas } = (await unggah("bukti hotel.png", isi)).json();

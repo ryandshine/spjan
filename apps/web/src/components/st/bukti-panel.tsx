@@ -187,7 +187,7 @@ export function BuktiPanel({
   async function tanganiUlangi(id: number) {
     try {
       await ulangi.mutateAsync(id)
-      toast.success('Pembacaan ulang dijadwalkan.')
+      toast.success('Pembacaan ulang dijadwalkan. Bila berkas ini sudah pernah dibaca, hasil barunya muncul sebagai usulan dan tidak diterapkan otomatis.')
     } catch (err) {
       toast.error(`Gagal menjadwalkan ulang: ${pesanGalat(err)}`)
     }
@@ -657,11 +657,11 @@ export function BuktiPanel({
                           >
                             <ExternalLinkIcon className="size-4" />
                           </a>
-                          {status === 'gagal' && (
+                          {(status === 'gagal' || status === 'selesai') && (
                             <Button
                               variant="ghost"
                               size="icon"
-                              title="Ulangi pembacaan berkas"
+                              title={status === 'gagal' ? 'Ulangi pembacaan berkas' : 'Baca ulang berkas (hasil baru menjadi usulan, tidak diterapkan otomatis)'}
                               disabled={ulangi.isPending}
                               onClick={() => void tanganiUlangi(b.id)}
                             >

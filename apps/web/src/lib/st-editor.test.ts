@@ -183,6 +183,14 @@ describe('sinkronkanSemuaUsulanOtomatis', () => {
     ...sebagian,
   })
 
+  it('usulan dari baca ulang tidak diterapkan otomatis (ditinjau manual)', () => {
+    const st = stDenganPelaksana(1)
+    const res = sinkronkanSemuaUsulanOtomatis(st, [usulanHotel({ bacaUlang: true })], [usulanTiket({ bacaUlang: true })])
+    expect(res.transportBerkasIds).toEqual([])
+    expect(res.hotelBerkasIds).toEqual([])
+    expect(res.stBaru.pelaksana[0]?.biaya).toHaveLength(0)
+  })
+
   it('otomatis memasukkan biaya tiket ke pelaksana yang cocok tanpa duplikasi', () => {
     const st = stDenganPelaksana(1)
     const t = usulanTiket({})

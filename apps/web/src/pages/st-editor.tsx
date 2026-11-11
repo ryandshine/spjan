@@ -182,10 +182,10 @@ function Editor({
     if (id === null || !usulanHotelList || !usulanTransportList) return
 
     const hotelMenunggu = usulanHotelList.filter(
-      (h) => h.usulanStatus === 'menunggu' && h.pelaksanaIndex >= 0 && !sedangSinkronRef.current.has(h.berkasId),
+      (h) => h.usulanStatus === 'menunggu' && !h.bacaUlang && h.pelaksanaIndex >= 0 && !sedangSinkronRef.current.has(h.berkasId),
     )
     const transportMenunggu = usulanTransportList.filter(
-      (t) => t.usulanStatus === 'menunggu' && t.pelaksanaIndex >= 0 && !sedangSinkronRef.current.has(t.berkasId),
+      (t) => t.usulanStatus === 'menunggu' && !t.bacaUlang && t.pelaksanaIndex >= 0 && !sedangSinkronRef.current.has(t.berkasId),
     )
 
     if (hotelMenunggu.length === 0 && transportMenunggu.length === 0) return

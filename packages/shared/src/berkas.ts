@@ -49,6 +49,8 @@ export interface EkstraksiDto {
   usulanStatus: StatusUsulan;
   createdAt: string;
   selesaiAt: string | null;
+  /** Pembacaan ulang berkas yang sebelumnya sudah selesai dibaca: usulannya ditinjau manual, tidak diterapkan otomatis. */
+  bacaUlang?: boolean;
 }
 
 export interface BerkasDto {

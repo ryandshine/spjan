@@ -152,7 +152,8 @@ export function sinkronkanSemuaUsulanOtomatis(
 
   // 1. Terapkan usulan transport/tiket
   for (const t of usulanTransport) {
-    if (t.usulanStatus !== 'menunggu') continue
+    // Hasil baca ulang ditinjau manual: biaya lama bisa masih ada dan menjadi dobel bila diterapkan otomatis.
+    if (t.usulanStatus !== 'menunggu' || t.bacaUlang) continue
     if (t.pelaksanaIndex < 0 || t.pelaksanaIndex >= pelaksanaBaru.length) continue
 
     const p = pelaksanaBaru[t.pelaksanaIndex]!
@@ -177,7 +178,7 @@ export function sinkronkanSemuaUsulanOtomatis(
 
   // 2. Terapkan usulan hotel
   for (const h of usulanHotel) {
-    if (h.usulanStatus !== 'menunggu') continue
+    if (h.usulanStatus !== 'menunggu' || h.bacaUlang) continue
     if (h.pelaksanaIndex < 0 || h.pelaksanaIndex >= pelaksanaBaru.length) continue
 
     const p = pelaksanaBaru[h.pelaksanaIndex]!
