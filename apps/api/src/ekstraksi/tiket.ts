@@ -29,6 +29,7 @@ Periksa dokumen tiket penerbangan, e-ticket, boarding pass, tiket kereta api, ti
 Panduan membaca: format tiket berbeda-beda antar maskapai, agen perjalanan (OTA), dan kereta api, serta bisa berbahasa Indonesia atau Inggris. Hitung jumlah penumpang dari tabel "Detail Penumpang"/"Passenger" dan dari kalimat seperti "Tiket untuk N penumpang"; jumlah elemen daftarPenumpang harus sama. Bila dokumen memuat pergi dan pulang, kolom asal/tujuan/tanggal/jam/nomorPenerbangan/arah diisi dari perjalanan pertama, tarif tetap total yang dibayarkan untuk seluruh perjalanan (jangan dijumlahkan dua kali), dan semua arah dicatat di segmen. Buang sapaan (MR/MRS/MS) hanya bila bukan bagian nama; jika ragu, salin nama persis seperti tertulis. Jangan menebak: bila suatu nilai tidak tertera, isi null.
 - arah: "pergi" (menuju kota kegiatan), "kembali" (pulang ke kota asal), atau "lainnya"
 - segmen: SELALU diisi, satu elemen per arah perjalanan tiket utama (pesawat/kereta/kapal/bus), urut waktu, dari seluruh halaman dokumen (tiket sekali jalan = satu elemen). Tiap elemen berisi asal, tujuan, tanggal, jam, nomorPenerbangan, arah, dan tarif (harga arah itu untuk semua penumpang di daftarPenumpang bila tertera terpisah, selain itu null; WAJIB diisi bila tiap arah punya harga sendiri di dokumen, dan jumlah tarif semua segmen harus sama dengan tarif), serta penumpangArah (nama penumpang yang benar-benar menempuh arah itu, HANYA bila berbeda dari daftarPenumpang, mis. sebagian penumpang pulang di hari lain atau dengan tiket/penerbangan lain; bila sama dengan daftarPenumpang isi []). Penerbangan lanjutan/transit dalam satu arah digabung menjadi satu elemen: asal bandara awal, tujuan bandara akhir.
+- rincianPenumpang: daftar jatah biaya TIAP penumpang pada TIAP arah yang ia tempuh, hasil Anda membaca seluruh dokumen. Satu elemen per (penumpang, arah): { nama (persis di tiket), pelaksana (nama yang sama dari "Daftar pelaksana surat tugas" bila diberikan, selain itu null), arah, tanggal, asal, tujuan, nomorPenerbangan, tarif (rupiah bulat untuk orang itu pada arah itu), dasar }. dasar = "tertera" bila harga orang itu tertulis; "dibagi_rata" bila Anda membagi total arah itu dengan jumlah penumpang arah itu; "perkiraan" bila Anda menaksir. Perhatikan siapa yang benar-benar menempuh tiap arah (penumpang bisa pulang di hari atau penerbangan berbeda). Jumlah semua tarif di rincianPenumpang harus sama dengan tarif.
 
 PENTING:
 - Balas HANYA SATU JSON object {...}, BUKAN array [ ... ]. Jika ada beberapa tiket (mis. tiket pergi dan tiket pulang), gabungkan ke dalam satu objek JSON dengan mengisi array segmen dan jumlahkan total tarifnya.
@@ -172,6 +173,9 @@ export function normalisasiHasilTiket(raw: unknown): unknown {
       basisTarif: pertama.basisTarif ?? "total",
       arah: pertama.arah ?? "pergi",
       segmen: semuaSegmen.slice(0, 6),
+      ...(itemsToMerge.some((it: any) => Array.isArray(it.rincianPenumpang))
+        ? { rincianPenumpang: itemsToMerge.flatMap((it: any) => (Array.isArray(it.rincianPenumpang) ? it.rincianPenumpang : [])).slice(0, 60) }
+        : {}),
       perluDicek: gabungPerluDicek(itemsToMerge),
     };
   }
@@ -183,6 +187,8 @@ export async function ekstrakTiket(
   klien: KlienAi,
   konf: KonfigurasiAi,
   isi: IsiBerkas,
+  /** Nama pelaksana surat tugas tempat berkas ini, agar AI bisa mencocokkan penumpang ke pelaksana. */
+  konteks: { namaPelaksana?: string[] } = {},
 ): Promise<{ model: string; hasil: HasilEkstraksiTiket }> {
   const pakaiGambar = isi.gambar.length > 0;
   const model = pakaiGambar ? konf.modelGambar : konf.modelTeks;
@@ -198,7 +204,10 @@ export async function ekstrakTiket(
 
   // Semua halaman yang terbaca: tiket pulang bisa berada di halaman berikutnya.
   const gambar = pakaiGambar ? isi.gambar : undefined;
-  const promptDasar = pakaiGambar ? PROMPT_TIKET : `${PROMPT_TIKET}\n\nIsi Dokumen Tiket:\n${isi.teks}`;
+  const daftarPelaksana = (konteks.namaPelaksana ?? []).filter((n) => n.trim()).slice(0, 60);
+  const promptTiket =
+    daftarPelaksana.length > 0 ? `${PROMPT_TIKET}\n\nDaftar pelaksana surat tugas:\n${daftarPelaksana.map((n) => `- ${n}`).join("\n")}` : PROMPT_TIKET;
+  const promptDasar = pakaiGambar ? promptTiket : `${promptTiket}\n\nIsi Dokumen Tiket:\n${isi.teks}`;
   let prompt = promptDasar;
 
   for (let percobaan = 0; percobaan < 2; percobaan += 1) {

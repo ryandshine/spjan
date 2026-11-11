@@ -39,6 +39,21 @@ describe("ekstrakTiket", () => {
     expect(klien.panggilan[0]?.prompt).toContain("ELECTRONIC TICKET RECEIPT...");
   });
 
+  it("daftar pelaksana ST masuk prompt dan rincian per penumpang dari AI tersimpan", async () => {
+    const rincian = [{ nama: "MR AHMAD FAUZI", pelaksana: "Ahmad Fauzi, S.T.", arah: "pergi", tanggal: "2026-09-12", tarif: 1_250_000, dasar: "tertera" }];
+    const klien = klienPalsu(() => JSON.stringify({ ...JSON.parse(validTiketJson), rincianPenumpang: rincian }));
+    const { hasil } = await ekstrakTiket(klien, konf, { teks: "E-TICKET ...", gambar: [] }, { namaPelaksana: ["Ahmad Fauzi, S.T.", "Budi Santoso"] });
+    expect(klien.panggilan[0]?.prompt).toContain("Daftar pelaksana surat tugas:\n- Ahmad Fauzi, S.T.\n- Budi Santoso");
+    expect(klien.panggilan[0]?.prompt).toContain("rincianPenumpang");
+    expect(hasil.rincianPenumpang).toEqual([{ ...rincian[0], pelaksana: "Ahmad Fauzi, S.T." }]);
+  });
+
+  it("tanpa daftar pelaksana, prompt tidak memuat bagian daftar", async () => {
+    const klien = klienPalsu(() => validTiketJson);
+    await ekstrakTiket(klien, konf, { teks: "E-TICKET ...", gambar: [] });
+    expect(klien.panggilan[0]?.prompt).not.toContain("Daftar pelaksana surat tugas:");
+  });
+
   it("berhasil membaca JSON yang dibungkus markdown", async () => {
     const klien = klienPalsu(() => `\`\`\`json\n${validTiketJson}\n\`\`\``);
     const { hasil } = await ekstrakTiket(klien, konf, { teks: "TICKET ITINERARY...", gambar: [] });

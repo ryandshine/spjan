@@ -15,12 +15,14 @@ import { ekstrakTransport } from "./transport.js";
 export type Ekstraktor = (ctx: {
   berkas: { id: number; mime: MimeBerkas; sha256: string; jenis?: JenisBerkas };
   isi: IsiBerkas;
+  /** Nama pelaksana surat tugas berkas ini (bila tertaut), untuk mencocokkan penumpang tiket. */
+  namaPelaksana?: string[];
   konf: KonfigurasiAi;
   klien: KlienAi;
 }) => Promise<{ model: string; hasil: unknown; jenis?: JenisBerkas }>;
 
 /** Ekstraktor cerdas: jalankan ekstraksi detail sesuai jenis berkas (ST, Hotel, Tiket, atau Transport). */
-export const ekstraktorOtomatis: Ekstraktor = async ({ berkas, klien, konf, isi }) => {
+export const ekstraktorOtomatis: Ekstraktor = async ({ berkas, klien, konf, isi, namaPelaksana }) => {
   if (berkas.jenis === "st") {
     const { model, hasil } = await ekstrakSt(klien, konf, isi);
     return { model, hasil, jenis: "st" };
@@ -30,7 +32,7 @@ export const ekstraktorOtomatis: Ekstraktor = async ({ berkas, klien, konf, isi 
     return { model, hasil, jenis: "hotel" };
   }
   if (berkas.jenis === "tiket") {
-    const { model, hasil } = await ekstrakTiket(klien, konf, isi);
+    const { model, hasil } = await ekstrakTiket(klien, konf, isi, { namaPelaksana });
     return { model, hasil, jenis: "tiket" };
   }
   if (berkas.jenis === "transport") {
@@ -47,7 +49,7 @@ export const ekstraktorOtomatis: Ekstraktor = async ({ berkas, klien, konf, isi 
     return { model, hasil, jenis: "hotel" };
   }
   if (hKlas.jenis === "tiket") {
-    const { model, hasil } = await ekstrakTiket(klien, konf, isi);
+    const { model, hasil } = await ekstrakTiket(klien, konf, isi, { namaPelaksana });
     return { model, hasil, jenis: "tiket" };
   }
   if (hKlas.jenis === "transport") {
@@ -84,6 +86,12 @@ export function bikinWorker(opsi: WorkerOpsi) {
   const paralel = opsi.paralel ?? 2;
   const jedaMs = opsi.jedaMs ?? 2000;
 
+  async function namaPelaksanaSt(stId: number | null): Promise<string[]> {
+    if (stId === null) return [];
+    const { rows } = await db.query<{ nama: string }>("select nama from pelaksana where st_id = $1 order by urutan", [stId]);
+    return rows.map((r) => r.nama);
+  }
+
   async function klaim(): Promise<Klaim | null> {
     const { rows } = await db.query<Klaim>(
       `update ekstraksi set status = 'berjalan', mulai_at = now(), percobaan = percobaan + 1
@@ -100,8 +108,8 @@ export function bikinWorker(opsi: WorkerOpsi) {
     const pemakaian = pemakaianKosong();
     const klienHitung: KlienAi = { chat: (p) => klien.chat({ ...p, pemakaian }) };
     try {
-      const { rows } = await db.query<{ id: number; mime: MimeBerkas; sha256: string; jenis: JenisBerkas }>(
-        "select id, mime, sha256, jenis from berkas where id = $1",
+      const { rows } = await db.query<{ id: number; mime: MimeBerkas; sha256: string; jenis: JenisBerkas; st_id: number | null }>(
+        "select id, mime, sha256, jenis, st_id from berkas where id = $1",
         [k.berkasId],
       );
       const berkas = rows[0];
@@ -113,7 +121,7 @@ export function bikinWorker(opsi: WorkerOpsi) {
       // Isi berkas yang sama persis sudah pernah diekstrak: pakai hasilnya, tanpa membaca ulang dan tanpa memanggil model.
       const dipakaiUlang = await cariHasilSama(db, berkas, konf);
       if (dipakaiUlang) console.log(`[ekstraksi] berkas=${k.berkasId} memakai hasil berkas identik (tanpa panggilan model)`);
-      const hasil = dipakaiUlang ?? (await ekstrak({ berkas, isi: await bacaIsi(berkas.mime, data), konf, klien: klienHitung }));
+      const hasil = dipakaiUlang ?? (await ekstrak({ berkas, isi: await bacaIsi(berkas.mime, data), konf, klien: klienHitung, namaPelaksana: await namaPelaksanaSt(berkas.st_id) }));
       model = hasil.model;
       if ("connect" in db && typeof (db as any).connect === "function") {
         const client = await (db as any).connect();

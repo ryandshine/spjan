@@ -156,6 +156,27 @@ describe("worker ekstraksi", () => {
     });
   });
 
+  it("nama pelaksana ST tempat berkas tertaut diteruskan ke ekstraktor; berkas tanpa ST tanpa nama", async () => {
+    const stId = await buatSuratTugas("ST-NAMA");
+    for (const [i, nama] of ["Ahmad Fauzi", "Budi Santoso"].entries()) {
+      await pool.query("insert into pelaksana (st_id, urutan, nama, nip, jabatan, status_kode) values ($1, $2, $3, '', '', 'ESELON_IV')", [stId, i, nama]);
+    }
+    const diterima: (string[] | undefined)[] = [];
+    const worker = bikinWorker({
+      db: pool,
+      store,
+      klien: klienPalsu(() => lainnya),
+      ekstrak: async (ctx) => {
+        diterima.push(ctx.namaPelaksana);
+        return { model: "m", hasil: { jenis: "lainnya", ringkasan: "x" }, jenis: "lainnya" };
+      },
+    });
+    await tambahBerkas(pool, store, { stId, namaAsli: "t.png", data: pngUnik(41) });
+    await tambah(pngUnik(42));
+    await worker.jalankanSekali();
+    expect(diterima).toEqual([["Ahmad Fauzi", "Budi Santoso"], []]);
+  });
+
   it("model gambar belum diatur: gagal MODEL_BELUM_DIATUR tanpa ulang", async () => {
     await saveModelAi(pool, { llmUrl: null, modelTeks: "m-teks", modelGambar: null });
     const worker = bikinWorker({ db: pool, store, klien: klienPalsu(() => hotel) });

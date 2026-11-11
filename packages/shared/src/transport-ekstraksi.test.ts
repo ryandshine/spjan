@@ -735,3 +735,61 @@ describe("petakanTransportKeUsulan - penumpang berbeda per arah", () => {
     expect(h.length).toBeGreaterThan(0);
   });
 });
+
+describe("petakanTransportKeUsulan - rincian per penumpang dari AI (rincianPenumpang)", () => {
+  const nama = ["Gita Permata", "Hadi Kurniawan", "Indra Wijaya"];
+  const st = {
+    pelaksana: nama.map((n) => ({ nama: `${n}, S.T.`, etape: [{ berangkat: "2026-08-03", pulang: "2026-08-07", provinsi: "BALI", kota: "Denpasar" }] })),
+  } as unknown as SuratTugasPayload;
+  const pergi = { asal: "Jakarta (CGK)", tujuan: "Denpasar (DPS)", tanggal: "2026-08-03", nomorPenerbangan: "ZZ 1", arah: "pergi", tarif: 3_000_001 };
+  const pulangA = { asal: "Denpasar (DPS)", tujuan: "Jakarta (CGK)", tanggal: "2026-08-05", nomorPenerbangan: "ZZ 2", arah: "kembali", tarif: 2_000_000 };
+  const pulangB = { asal: "Denpasar (DPS)", tujuan: "Jakarta (CGK)", tanggal: "2026-08-07", nomorPenerbangan: "ZZ 3", arah: "kembali", tarif: 3_000_000 };
+  const rincian = [
+    { nama: "MS GITA PERMATA", pelaksana: "Gita Permata, S.T.", arah: "pergi", tanggal: "2026-08-03", nomorPenerbangan: "ZZ 1", tarif: 1_000_001, dasar: "dibagi_rata" },
+    { nama: "MR HADI KURNIAWAN", pelaksana: "Hadi Kurniawan, S.T.", arah: "pergi", tanggal: "2026-08-03", nomorPenerbangan: "ZZ 1", tarif: 1_000_000, dasar: "dibagi_rata" },
+    { nama: "MR INDRA WIJAYA", pelaksana: "Indra Wijaya, S.T.", arah: "pergi", tanggal: "2026-08-03", nomorPenerbangan: "ZZ 1", tarif: 1_000_000, dasar: "dibagi_rata" },
+    { nama: "MS GITA PERMATA", pelaksana: "Gita Permata, S.T.", arah: "kembali", tanggal: "2026-08-05", nomorPenerbangan: "ZZ 2", tarif: 2_000_000, dasar: "tertera" },
+    { nama: "MR HADI KURNIAWAN", pelaksana: "Hadi Kurniawan, S.T.", arah: "kembali", tanggal: "2026-08-07", nomorPenerbangan: "ZZ 3", tarif: 1_500_000, dasar: "perkiraan" },
+    { nama: "MR INDRA WIJAYA", pelaksana: "Indra Wijaya, S.T.", arah: "kembali", tanggal: "2026-08-07", nomorPenerbangan: "ZZ 3", tarif: 1_500_000, dasar: "perkiraan" },
+  ];
+  const berkas = (id: number, hasil: object) => ({
+    id, jenis: "tiket", namaAsli: `${id}.pdf`, pelaksanaId: null,
+    ekstraksi: {
+      status: "selesai", usulanStatus: "menunggu",
+      hasil: {
+        moda: "pesawat", maskapai: "Maskapai C", kodeBooking: "QWE456", nomorTiket: `880-${id}`, penumpang: nama[0],
+        daftarPenumpang: nama, basisTarif: "total", ...pergi, tarif: 8_000_001, segmen: [pergi, pulangA, pulangB], rincianPenumpang: rincian, ...hasil,
+      },
+    },
+  });
+
+  it("memakai tarif per orang dari AI apa adanya, dengan jenis per arah dan pelaksana yang dipilih AI", () => {
+    const h = petakanTransportKeUsulan([berkas(1, {})] as unknown as BerkasDto[], st);
+    expect(h.map((u) => [u.pelaksanaNama.split(" ")[0], u.jenisBiaya, u.tarifRiil, (u.ekstraksi as { tanggal: string }).tanggal])).toEqual([
+      ["Gita", "TIKET_PERGI", 1_000_001, "2026-08-03"],
+      ["Hadi", "TIKET_PERGI", 1_000_000, "2026-08-03"],
+      ["Indra", "TIKET_PERGI", 1_000_000, "2026-08-03"],
+      ["Gita", "TIKET_KEMBALI", 2_000_000, "2026-08-05"],
+      ["Hadi", "TIKET_KEMBALI", 1_500_000, "2026-08-07"],
+      ["Indra", "TIKET_KEMBALI", 1_500_000, "2026-08-07"],
+    ]);
+    expect(h[4]?.peringatan.join(" ")).toContain("diperkirakan");
+    expect(h[0]?.peringatan.join(" ")).not.toContain("tidak sama dengan total");
+  });
+
+  it("jumlah rincian yang tidak sama dengan total tiket diberi peringatan, tetap dipakai", () => {
+    const h = petakanTransportKeUsulan([berkas(1, { tarif: 9_000_000, segmen: [{ ...pergi, tarif: null }, { ...pulangA, tarif: null }] })] as unknown as BerkasDto[], st);
+    expect(h).toHaveLength(6);
+    expect(h[0]?.peringatan.join(" ")).toContain("tidak sama dengan total");
+  });
+
+  it("orang yang sama di arah yang sama dari berkas lain booking yang sama dihitung sekali", () => {
+    const h = petakanTransportKeUsulan([berkas(1, {}), berkas(2, { nomorTiket: "880-9", segmen: [pergi, pulangB] })] as unknown as BerkasDto[], st);
+    expect(h).toHaveLength(6);
+  });
+
+  it("isian rincian yang rusak diabaikan: kembali ke cara pembagian biasa", () => {
+    const h = petakanTransportKeUsulan([berkas(1, { rincianPenumpang: [{ nama: "X" }] })] as unknown as BerkasDto[], st);
+    expect(h.length).toBeGreaterThan(0);
+  });
+});

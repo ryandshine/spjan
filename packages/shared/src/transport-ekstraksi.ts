@@ -32,6 +32,22 @@ export const SegmenTiketSchema = z.object({
 });
 export type SegmenTiket = z.infer<typeof SegmenTiketSchema>;
 
+/** Jatah satu penumpang pada satu arah, dibaca dan diperkirakan langsung oleh AI dari isi tiket. */
+export const RincianPenumpangSchema = z.object({
+  nama: z.string().trim().min(1).max(200),
+  /** Nama pelaksana surat tugas yang cocok (dipilih AI dari daftar yang diberikan); null bila tidak ada. */
+  pelaksana: z.string().trim().max(200).nullable().optional(),
+  arah: ArahTiketSchema.optional().default("lainnya"),
+  tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format YYYY-MM-DD"),
+  asal: z.string().trim().max(100).nullable().optional(),
+  tujuan: z.string().trim().max(100).nullable().optional(),
+  nomorPenerbangan: z.string().trim().max(50).nullable().optional(),
+  tarif: z.number().int().nonnegative(),
+  /** tertera = harga orang itu tertulis; dibagi_rata = total arah dibagi jumlah penumpangnya; perkiraan = ditaksir AI. */
+  dasar: z.enum(["tertera", "dibagi_rata", "perkiraan"]).optional().default("perkiraan"),
+});
+export type RincianPenumpang = z.infer<typeof RincianPenumpangSchema>;
+
 export const HasilEkstraksiTiketSchema = z.object({
   maskapai: z.string().trim().min(1).max(100),
   kodeBooking: z.string().trim().max(50).nullable(),
@@ -59,6 +75,8 @@ export const HasilEkstraksiTiketSchema = z.object({
   moda: ModaTiketSchema.optional().default("lainnya"),
   /** Semua arah perjalanan dalam dokumen; `tarif` di atas tetap total seluruh segmen. Kosong pada ekstraksi lama. */
   segmen: z.array(SegmenTiketSchema).max(6).optional().default([]),
+  /** Jatah tiap penumpang per arah menurut AI; dipakai apa adanya dan diperiksa terhadap total. Isian rusak diabaikan. */
+  rincianPenumpang: z.array(RincianPenumpangSchema).max(60).optional().catch(undefined),
   perluDicek: bidangPerluDicek,
 });
 export type HasilEkstraksiTiket = z.infer<typeof HasilEkstraksiTiketSchema>;
@@ -376,7 +394,56 @@ export function petakanTransportKeUsulan(
       // harga satu arah dibagi ke penumpang arah itu saja; selain itu jatah per orang dibagi ke semua arah.
       const alokasi: { pen: (typeof penerima)[number]; seg: SegmenTiket; tarif: number; rata: boolean }[] = [];
       const adaPenumpangArah = tiket.segmen.some((s) => (s.penumpangArah?.length ?? 0) > 0);
-      if (adaPenumpangArah && (daftarSegmen.length === 1 || hargaArahLengkap(tiket))) {
+      const rincian = tiket.rincianPenumpang ?? [];
+      if (rincian.length > 0) {
+        // AI sudah membaca dan memperkirakan jatah tiap orang per arah: dipakai apa adanya, kode hanya memeriksa.
+        const jumlahRincian = rincian.reduce((a, r) => a + r.tarif, 0);
+        const selisih = jumlahRincian !== tiket.tarif
+          ? [`Perlu dicek: rincian per penumpang berjumlah ${jumlahRincian.toLocaleString("id-ID")}, tidak sama dengan total tiket ${tiket.tarif.toLocaleString("id-ID")}.`]
+          : [];
+        const tidakCocok = rincian.filter((r) => cocokNama(st, r.pelaksana || r.nama) < 0 && cocokNama(st, r.nama) < 0).length;
+        for (const r of rincian) {
+          let idx = r.pelaksana ? cocokNama(st, r.pelaksana) : -1;
+          if (idx < 0) idx = cocokNama(st, r.nama);
+          if (idx < 0) continue;
+          const p = st.pelaksana[idx]!;
+          const acuan =
+            daftarSegmen.find((s) => s.tanggal === r.tanggal && s.arah === r.arah) ??
+            daftarSegmen.find((s) => s.arah === r.arah) ??
+            daftarSegmen[0]!;
+          const seg: SegmenTiket = {
+            ...acuan,
+            asal: r.asal || acuan.asal,
+            tujuan: r.tujuan || acuan.tujuan,
+            tanggal: r.tanggal,
+            arah: r.arah,
+            nomorPenerbangan: r.nomorPenerbangan ?? acuan.nomorPenerbangan ?? null,
+            tarif: r.tarif,
+          };
+          const ei = p.etape.findIndex((e) => e.berangkat <= r.tanggal && e.pulang >= r.tanggal);
+          alokasi.push({
+            pen: {
+              pelaksanaIndex: idx,
+              etapeIndex: ei >= 0 ? ei : 0,
+              pelaksanaId: "id" in p ? ((p as { id?: number }).id ?? null) : null,
+              tarif: 0,
+              peringatanBagi: [
+                r.dasar === "tertera"
+                  ? "Tarif orang ini tertera di tiket."
+                  : r.dasar === "dibagi_rata"
+                    ? "Tarif dari total arah ini dibagi rata ke penumpangnya (menurut AI)."
+                    : "Perlu dicek: tarif orang ini diperkirakan AI dari isi tiket.",
+                ...selisih,
+                ...(tidakCocok > 0 ? [`${tidakCocok} baris rincian penumpang tidak cocok dengan pelaksana mana pun.`] : []),
+              ],
+            },
+            seg,
+            tarif: r.tarif,
+            rata: false,
+          });
+        }
+      }
+      if (alokasi.length === 0 && adaPenumpangArah && (daftarSegmen.length === 1 || hargaArahLengkap(tiket))) {
         const perOrang = tiket.basisTarif === "per_penumpang";
         for (const seg of daftarSegmen) {
           const namaArah = "penumpangArah" in seg && seg.penumpangArah?.length ? seg.penumpangArah : namaDiTiket.length > 0 ? namaDiTiket : tiket.penumpang ? [tiket.penumpang] : [];
