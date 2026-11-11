@@ -3,6 +3,13 @@
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
 Terakhir diperbarui: 2026-11-11 (tarif uang harian manual).
 
+## Pembagian tiket rombongan (2026-11-11)
+
+- Masalah yang ditemukan di data nyata: satu booking diunggah sekali per penumpang, sehingga biaya tiket dobel; total yang dibaca model kadang hanya harga pergi; penumpang pulang bisa berbeda dari penumpang pergi.
+- `petakanTransportKeUsulan`: berkas dengan kode booking, penumpang, dan jadwal sama = salinan (dihitung dari satu berkas wakil, sebaiknya yang harga per arahnya lengkap; `salinanBookingTiket` untuk keterangan di panel bukti). Total = jumlah harga per arah bila lebih besar dari `tarif`. Satu arah per booking dihitung sekali per orang lintas berkas.
+- `segmen[].penumpangArah` (opsional, isian rusak diabaikan): bila ada dan harga tiap arah tertera, harga arah dibagi ke penumpang arah itu saja. Prompt tiket meminta total semua arah, harga per arah, dan penumpangArah. Hasil baca lama perlu "Ulangi pembacaan" agar penumpangArah terisi.
+- Data ST yang sudah tersimpan tidak diubah; biaya tiket dobel perlu dirapikan manual.
+
 ## Tarif uang harian manual (2026-11-11)
 
 - `etape.uangHarianTarif` (migrasi `1791126000034`, null = SBM). `hitungSpj` memakai tarif manual untuk uang harian penuh dan 60% (fullboard tetap SBM; tambahan lain lewat tabel manual). Melebihi SBM = peringatan `UANG_HARIAN_MELEBIHI_SBM`, tidak diblokir. Provinsi tanpa SBM tetap dihitung bila tarif manual diisi.

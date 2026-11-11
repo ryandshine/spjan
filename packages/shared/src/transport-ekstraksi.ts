@@ -27,6 +27,8 @@ export const SegmenTiketSchema = z.object({
   arah: ArahTiketSchema.optional().default("lainnya"),
   /** Harga segmen bila tertera terpisah di tiket; null bila hanya ada satu total. */
   tarif: z.number().int().nonnegative().nullable().optional(),
+  /** Penumpang pada arah ini bila berbeda dari daftarPenumpang (mis. sebagian pulang di hari lain); kosong = semua. Isian rusak diabaikan. */
+  penumpangArah: z.array(z.string().trim().min(1).max(200)).max(20).optional().catch(undefined),
 });
 export type SegmenTiket = z.infer<typeof SegmenTiketSchema>;
 
@@ -223,6 +225,65 @@ function cocokKedudukan(teks: string, kedudukan: string): boolean {
 /**
  * Memetakan daftar berkas tiket dan bukti transport ke usulan biaya Surat Tugas.
  */
+/** Harga per arah lengkap: dua arah atau lebih, semuanya berharga. */
+function hargaArahLengkap(t: HasilEkstraksiTiket): boolean {
+  return t.segmen.length >= 2 && t.segmen.every((s) => (s.tarif ?? 0) > 0);
+}
+
+/**
+ * Total tiket yang dipakai. Model kadang mengisi `tarif` hanya dengan harga arah pertama padahal harga tiap arah tertera;
+ * bila jumlah harga per arah lebih besar, jumlah itulah totalnya.
+ */
+function totalTiket(t: HasilEkstraksiTiket): number {
+  if (!hargaArahLengkap(t)) return t.tarif;
+  const jumlah = t.segmen.reduce((a, s) => a + (s.tarif ?? 0), 0);
+  return jumlah > t.tarif ? jumlah : t.tarif;
+}
+
+/** Kunci booking: kode booking + daftar penumpang + jadwal per arah. Berkas dengan kunci sama = salinan e-tiket booking yang sama. */
+function kunciBooking(t: HasilEkstraksiTiket): string | null {
+  const kode = t.kodeBooking?.trim().toUpperCase();
+  if (!kode) return null;
+  const nama = (t.daftarPenumpang.length > 0 ? t.daftarPenumpang : t.penumpang ? [t.penumpang] : []).map((n) => norm(n)).sort();
+  // Jadwal per arah ikut kunci: e-tiket tiap orang bisa memuat pulang yang berbeda (mis. satu orang pulang lebih awal).
+  const jadwal = (t.segmen.length > 0 ? t.segmen : [t]).map((s) => `${norm(s.asal)}>${norm(s.tujuan)}@${s.tanggal}`);
+  return `${kode}|${nama.join(";")}|${jadwal.join(";")}`;
+}
+
+/**
+ * Satu booking rombongan sering diunggah sekali per penumpang (tiap orang mengunggah e-tiketnya yang memuat semua nama).
+ * Pilih satu berkas per booking: yang harga per arahnya lengkap, selain itu yang pertama.
+ */
+function berkasWakilBooking(daftar: BerkasDto[]): Map<string, number> {
+  const wakil = new Map<string, { id: number; lengkap: boolean }>();
+  for (const b of daftar) {
+    if (b.jenis !== "tiket") continue;
+    const parse = HasilEkstraksiTiketSchema.safeParse(b.ekstraksi?.hasil);
+    if (!parse.success) continue;
+    const kunci = kunciBooking(parse.data);
+    if (!kunci) continue;
+    const lengkap = hargaArahLengkap(parse.data);
+    const ada = wakil.get(kunci);
+    if (!ada || (lengkap && !ada.lengkap)) wakil.set(kunci, { id: b.id, lengkap });
+  }
+  return new Map([...wakil.entries()].map(([k, v]) => [k, v.id]));
+}
+
+/** Berkas tiket salinan (id) beserta berkas wakil booking-nya (id) dan kode bookingnya, untuk keterangan di daftar bukti. */
+export function salinanBookingTiket(daftar: BerkasDto[]): Map<number, { wakilId: number; kodeBooking: string }> {
+  const selesai = daftar.filter((b) => b.jenis === "tiket" && b.ekstraksi?.status === "selesai" && b.ekstraksi.hasil);
+  const wakil = berkasWakilBooking(selesai);
+  const hasil = new Map<number, { wakilId: number; kodeBooking: string }>();
+  for (const b of selesai) {
+    const parse = HasilEkstraksiTiketSchema.safeParse(b.ekstraksi?.hasil);
+    if (!parse.success) continue;
+    const kunci = kunciBooking(parse.data);
+    const wakilId = kunci ? wakil.get(kunci) : undefined;
+    if (wakilId !== undefined && wakilId !== b.id) hasil.set(b.id, { wakilId, kodeBooking: parse.data.kodeBooking?.trim().toUpperCase() ?? "" });
+  }
+  return hasil;
+}
+
 export function petakanTransportKeUsulan(
   daftarBerkas: BerkasDto[],
   st: SuratTugasDto | SuratTugasPayload,
@@ -239,11 +300,17 @@ export function petakanTransportKeUsulan(
       b.ekstraksi.hasil,
   );
 
+  const wakilBooking = berkasWakilBooking(berkasRelevan);
+  const arahTerhitung = new Set<string>();
+
   for (const b of berkasRelevan) {
     if (b.jenis === "tiket") {
       const parse = HasilEkstraksiTiketSchema.safeParse(b.ekstraksi?.hasil);
       if (!parse.success) continue;
-      const t = parse.data;
+      // Salinan e-tiket booking yang sama sudah dihitung dari berkas wakilnya.
+      const kunci = kunciBooking(parse.data);
+      if (kunci && wakilBooking.get(kunci) !== b.id) continue;
+      const t = { ...parse.data, tarif: totalTiket(parse.data) };
 
       // Satu tiket bisa memuat beberapa penumpang: total dibagi rata ke pelaksana yang namanya cocok.
       const namaDiTiket = t.daftarPenumpang.length > 0 ? t.daftarPenumpang : [];
@@ -303,19 +370,74 @@ export function petakanTransportKeUsulan(
       const tiket = t;
       const daftarSegmen: SegmenTiket[] = tiket.segmen.length >= 2 ? tiket.segmen : [tiket];
 
-      for (const pen of penerima) {
+      // Alokasi (pelaksana, arah, tarif). Bila tiket menyebut penumpang per arah dan harga tiap arah tertera,
+      // harga satu arah dibagi ke penumpang arah itu saja; selain itu jatah per orang dibagi ke semua arah.
+      const alokasi: { pen: (typeof penerima)[number]; seg: SegmenTiket; tarif: number; rata: boolean }[] = [];
+      const adaPenumpangArah = tiket.segmen.some((s) => (s.penumpangArah?.length ?? 0) > 0);
+      if (adaPenumpangArah && (daftarSegmen.length === 1 || hargaArahLengkap(tiket))) {
+        const perOrang = tiket.basisTarif === "per_penumpang";
+        for (const seg of daftarSegmen) {
+          const namaArah = "penumpangArah" in seg && seg.penumpangArah?.length ? seg.penumpangArah : namaDiTiket.length > 0 ? namaDiTiket : tiket.penumpang ? [tiket.penumpang] : [];
+          const harga = daftarSegmen.length === 1 ? tiket.tarif : (seg.tarif ?? 0);
+          const bagian = perOrang ? namaArah.map(() => harga) : bagiRata(harga, namaArah.length);
+          const tidakCocok = namaArah.filter((n) => cocokNama(st, n) < 0).length;
+          const sudah = new Set<number>();
+          namaArah.forEach((nama, k) => {
+            const idx = cocokNama(st, nama);
+            if (idx < 0 || sudah.has(idx)) return;
+            sudah.add(idx);
+            const p = st.pelaksana[idx]!;
+            const ei = p.etape.findIndex((e) => e.berangkat <= seg.tanggal && e.pulang >= seg.tanggal);
+            alokasi.push({
+              pen: {
+                pelaksanaIndex: idx,
+                etapeIndex: ei >= 0 ? ei : 0,
+                pelaksanaId: "id" in p ? ((p as { id?: number }).id ?? null) : null,
+                tarif: 0,
+                peringatanBagi: [
+                  namaArah.length > 1
+                    ? perOrang
+                      ? `Arah ${seg.asal} - ${seg.tujuan} untuk ${namaArah.length} penumpang, harga per penumpang (dipakai apa adanya).`
+                      : `Arah ${seg.asal} - ${seg.tujuan} untuk ${namaArah.length} penumpang (total ${harga.toLocaleString("id-ID")}), tarif dibagi rata.`
+                    : `Arah ${seg.asal} - ${seg.tujuan} hanya untuk 1 penumpang.`,
+                  ...(tidakCocok > 0 ? [`${tidakCocok} penumpang lain tidak cocok dengan pelaksana mana pun.`] : []),
+                ],
+              },
+              seg,
+              tarif: bagian[k] ?? 0,
+              rata: false,
+            });
+          });
+        }
+      }
+      if (alokasi.length === 0) {
+        for (const pen of penerima) {
+          const pembagian = bagiTarifSegmen(pen.tarif, tiket.tarif, daftarSegmen);
+          for (const [iSegmen, seg] of daftarSegmen.entries()) {
+            alokasi.push({ pen, seg, tarif: pembagian.bagian[iSegmen] ?? 0, rata: pembagian.rata });
+          }
+        }
+      }
+      const kodeBooking = tiket.kodeBooking?.trim().toUpperCase();
+
+      for (const { pen, seg, tarif: tarifAlokasi, rata } of alokasi) {
         const { pelaksanaIndex, pelaksanaId } = pen;
         const pelaksana = st.pelaksana[pelaksanaIndex];
         if (!pelaksana) continue;
-        const pembagian = bagiTarifSegmen(pen.tarif, tiket.tarif, daftarSegmen);
-
-        for (const [iSegmen, seg] of daftarSegmen.entries()) {
-        const t = { ...tiket, ...seg, tarif: tiket.tarif, segmen: [] };
+        // Satu arah dalam satu booking dihitung sekali per orang, walau muncul di beberapa berkas.
+        if (kodeBooking) {
+          const kunciArah = `${kodeBooking}|${norm(seg.asal)}>${norm(seg.tujuan)}@${seg.tanggal}|${pelaksanaIndex}`;
+          if (arahTerhitung.has(kunciArah)) continue;
+          arahTerhitung.add(kunciArah);
+        }
+        {
+        const { penumpangArah: _penumpangArah, ...dataArah } = seg;
+        const t = { ...tiket, ...dataArah, tarif: tiket.tarif, segmen: [] };
         const eiSegmen = pelaksana.etape.findIndex((e) => e.berangkat <= t.tanggal && e.pulang >= t.tanggal);
         const etapeIndex = eiSegmen >= 0 ? eiSegmen : pen.etapeIndex;
         const etape = pelaksana.etape[etapeIndex];
         const peringatan: string[] = [...pen.peringatanBagi, ...pesanPerluDicek(tiket.perluDicek)];
-        if (daftarSegmen.length > 1 && pembagian.rata) {
+        if (daftarSegmen.length > 1 && rata) {
           peringatan.push(`Tiket memuat ${daftarSegmen.length} segmen tanpa harga terpisah; tarif dibagi rata. Periksa tarif.`);
         }
 
@@ -375,14 +497,14 @@ export function petakanTransportKeUsulan(
           kategoriBerkas: "tiket",
           ekstraksi: t,
           usulanStatus: b.ekstraksi?.usulanStatus ?? "menunggu",
-          jumlahPenerima: penerima.length * daftarSegmen.length,
+          jumlahPenerima: alokasi.length,
           pelaksanaId,
           pelaksanaIndex,
           etapeIndex,
           pelaksanaNama: pelaksana.nama,
           jenisBiaya,
           uraianBiaya,
-          tarifRiil: pembagian.bagian[iSegmen] ?? 0,
+          tarifRiil: tarifAlokasi,
           qty: 1,
           satuan: "orang",
           provinsi: etape?.provinsi ?? null,

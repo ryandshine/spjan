@@ -6,6 +6,7 @@ import {
   HasilEkstraksiTiketSchema,
   HasilEkstraksiTransportSchema,
   petakanTransportKeUsulan,
+  salinanBookingTiket,
 } from "./transport-ekstraksi.js";
 
 describe("HasilEkstraksiTiketSchema", () => {
@@ -653,5 +654,84 @@ describe("petakanTransportKeUsulan - moda tiket", () => {
     expect(usulan({ maskapai: "PT Kereta Api Indonesia (KAI)" }).jenisBiaya).toBe("TIKET_KERETA");
     expect(usulan({ maskapai: "PT PELNI" }).jenisBiaya).toBe("TIKET_KAPAL");
     expect(usulan({ maskapai: "Garuda Indonesia" }).jenisBiaya).toBe("TIKET_PERGI");
+  });
+});
+
+describe("petakanTransportKeUsulan - booking rombongan (satu booking diunggah per penumpang)", () => {
+  const nama = ["Ahmad Fauzi", "Budi Santoso", "Citra Lestari"];
+  const st = {
+    pelaksana: nama.map((n) => ({ nama: n, etape: [{ berangkat: "2026-08-03", pulang: "2026-08-07", provinsi: "BALI", kota: "Denpasar" }] })),
+  } as unknown as SuratTugasPayload;
+  const pergi = { asal: "Jakarta (CGK)", tujuan: "Denpasar (DPS)", tanggal: "2026-08-03", nomorPenerbangan: "XX 1", arah: "pergi" };
+  const pulang = { asal: "Denpasar (DPS)", tujuan: "Jakarta (CGK)", tanggal: "2026-08-07", nomorPenerbangan: "XX 2", arah: "kembali" };
+  const salinan = (id: number, nomorTiket: string, hasil: object) => ({
+    id, jenis: "tiket", namaAsli: `${id}.pdf`, pelaksanaId: null,
+    ekstraksi: {
+      status: "selesai", usulanStatus: "menunggu",
+      hasil: {
+        moda: "pesawat", maskapai: "Maskapai B", kodeBooking: "ABC123", nomorTiket, penumpang: nama[0],
+        daftarPenumpang: nama, basisTarif: "total", ...pergi, ...hasil,
+      },
+    },
+  });
+
+  it("total yang hanya harga pergi: total diambil dari jumlah harga per arah", () => {
+    const h = petakanTransportKeUsulan([salinan(1, "126-1", { tarif: 3_000_000, segmen: [{ ...pergi, tarif: 3_000_000 }, { ...pulang, tarif: 3_600_000 }] })] as unknown as BerkasDto[], st);
+    expect(h).toHaveLength(6);
+    expect(h.filter((u) => u.jenisBiaya === "TIKET_PERGI").map((u) => u.tarifRiil)).toEqual([1_000_000, 1_000_000, 1_000_000]);
+    expect(h.filter((u) => u.jenisBiaya === "TIKET_KEMBALI").map((u) => u.tarifRiil)).toEqual([1_200_000, 1_200_000, 1_200_000]);
+  });
+
+  it("booking sama di beberapa berkas dihitung sekali, dari salinan yang harga per arahnya lengkap", () => {
+    const daftar = [
+      salinan(1, "126-1", { tarif: 3_000_000, segmen: [{ ...pergi, tarif: null }, { ...pulang, tarif: null }] }),
+      salinan(2, "126-2", { tarif: 3_000_000, segmen: [{ ...pergi, tarif: 3_000_000 }, { ...pulang, tarif: 3_600_000 }] }),
+      salinan(3, "126-3", { kodeBooking: " abc123 ", tarif: 3_000_000, segmen: [{ ...pergi, tarif: null }, { ...pulang, tarif: null }] }),
+    ] as unknown as BerkasDto[];
+    const h = petakanTransportKeUsulan(daftar, st);
+    expect(h).toHaveLength(6);
+    expect(new Set(h.map((u) => u.berkasId))).toEqual(new Set([2]));
+    expect([...salinanBookingTiket(daftar).entries()]).toEqual([
+      [1, { wakilId: 2, kodeBooking: "ABC123" }],
+      [3, { wakilId: 2, kodeBooking: "ABC123" }],
+    ]);
+    expect(h.reduce((a, u) => a + u.tarifRiil, 0)).toBe(6_600_000);
+  });
+});
+
+describe("petakanTransportKeUsulan - penumpang berbeda per arah", () => {
+  const nama = ["Dewi Anggraini", "Eko Prasetyo", "Fajar Nugroho"];
+  const st = {
+    pelaksana: nama.map((n) => ({ nama: n, etape: [{ berangkat: "2026-08-03", pulang: "2026-08-07", provinsi: "BALI", kota: "Denpasar" }] })),
+  } as unknown as SuratTugasPayload;
+  const pergi = { asal: "Jakarta (CGK)", tujuan: "Denpasar (DPS)", tanggal: "2026-08-03", nomorPenerbangan: "YY 0", arah: "pergi", tarif: 3_000_001 };
+  const berkas = (id: number, pulang: object, hasil: object = {}) => ({
+    id, jenis: "tiket", namaAsli: `${id}.pdf`, pelaksanaId: null,
+    ekstraksi: {
+      status: "selesai", usulanStatus: "menunggu",
+      hasil: {
+        moda: "pesawat", maskapai: "Maskapai A", kodeBooking: "XYZ789", nomorTiket: `990-${id}`, penumpang: nama[0],
+        daftarPenumpang: nama, basisTarif: "total", ...pergi, segmen: [pergi, pulang], ...hasil,
+      },
+    },
+  });
+  const pulangSatu = { asal: "Denpasar (DPS)", tujuan: "Jakarta (CGK)", tanggal: "2026-08-05", nomorPenerbangan: "YY 1", arah: "kembali", tarif: 2_000_000, penumpangArah: ["MR Dewi Anggraini"] };
+  const pulangDua = { asal: "Denpasar (DPS)", tujuan: "Jakarta (CGK)", tanggal: "2026-08-07", nomorPenerbangan: "YY 2", arah: "kembali", tarif: 3_000_000, penumpangArah: ["MR Eko Prasetyo", "MR Fajar Nugroho"] };
+
+  it("harga tiap arah dibagi ke penumpang arah itu; pergi yang sama di dua berkas dihitung sekali", () => {
+    const h = petakanTransportKeUsulan([berkas(1, pulangSatu, { tarif: 5_000_001 }), berkas(2, pulangDua, { tarif: 6_000_001 })] as unknown as BerkasDto[], st);
+    expect(h.map((u) => [u.pelaksanaNama.split(" ")[0], u.jenisBiaya, u.tarifRiil])).toEqual([
+      ["Dewi", "TIKET_PERGI", 1_000_001],
+      ["Eko", "TIKET_PERGI", 1_000_000],
+      ["Fajar", "TIKET_PERGI", 1_000_000],
+      ["Dewi", "TIKET_KEMBALI", 2_000_000],
+      ["Eko", "TIKET_KEMBALI", 1_500_000],
+      ["Fajar", "TIKET_KEMBALI", 1_500_000],
+    ]);
+  });
+
+  it("isian penumpang per arah yang rusak diabaikan (hasil tetap terbaca)", () => {
+    const h = petakanTransportKeUsulan([berkas(1, { ...pulangSatu, penumpangArah: "Dewi" })] as unknown as BerkasDto[], st);
+    expect(h.length).toBeGreaterThan(0);
   });
 });

@@ -25,6 +25,7 @@ import {
   type PelaksanaPayload,
   type UsulanHotelItem,
   type UsulanTransportItem,
+  salinanBookingTiket,
 } from '@spjan/shared'
 
 import { ChipJenisBerkas } from '@/components/st/chip-jenis-berkas'
@@ -95,6 +96,8 @@ export function BuktiPanel({
 
   // Foto dokumentasi punya panel sendiri dan tidak ikut hitungan biaya.
   const daftarBerkas = (semuaBerkas ?? []).filter((b) => b.jenis !== 'dokumentasi' && b.jenis !== 'laporan')
+  // Salinan e-tiket booking rombongan yang sama tidak punya usulan sendiri: biayanya dihitung dari berkas wakilnya.
+  const salinanTiket = salinanBookingTiket(daftarBerkas)
 
   const adaProsesAi = daftarBerkas.some(
     (b) => b.ekstraksi?.status === 'antre' || b.ekstraksi?.status === 'berjalan',
@@ -625,7 +628,11 @@ export function BuktiPanel({
                             })}
                           </div>
                         ) : (
-                          <span className="text-xs text-muted-foreground italic">Umum / Tanpa usulan biaya otomatis</span>
+                          <span className="text-xs text-muted-foreground italic">
+                            {salinanTiket.has(b.id)
+                              ? `Salinan booking ${salinanTiket.get(b.id)?.kodeBooking}; sudah dihitung dari ${daftarBerkas.find((x) => x.id === salinanTiket.get(b.id)?.wakilId)?.namaAsli ?? 'berkas lain'}`
+                              : 'Umum / Tanpa usulan biaya otomatis'}
+                          </span>
                         )}
                       </TableCell>
 

@@ -19,7 +19,7 @@ Periksa dokumen tiket penerbangan, e-ticket, boarding pass, tiket kereta api, ti
 - tanggal: tanggal keberangkatan format YYYY-MM-DD
 - jam: jam keberangkatan (mis. "08:30" atau null bila tidak ada)
 - nomorPenerbangan: nomor penerbangan / nomor KA (mis. "GA 204", "ID 6371", "G1006", "KA Argo Bromo", "KM Kelud" atau null bila tidak ada)
-- tarif: angka rupiah bulat tanpa titik/koma/"IDR". Ambil angka yang benar-benar dibayarkan untuk tiket angkutan utama: "Total Pembayaran" / "Total Amount" / "Grand Total" (sudah termasuk pajak, biaya layanan, dan dikurangi diskon). Abaikan harga dasar, pajak, atau biaya lain yang terpisah. Abaikan kuitansi/struk taksi/ojek bila tercampur di dokumen tiket.
+- tarif: angka rupiah bulat tanpa titik/koma/"IDR". Ambil angka yang benar-benar dibayarkan untuk tiket angkutan utama: "Total Pembayaran" / "Total Amount" / "Grand Total" (sudah termasuk pajak, biaya layanan, dan dikurangi diskon). Bila dokumen memuat beberapa arah (pergi dan pulang) dengan harga terpisah, tarif = JUMLAH harga semua arah untuk semua penumpang, bukan harga arah pertama saja. Abaikan harga dasar, pajak, atau biaya lain yang terpisah. Abaikan kuitansi/struk taksi/ojek bila tercampur di dokumen tiket.
 - basisTarif: arti angka tarif tadi.
   * "total" bila angka itu adalah pembayaran untuk SELURUH penumpang di tiket/booking (mis. "Tiket untuk 2 penumpang ... Total Pembayaran", atau satu total di bawah beberapa nama). Ini kasus yang paling umum untuk booking multi-penumpang.
   * "per_penumpang" bila dokumen jelas menyebut harga tiap penumpang secara terpisah (mis. rincian harga per nama, "per pax", "per orang", atau tiap penumpang punya e-ticket/tarif sendiri dan Anda mengambil tarif satu orang).
@@ -28,7 +28,7 @@ Periksa dokumen tiket penerbangan, e-ticket, boarding pass, tiket kereta api, ti
 
 Panduan membaca: format tiket berbeda-beda antar maskapai, agen perjalanan (OTA), dan kereta api, serta bisa berbahasa Indonesia atau Inggris. Hitung jumlah penumpang dari tabel "Detail Penumpang"/"Passenger" dan dari kalimat seperti "Tiket untuk N penumpang"; jumlah elemen daftarPenumpang harus sama. Bila dokumen memuat pergi dan pulang, kolom asal/tujuan/tanggal/jam/nomorPenerbangan/arah diisi dari perjalanan pertama, tarif tetap total yang dibayarkan untuk seluruh perjalanan (jangan dijumlahkan dua kali), dan semua arah dicatat di segmen. Buang sapaan (MR/MRS/MS) hanya bila bukan bagian nama; jika ragu, salin nama persis seperti tertulis. Jangan menebak: bila suatu nilai tidak tertera, isi null.
 - arah: "pergi" (menuju kota kegiatan), "kembali" (pulang ke kota asal), atau "lainnya"
-- segmen: SELALU diisi, satu elemen per arah perjalanan tiket utama (pesawat/kereta/kapal/bus), urut waktu, dari seluruh halaman dokumen (tiket sekali jalan = satu elemen). Tiap elemen berisi asal, tujuan, tanggal, jam, nomorPenerbangan, arah, dan tarif (harga arah itu bila tertera terpisah, selain itu null). Penerbangan lanjutan/transit dalam satu arah digabung menjadi satu elemen: asal bandara awal, tujuan bandara akhir.
+- segmen: SELALU diisi, satu elemen per arah perjalanan tiket utama (pesawat/kereta/kapal/bus), urut waktu, dari seluruh halaman dokumen (tiket sekali jalan = satu elemen). Tiap elemen berisi asal, tujuan, tanggal, jam, nomorPenerbangan, arah, dan tarif (harga arah itu untuk semua penumpang di daftarPenumpang bila tertera terpisah, selain itu null; WAJIB diisi bila tiap arah punya harga sendiri di dokumen, dan jumlah tarif semua segmen harus sama dengan tarif), serta penumpangArah (nama penumpang yang benar-benar menempuh arah itu, HANYA bila berbeda dari daftarPenumpang, mis. sebagian penumpang pulang di hari lain atau dengan tiket/penerbangan lain; bila sama dengan daftarPenumpang isi []). Penerbangan lanjutan/transit dalam satu arah digabung menjadi satu elemen: asal bandara awal, tujuan bandara akhir.
 
 PENTING:
 - Balas HANYA SATU JSON object {...}, BUKAN array [ ... ]. Jika ada beberapa tiket (mis. tiket pergi dan tiket pulang), gabungkan ke dalam satu objek JSON dengan mengisi array segmen dan jumlahkan total tarifnya.
@@ -120,6 +120,7 @@ export function normalisasiHasilTiket(raw: unknown): unknown {
             nomorPenerbangan: s.nomorPenerbangan ?? it.nomorPenerbangan ?? null,
             arah: s.arah ?? it.arah ?? "lainnya",
             tarif: typeof s.tarif === "number" ? s.tarif : (it.segmen.length === 1 ? itemTarif : null),
+            ...(Array.isArray(s.penumpangArah) ? { penumpangArah: s.penumpangArah } : {}),
           });
         }
       } else {
