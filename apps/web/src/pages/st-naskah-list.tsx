@@ -41,7 +41,8 @@ export default function NaskahStListPage() {
   const kolom: Kolom<NaskahStRingkasDto>[] = [
     {
       judul: 'Nomor ST',
-      teks: (b) => b.nomor,
+      // Nomor SRIKANDI masih variabel ${nomor_naskah}, jadi tidak ikut dicari.
+      teks: (b) => (b.modeNomor === 'srikandi' ? '' : b.nomor),
       sel: (b) => (
         <div className="flex flex-col gap-1">
           <Link to={`/st-naskah/${b.id}`} className="font-medium text-primary hover:underline">
@@ -122,6 +123,7 @@ export default function NaskahStListPage() {
     },
     {
       judul: 'Pembuat',
+      teks: (b) => b.dibuatOlehNama ?? '',
       sel: (b) => <span className="text-xs text-muted-foreground">{b.dibuatOlehNama ?? '-'}</span>,
     },
     {
@@ -194,6 +196,8 @@ export default function NaskahStListPage() {
           kolom={kolom}
           baris={daftar.data ?? []}
           kosong={daftar.isPending ? 'Memuat...' : 'Belum ada naskah surat tugas.'}
+          teksCari={(b) => `${b.lokasiTugas} ${b.modeNomor === 'srikandi' ? 'srikandi' : 'manual'}`}
+          petunjukCari="Cari nomor ST, maksud, lokasi, pembuat, srikandi/manual..."
         />
       )}
 

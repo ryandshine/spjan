@@ -8,7 +8,8 @@ Terakhir diperbarui: 2026-11-11 (validasi editor naskah ST).
 - `st-naskah-editor.tsx` mengikuti pola editor SPJ: validasi `NaskahStPayloadSchema` (langsung setelah percobaan simpan pertama gagal), galat di tiap isian, ringkasan di `BannerGalatSimpan`, galat server di banner (bukan toast), `usePenjagaPerubahan` + `DialogTinggalkanHalaman`, deskripsi header sesuai keadaan, tombol Simpan nonaktif tanpa perubahan. "Lanjutkan ke SPJ" ditolak bila ada perubahan belum disimpan (SPJ dibuat dari naskah tersimpan).
 - Pesan galat naskah dibuat lokal (`pesanIsuNaskah`/`petaGalatNaskah`, berbahasa Indonesia untuk teks/angka/daftar), karena `pesanValidasi`/`petaGalat` bersama belum punya label naskah dan meneruskan teks bawaan zod (Inggris) untuk batas panjang. Editor SPJ masih punya kekurangan yang sama untuk galat panjang teks.
 - Penamaan (keputusan pengguna): modul naskah = "Naskah Surat Tugas" (menu = judul), data perjalanan dinas = "SPJ" di semua teks antarmuka (daftar, editor, toast, dialog, tempat sampah, log audit, pengguna). "Surat tugas"/"ST" tetap untuk surat aslinya (nomor, tanggal, PDF ST, tahap "Data surat tugas", bagian laporan). Pesan galat API (mis. `izin.ts` BUKAN_PEMILIK "Surat tugas ini dibuat oleh...") belum diganti.
-- Tersisa dari tinjauan UI: alur naskah ST → SPJ (tiga pintu masuk), pencarian daftar naskah, warna mentah, ukuran judul bagian.
+- Pencarian daftar naskah: nomor (kecuali SRIKANDI, yang masih `${nomor_naskah}`), maksud, lokasi, pembuat, mode srikandi/manual. Nama pelaksana belum bisa dicari: `NaskahStRingkasDto` hanya membawa `jumlahPelaksana`.
+- Tersisa dari tinjauan UI: alur naskah ST → SPJ (tiga pintu masuk), warna mentah, ukuran judul bagian.
 
 ## Pembagian tiket rombongan (2026-11-11)
 
