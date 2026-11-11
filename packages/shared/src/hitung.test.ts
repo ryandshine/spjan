@@ -1196,3 +1196,53 @@ describe("hitungSpj - tujuan tambahan kosong", () => {
     expect(kode([etapeBali({ hotelNama: "H", hotelTarif: 500_000 }), { ...kosong, kota: "Ubud" }]).map(([k]) => k)).toEqual(["DATA_BELUM_LENGKAP"]);
   });
 });
+
+describe("hitungSpj - tarif uang harian manual (uangHarianTarif)", () => {
+  const etapeYogya = {
+    provinsi: "D.I. YOGYAKARTA",
+    kota: "Yogyakarta",
+    kegiatan: "Koordinasi",
+    berangkat: "2026-09-10",
+    pulang: "2026-09-11",
+    hotelNama: "Hotel Yogya",
+    hotelTarif: 500_000,
+  };
+
+  it("kosong = tarif SBM, tanpa peringatan uang harian", () => {
+    const h = hitungSpj(spj([{ ...riandi, etape: [etapeYogya] }]), SBM_2026).pelaksana[0]!;
+    expect(h.uangHarian[0]!.tarif).toBe(420_000);
+    expect(h.peringatan.filter((w) => w.kode === "UANG_HARIAN_MELEBIHI_SBM")).toEqual([]);
+  });
+
+  it("tarif manual di bawah SBM dipakai tanpa peringatan; 60% ikut tarif manual", () => {
+    const h = hitungSpj(
+      spj([{ ...riandi, etape: [{ ...etapeYogya, uangHarianTarif: 300_000, uangHarian60Dates: ["2026-09-11"] }] }]),
+      SBM_2026,
+    ).pelaksana[0]!;
+    expect(h.uangHarian.map((b) => [b.qty, b.tarif])).toEqual([
+      [1, 300_000],
+      [1, 180_000],
+    ]);
+    expect(h.totalUangHarian).toBe(480_000);
+    expect(h.peringatan.filter((w) => w.kode === "UANG_HARIAN_MELEBIHI_SBM")).toEqual([]);
+  });
+
+  it("tarif manual melebihi SBM tetap dipakai, dengan peringatan", () => {
+    const h = hitungSpj(spj([{ ...riandi, etape: [{ ...etapeYogya, uangHarianTarif: 500_000 }] }]), SBM_2026).pelaksana[0]!;
+    expect(h.uangHarian[0]!).toMatchObject({ qty: 2, tarif: 500_000, jumlah: 1_000_000 });
+    expect(h.peringatan).toContainEqual({
+      kode: "UANG_HARIAN_MELEBIHI_SBM",
+      pesan: "Etape 1: tarif uang harian Rp500.000 melebihi SBM Rp420.000.",
+      etape: 0,
+    });
+  });
+
+  it("provinsi tanpa tarif SBM tetap dihitung bila tarif manual diisi", () => {
+    const etape = { ...etapeYogya, provinsi: "LUAR NEGERI X", uangHarianTarif: 250_000 };
+    const tanpaManual = hitungSpj(spj([{ ...riandi, etape: [{ ...etape, uangHarianTarif: null }] }]), SBM_2026).pelaksana[0]!;
+    expect(tanpaManual.uangHarian).toEqual([]);
+    const h = hitungSpj(spj([{ ...riandi, etape: [etape] }]), SBM_2026).pelaksana[0]!;
+    expect(h.uangHarian[0]!).toMatchObject({ qty: 2, tarif: 250_000 });
+    expect(h.peringatan.some((w) => w.kode === "UANG_HARIAN_MELEBIHI_SBM")).toBe(false);
+  });
+});

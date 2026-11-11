@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Peringatan } from '@spjan/shared'
 
-import { kumpulkanPeriksa } from './periksa'
+import { bagianUntukSasaran, kumpulkanPeriksa } from './periksa'
 import { ringkasPeringatan } from './periksa'
 
 const peringatan = (kode: Peringatan['kode'], pesan: string, etape?: number): Peringatan => ({ kode, pesan, ...(etape === undefined ? {} : { etape }) })
@@ -17,6 +17,13 @@ describe('kumpulkanPeriksa', () => {
       { pesan: 'Tanggal salah', nomorPelaksana: 2, namaPelaksana: 'Pelaksana 2', sasaranId: 'etape-2-1-brkt' },
       { pesan: 'NIP kosong', nomorPelaksana: 2, namaPelaksana: 'Pelaksana 2', sasaranId: 'pel-2-nip' },
     ])
+  })
+
+  it('tarif uang harian melebihi SBM menunjuk isian tarif di bagian uang harian', () => {
+    const [w] = kumpulkanPeriksa([{ nama: 'Budi', peringatan: [peringatan('UANG_HARIAN_MELEBIHI_SBM', 'Etape 2: tarif uang harian melebihi SBM', 1)] }])
+    expect(w?.sasaranId).toBe('etape-1-2-uang-harian')
+    expect(bagianUntukSasaran('etape-1-2-uang-harian')).toBe('uang_harian')
+    expect(bagianUntukSasaran('etape-1-2-tarif')).toBe('penginapan')
   })
 
   it('mengembalikan daftar kosong bila tidak ada peringatan', () => {

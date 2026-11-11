@@ -17,6 +17,8 @@ export function sasaranPeringatan(w: Peringatan, nomorPelaksana: number): string
       return `etape-${nomorPelaksana}-${tujuan}-tarif`
     case 'TANGGAL_SALAH':
       return `etape-${nomorPelaksana}-${tujuan}-brkt`
+    case 'UANG_HARIAN_MELEBIHI_SBM':
+      return `etape-${nomorPelaksana}-${tujuan}-uang-harian`
     default:
       return w.etape !== undefined ? `etape-${nomorPelaksana}-${tujuan}-kota` : `pel-${nomorPelaksana}-nama`
   }
@@ -25,6 +27,7 @@ export function sasaranPeringatan(w: Peringatan, nomorPelaksana: number): string
 /** Bagian pelaksana (sub-tab) yang memuat isian. */
 export type BagianPelaksana = 'perjalanan' | 'transport' | 'penginapan' | 'uang_harian'
 export function bagianUntukSasaran(sasaranId: string): BagianPelaksana {
+  if (sasaranId.endsWith('-uang-harian')) return 'uang_harian'
   return sasaranId.endsWith('-tarif') ? 'penginapan' : 'perjalanan'
 }
 

@@ -220,7 +220,17 @@ function hitungEtape(e: EtapeInput, i: number, p: PelaksanaInput, sbm: Sbm): Has
   const tarifDalamKota = sbm.uangHarian[prov]?.dalamKota8Jam;
   // Dalam kota > 8 jam hanya untuk perjalanan sehari (tanpa menginap); lebih dari satu hari selalu uang harian luar kota.
   const dalamKota = !!e.dalamKota8Jam && hari === 1;
-  const tarifHarian = dalamKota ? tarifDalamKota : tarifLuarKota;
+  const tarifSbm = dalamKota ? tarifDalamKota : tarifLuarKota;
+  // Tarif manual mengalahkan SBM; melebihi SBM hanya diberi peringatan (pengguna tetap bisa mengubah).
+  const tarifManual = e.uangHarianTarif ?? null;
+  const tarifHarian = tarifManual ?? tarifSbm;
+  if (tarifManual !== null && tarifSbm !== undefined && tarifManual > tarifSbm) {
+    peringatan.push({
+      kode: "UANG_HARIAN_MELEBIHI_SBM",
+      pesan: `${nomor}: tarif uang harian ${formatRp(tarifManual)} melebihi SBM ${formatRp(tarifSbm)}.`,
+      etape: i,
+    });
+  }
   if (tarifHarian === undefined) {
     peringatan.push({
       kode: "DATA_BELUM_LENGKAP",

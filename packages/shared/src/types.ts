@@ -133,6 +133,8 @@ export interface EtapeInput {
   tanpaUangHarianDates?: string[];
   /** Daftar tanggal (YYYY-MM-DD) di mana uang harian dibayarkan 60% (mis. transpor lokal riil / tugas multi-lokasi / tugas singkat SBM) */
   uangHarian60Dates?: string[];
+  /** Tarif uang harian per hari yang diisi manual; kosong = tarif SBM. Melebihi SBM hanya diberi peringatan. */
+  uangHarianTarif?: number | null;
 }
 
 export type ArahTaksi = "pergi" | "pulang" | "pp";
@@ -193,7 +195,8 @@ export type KodePeringatan =
   | "TIKET_KOTA_SAMA"
   | "MALAM_BERLEBIH"
   | "MALAM_BELUM_TERISI"
-  | "TUJUAN_KOSONG";
+  | "TUJUAN_KOSONG"
+  | "UANG_HARIAN_MELEBIHI_SBM";
 
 export interface Peringatan {
   kode: KodePeringatan;

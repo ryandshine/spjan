@@ -34,7 +34,7 @@ describe("surat tugas", () => {
         ...p,
         pangkatGolongan: "",
         instansi: "Direktorat Pengendalian Perhutanan Sosial",
-        etape: p.etape.map((e) => ({ ...e, kabupaten: [] })),
+        etape: p.etape.map((e) => ({ ...e, kabupaten: [], uangHarianTarif: null })),
       })),
     });
     expect(typeof createdAt).toBe("string");
@@ -106,6 +106,21 @@ describe("surat tugas", () => {
     expect(hasil.suratTugas.pelaksana[0].etape[0].hotelTambahan).toEqual(tambahan);
     expect(hasil.hasil.pelaksana[0].penginapan.map((r: { uraian: string }) => r.uraian)).toEqual(["Homestay"]);
     expect(hasil.hasil.pelaksana[0].totalPenginapan).toBe(300_000);
+  });
+
+  it("tarif uang harian manual tersimpan, dipakai hitungan, dan kosong kembali ke SBM", async () => {
+    const dasar = stResa.pelaksana[0]!;
+    const st = { ...stResa, pelaksana: [{ ...dasar, etape: [{ ...dasar.etape[0]!, uangHarianTarif: 123_000 }] }] };
+    const { id } = (await call("POST", "/api/surat-tugas", st)).json();
+    const hasil = (await call("GET", `/api/surat-tugas/${id}/hasil`)).json();
+    expect(hasil.suratTugas.pelaksana[0].etape[0].uangHarianTarif).toBe(123_000);
+    expect(hasil.hasil.pelaksana[0].uangHarian[0].tarif).toBe(123_000);
+
+    const tanpa = { ...stResa, pelaksana: [{ ...dasar, etape: [{ ...dasar.etape[0]!, uangHarianTarif: null }] }] };
+    expect((await call("PUT", `/api/surat-tugas/${id}`, tanpa)).statusCode).toBe(200);
+    const lagi = (await call("GET", `/api/surat-tugas/${id}/hasil`)).json();
+    expect(lagi.suratTugas.pelaksana[0].etape[0].uangHarianTarif).toBeNull();
+    expect(lagi.hasil.pelaksana[0].uangHarian[0].tarif).not.toBe(123_000);
   });
 
   it("arah taksi tersimpan dan menentukan uraian", async () => {

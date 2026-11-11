@@ -266,6 +266,7 @@ export function PelaksanaCard({
           <KelompokIsian terkunci={terkunci}>
             <div className="grid gap-5">
               <BlokUangHarian
+                nomorPelaksana={nomor}
                 p={p}
                 hasil={hasil}
                 sbm={sbm}

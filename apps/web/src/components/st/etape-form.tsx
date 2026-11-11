@@ -101,7 +101,7 @@ export function EtapeForm({
   const provinsiTidakDikenal = !!etape.provinsi && provinsi.length > 0 && !provinsi.includes(etape.provinsi)
   const peringatanKode = (kode: string) => peringatan.find((w) => w.kode === kode)?.pesan
   // Peringatan yang sudah tampil di isiannya tidak diulang di bawah.
-  const sisaPeringatan = peringatan.filter((w) => !['TARIF_HOTEL_KOSONG', 'HOTEL_MELEBIHI_BATAS', 'MALAM_BERLEBIH', 'MALAM_BELUM_TERISI', 'TANGGAL_SALAH'].includes(w.kode))
+  const sisaPeringatan = peringatan.filter((w) => !['TARIF_HOTEL_KOSONG', 'HOTEL_MELEBIHI_BATAS', 'MALAM_BERLEBIH', 'MALAM_BELUM_TERISI', 'TANGGAL_SALAH', 'UANG_HARIAN_MELEBIHI_SBM'].includes(w.kode))
   const id = (k: string) => `etape-${idAwal}-${k}`
   const jmlFullboard = (etape.fullboardDates ?? []).length
   const jmlTanpaUangHarian = (etape.tanpaUangHarianDates ?? []).length

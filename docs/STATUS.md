@@ -1,7 +1,12 @@
 # Status SPJAN
 
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
-Terakhir diperbarui: 2026-11-10 (model pembaca dokumen diganti ke Qwen).
+Terakhir diperbarui: 2026-11-11 (tarif uang harian manual).
+
+## Tarif uang harian manual (2026-11-11)
+
+- `etape.uangHarianTarif` (migrasi `1791126000034`, null = SBM). `hitungSpj` memakai tarif manual untuk uang harian penuh dan 60% (fullboard tetap SBM; tambahan lain lewat tabel manual). Melebihi SBM = peringatan `UANG_HARIAN_MELEBIHI_SBM`, tidak diblokir. Provinsi tanpa SBM tetap dihitung bila tarif manual diisi.
+- UI: isian "Tarif per hari" di blok uang harian per tujuan (placeholder = SBM, tanda Otomatis/Diubah manual, "Kembalikan ke SBM"). Mengubah centang dalam kota > 8 jam mengosongkan tarif manual. Peringatan menunjuk isian lewat `lib/periksa.ts` (`-uang-harian`).
 
 ## Model AI ke Qwen Singapura (2026-11-10)
 

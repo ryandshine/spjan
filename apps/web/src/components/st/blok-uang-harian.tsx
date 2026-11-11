@@ -1,6 +1,7 @@
-import { InfoIcon, TriangleAlertIcon } from 'lucide-react'
+import { InfoIcon, RotateCcwIcon, TriangleAlertIcon } from 'lucide-react'
 import {
   daftarHariIso,
+  formatAngka,
   formatDaftarTanggal,
   isKotaJabodetabek,
   norm,
@@ -18,9 +19,12 @@ import { BagianTanggal } from '@/components/st/bagian-tanggal'
 import { KartuUangHarian } from '@/components/st/biaya-form'
 import { BlokForm } from '@/components/st/blok-form'
 import { DasarAturan } from '@/components/st/dasar-aturan'
+import { RupiahInput } from '@/components/st/rupiah-input'
 import { TabelRincianBebas } from '@/components/st/tabel-rincian-bebas'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Istilah } from '@/components/ui/istilah'
+import { Label } from '@/components/ui/label'
 import { rupiah } from '@/lib/format'
 import { ubahBiaya, ubahEtape } from '@/lib/pelaksana-ubah'
 import { tanggalBentrokStatus, tetapkanStatusHari, type KolomStatusHari } from '@/lib/uang-harian'
@@ -28,6 +32,7 @@ import { useTanggalTerpilih } from '@/lib/use-tanggal-terpilih'
 import { labelTanggal } from '@/lib/tanggal-label'
 
 function EtapeUangHarianCard({
+  idAwal,
   nomor,
   etape,
   bolehRepresentasi,
@@ -35,6 +40,8 @@ function EtapeUangHarianCard({
   terkunci = false,
   onUbah,
 }: {
+  /** `<nomor pelaksana>-<nomor tujuan>`, untuk id isian yang dituju daftar periksa. */
+  idAwal: string
   nomor: number
   etape: EtapePayload
   bolehRepresentasi: boolean
@@ -66,7 +73,11 @@ function EtapeUangHarianCard({
   const jmlTanpaUangHarian = tanpaUangHarian.jumlah
   const jmlUangHarian60 = uangHarian60.jumlah
   const isDalamKota = !!etape.dalamKota8Jam && listHari.length === 1
-  const tarifHarian = isDalamKota ? tarifDalamKota : tarifLuarKota
+  const tarifSbm = isDalamKota ? tarifDalamKota : tarifLuarKota
+  // Tarif manual mengalahkan SBM (sama seperti mesin hitung); melebihi SBM hanya diberi peringatan.
+  const tarifManual = etape.uangHarianTarif ?? null
+  const tarifHarian = tarifManual ?? tarifSbm
+  const idTarif = `etape-${idAwal}-uang-harian`
   const tarif60 = tarifHarian !== undefined ? Math.round(tarifHarian * 0.6) : null
 
   const judulBaris = `Tujuan ${nomor}${etape.kota ? ` - ${etape.kota}` : ''}`
@@ -77,11 +88,7 @@ function EtapeUangHarianCard({
         <h4 className="text-sm font-semibold text-foreground">{judulBaris}</h4>
         <div className="text-xs text-muted-foreground flex items-center gap-2">
           <span>{hari !== null ? `${hari} hari perjalanan` : '-'}</span>
-          {tarifHarian !== undefined ? (
-            <span className="font-mono font-medium text-foreground">
-              Tarif: {rupiah(tarifHarian)}/hari {isDalamKota ? '(Dalam Kota)' : '(Luar Kota)'}
-            </span>
-          ) : null}
+          <span>{isDalamKota ? 'Dalam kota' : 'Luar kota'}</span>
         </div>
       </div>
 
@@ -89,9 +96,42 @@ function EtapeUangHarianCard({
         {listHari.length > 0 ? (
           <div className="grid gap-1.5 rounded-lg border bg-muted/40 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-foreground">Uang harian SBM (lumpsum)</span>
-              <Badge variant="muted">Otomatis dari SBM</Badge>
+              <span className="text-sm font-semibold text-foreground">Uang harian (lumpsum)</span>
+              <Badge variant={tarifManual !== null ? 'default' : 'muted'}>{tarifManual !== null ? 'Diubah manual' : 'Otomatis dari SBM'}</Badge>
             </div>
+            <div className="grid items-end gap-2 sm:grid-cols-[1fr_13rem]">
+              <div className="grid gap-1 text-xs text-muted-foreground">
+                <span>{tarifSbm !== undefined ? `Batas SBM ${rupiah(tarifSbm)}` : 'Batas SBM belum tersedia'}</span>
+                {tarifManual !== null ? (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto w-fit gap-1 p-0 text-xs"
+                    disabled={terkunci}
+                    onClick={() => onUbah({ uangHarianTarif: null })}
+                  >
+                    <RotateCcwIcon className="size-3" aria-hidden /> Kembalikan ke SBM
+                  </Button>
+                ) : null}
+              </div>
+              <div className="grid gap-1">
+                <Label htmlFor={idTarif}>Tarif per hari</Label>
+                <RupiahInput
+                  awalan
+                  className="font-mono"
+                  id={idTarif}
+                  disabled={terkunci}
+                  // Kosong = tarif SBM (tampil sebagai placeholder), supaya isian bisa dihapus lalu diketik ulang.
+                  value={tarifManual}
+                  placeholder={tarifSbm !== undefined ? formatAngka(tarifSbm) : undefined}
+                  onChange={(v) => onUbah({ uangHarianTarif: v })}
+                />
+              </div>
+            </div>
+            {tarifManual !== null && tarifSbm !== undefined && tarifManual > tarifSbm ? (
+              <p className="text-xs font-medium text-warning-foreground">Tarif melebihi batas SBM {rupiah(tarifSbm)}.</p>
+            ) : null}
             <p className="text-xs text-muted-foreground tabular-nums">
               {tglPenuh.length} dari {listHari.length} hari
               {tarifHarian !== undefined && tglPenuh.length > 0 ? ` × ${rupiah(tarifHarian)} = ${rupiah(tglPenuh.length * tarifHarian)}` : ''}
@@ -119,7 +159,8 @@ function EtapeUangHarianCard({
                 checked={etape.dalamKota8Jam ?? false}
                 onChange={(e) => {
                   const aktif = e.target.checked
-                  onUbah({ dalamKota8Jam: aktif, ...(aktif && hari === 1 ? { malamOverride: 0 } : {}) })
+                  // Tarif dalam kota dan luar kota berbeda: tarif manual lama tidak berlaku lagi.
+                  onUbah({ dalamKota8Jam: aktif, uangHarianTarif: null, ...(aktif && hari === 1 ? { malamOverride: 0 } : {}) })
                 }}
               />
               <span>
@@ -274,12 +315,14 @@ function EtapeUangHarianCard({
 }
 
 export function BlokUangHarian({
+  nomorPelaksana,
   p,
   hasil,
   sbm,
   onUbah,
   terkunci = false,
 }: {
+  nomorPelaksana: number
   p: PelaksanaPayload
   hasil: PelaksanaHasil | undefined
   sbm: Sbm
@@ -332,6 +375,7 @@ export function BlokUangHarian({
           {p.etape.map((e, i) => (
             <EtapeUangHarianCard
               key={i}
+              idAwal={`${nomorPelaksana}-${i + 1}`}
               nomor={i + 1}
               etape={e}
               bolehRepresentasi={bolehRepresentasi}

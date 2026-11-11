@@ -30,6 +30,7 @@ export const EtapePayloadSchema = z.object({
   dalamKota8Jam: z.boolean().nullish(),
   tanpaUangHarianDates: z.array(tanggalWajib).optional(),
   uangHarian60Dates: z.array(tanggalWajib).optional(),
+  uangHarianTarif: rupiah.nullish(),
 });
 
 export const BiayaPayloadSchema = z.object({
