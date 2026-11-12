@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { PegawaiDto, PelaksanaHasil, PelaksanaPayload, Sbm } from '@spjan/shared'
 
 import { DaftarPelaksanaSt } from '@/components/st/daftar-pelaksana-st'
@@ -9,7 +10,7 @@ import { cakupanGalat, type PetaGalat } from '@/lib/validasi'
  * Langkah Pelaksana: satu pelaksana terpilih ditampilkan penuh. Daftar pelaksananya ada di sidebar aplikasi;
  * pada layar sempit (tanpa sidebar) daftar itu tampil sebagai baris di atas kartu. `kunci` harus sejajar dengan `pelaksana`.
  */
-export function TabPelaksanaSt({
+function TabPelaksanaStIsi({
   pelaksana,
   kunci,
   hasil,
@@ -91,3 +92,6 @@ export function TabPelaksanaSt({
     </div>
   )
 }
+
+/** Di-memo: hanya dirender ulang bila props berubah (dipakai sebagai panel tab editor SPJ). */
+export const TabPelaksanaSt = memo(TabPelaksanaStIsi)

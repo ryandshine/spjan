@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, useState, type Dispatch, type SetStateAction } from 'react'
 import { pelaksanaKosong, type PelaksanaPayload, type SuratTugasPayload } from '@spjan/shared'
 
 import type { BagianPelaksana } from '@/lib/periksa'
@@ -26,27 +26,28 @@ export function useDaftarPelaksana(
   const aktif = Math.max(0, Math.min(Number.isInteger(nomorUrl) && nomorUrl > 0 ? nomorUrl - 1 : 0, jumlah - 1))
   const bagianUrl = params.get('bagian') as BagianPelaksana | null
   const bagian: BagianPelaksana = bagianUrl && BAGIAN.includes(bagianUrl) ? bagianUrl : 'perjalanan'
-  const setAktif = (i: number) => ubah({ pelaksana: i > 0 ? String(i + 1) : null })
-  const setBagian = (b: BagianPelaksana) => ubah({ bagian: b === 'perjalanan' ? null : b })
-
-  return {
-    kunci,
-    aktif,
-    setAktif,
-    bagian,
-    setBagian,
-    ubah: (i: number, fn: (p: PelaksanaPayload) => PelaksanaPayload) =>
+  // Fungsi dibuat stabil (useCallback) agar komponen anak yang di-memo tidak ikut dirender ulang tanpa perlu.
+  const setAktif = useCallback((i: number) => ubah({ pelaksana: i > 0 ? String(i + 1) : null }), [ubah])
+  const setBagian = useCallback((b: BagianPelaksana) => ubah({ bagian: b === 'perjalanan' ? null : b }), [ubah])
+  const ubahPelaksana = useCallback(
+    (i: number, fn: (p: PelaksanaPayload) => PelaksanaPayload) =>
       setSt((s) => ({ ...s, pelaksana: s.pelaksana.map((p, j) => (j === i ? fn(p) : p)) })),
-    tambah: () => {
-      setSt((s) => ({ ...s, pelaksana: [...s.pelaksana, pelaksanaKosong()] }))
-      setKunci((k) => [...k, kunciPelaksanaBaru()])
-      setAktif(jumlah)
-      setBagian('perjalanan')
-    },
-    hapus: (i: number) => {
+    [setSt],
+  )
+  const tambah = useCallback(() => {
+    setSt((s) => ({ ...s, pelaksana: [...s.pelaksana, pelaksanaKosong()] }))
+    setKunci((k) => [...k, kunciPelaksanaBaru()])
+    setAktif(jumlah)
+    setBagian('perjalanan')
+  }, [setSt, setAktif, setBagian, jumlah])
+  const hapus = useCallback(
+    (i: number) => {
       setSt((s) => ({ ...s, pelaksana: s.pelaksana.filter((_, j) => j !== i) }))
       setKunci((k) => k.filter((_, j) => j !== i))
       setAktif(Math.max(0, i < aktif ? aktif - 1 : Math.min(aktif, jumlah - 2)))
     },
-  }
+    [setSt, setAktif, aktif, jumlah],
+  )
+
+  return { kunci, aktif, setAktif, bagian, setBagian, ubah: ubahPelaksana, tambah, hapus }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FileTextIcon } from 'lucide-react'
@@ -14,6 +14,7 @@ import {
   type Sbm,
   type SumberDana,
   type SuratTugasPayload,
+  type PegawaiDto,
   type UsulanHotelItem,
 } from '@spjan/shared'
 
@@ -73,6 +74,9 @@ import { pesanValidasi, petaGalat } from '@/lib/validasi'
 type TabKunci = 'data' | 'bukti' | 'pelaksana' | 'laporan'
 type SubBukti = 'bukti' | 'foto'
 const TAB_KUNCI: TabKunci[] = ['data', 'bukti', 'pelaksana', 'laporan']
+// Referensi tetap untuk nilai kosong, agar props komponen anak yang di-memo tidak berubah tiap render.
+const TANPA_PEGAWAI: PegawaiDto[] = []
+const TANPA_ISU: readonly never[] = []
 
 function deskripsiHeader({ modeLaporan, kotor, baru }: { modeLaporan: boolean; kotor: boolean; baru: boolean }): string {
   if (modeLaporan) return 'Laporan Perjalanan Dinas'
@@ -116,7 +120,11 @@ function Editor({
   const tabUrl = paramUrl.get('tab') as TabKunci | null
   // Bukti dan laporan butuh surat tugas yang sudah tersimpan.
   const tab: TabKunci = tabUrl && TAB_KUNCI.includes(tabUrl) && (id !== null || tabUrl === 'pelaksana') ? tabUrl : 'data'
-  const setTab = (k: TabKunci) => ubahUrl({ tab: k === 'data' ? null : k })
+  const setTab = useCallback((k: TabKunci) => ubahUrl({ tab: k === 'data' ? null : k }), [ubahUrl])
+  // Panel tab baru dipasang setelah tab itu pernah dibuka, lalu tetap terpasang (disembunyikan) agar state lokalnya tidak hilang.
+  const [tabDikunjungi, setTabDikunjungi] = useState<ReadonlySet<TabKunci>>(() => new Set([tab]))
+  if (!tabDikunjungi.has(tab)) setTabDikunjungi(new Set(tabDikunjungi).add(tab))
+  const sudahDibuka = (k: TabKunci) => k === tab || tabDikunjungi.has(k)
   const daftarBerkas = useDaftarBerkas(id)
   const laporanQuery = useLaporan(id ?? undefined)
   const slotSidebar = useSlotSidebar()
@@ -129,7 +137,7 @@ function Editor({
 
   // Setelah percobaan simpan pertama yang gagal, validasi berjalan langsung: galat hilang sendiri begitu isiannya diperbaiki.
   const isuLive = useMemo(() => {
-    if (!cobaSimpan) return []
+    if (!cobaSimpan) return TANPA_ISU
     const r = SuratTugasPayloadSchema.safeParse(st)
     return r.success ? [] : r.error.issues
   }, [cobaSimpan, st])
@@ -139,37 +147,58 @@ function Editor({
 
   const hasil = useMemo(() => hitungSpj(toSpjInput(st, pengaturan), sbm), [st, pengaturan, sbm])
   const provinsi = useMemo(() => Object.keys(sbm.uangHarian), [sbm])
-  const daftarPegawai = pegawai.data ?? []
+  const daftarPegawai = pegawai.data ?? TANPA_PEGAWAI
 
   const tandaiTersimpan = (payload: SuratTugasPayload) => setBaseline(JSON.stringify(payload))
   const ubahSt = (patch: Partial<SuratTugasPayload>) => setSt((s) => ({ ...s, ...patch }))
   const ubahSumberDana = (sumberDana: SumberDana) => ubahSt({ sumberDana, kodeAkun: sesuaikanKodeAkun(st.kodeAkun || '', sumberDana) })
 
-  const pilihPelaksana = (i: number) => {
-    setTab('pelaksana')
-    daftarPelaksana.setAktif(i)
-  }
+  const setAktifPelaksana = daftarPelaksana.setAktif
+  const pilihPelaksana = useCallback(
+    (i: number) => {
+      setTab('pelaksana')
+      setAktifPelaksana(i)
+    },
+    [setTab, setAktifPelaksana],
+  )
 
-  async function terapkanUsulanHotel(pelaksanaIdx: number, etapeIdx: number, usulan: UsulanHotelItem) {
-    const stBaru = terapkanHotelKeEtape(st, pelaksanaIdx, etapeIdx, usulan)
-    if (stBaru.pelaksana[pelaksanaIdx]?.etape[etapeIdx] === st.pelaksana[pelaksanaIdx]?.etape[etapeIdx]) {
-      toast.info('Kuitansi ini sudah tercakup kartu penginapan yang ada; tidak ditambahkan lagi.')
-    }
-    setSt(stBaru)
-    if (id !== null) {
-      await simpan.mutateAsync({ id, payload: stBaru })
-      tandaiTersimpan(stBaru)
-    }
-  }
+  // Callback untuk BuktiPanel (di-memo) dibuat stabil; isi `st` terbaru dibaca lewat ref saat dipanggil,
+  // jadi tidak ada closure basi meski panel tidak dirender ulang.
+  const stTerbaruRef = useRef(st)
+  useLayoutEffect(() => {
+    stTerbaruRef.current = st
+  })
+  const simpanAsync = simpan.mutateAsync
 
-  async function terapkanUsulanTransport(pelaksanaIdx: number, biaya: BiayaPayload) {
-    const stBaru = tambahBiayaKePelaksana(st, pelaksanaIdx, biaya)
-    setSt(stBaru)
-    if (id !== null) {
-      await simpan.mutateAsync({ id, payload: stBaru })
-      tandaiTersimpan(stBaru)
-    }
-  }
+  const terapkanUsulanHotel = useCallback(
+    async (pelaksanaIdx: number, etapeIdx: number, usulan: UsulanHotelItem) => {
+      const stLama = stTerbaruRef.current
+      const stBaru = terapkanHotelKeEtape(stLama, pelaksanaIdx, etapeIdx, usulan)
+      if (stBaru.pelaksana[pelaksanaIdx]?.etape[etapeIdx] === stLama.pelaksana[pelaksanaIdx]?.etape[etapeIdx]) {
+        toast.info('Kuitansi ini sudah tercakup kartu penginapan yang ada; tidak ditambahkan lagi.')
+      }
+      stTerbaruRef.current = stBaru
+      setSt(stBaru)
+      if (id !== null) {
+        await simpanAsync({ id, payload: stBaru })
+        setBaseline(JSON.stringify(stBaru))
+      }
+    },
+    [id, simpanAsync],
+  )
+
+  const terapkanUsulanTransport = useCallback(
+    async (pelaksanaIdx: number, biaya: BiayaPayload) => {
+      const stBaru = tambahBiayaKePelaksana(stTerbaruRef.current, pelaksanaIdx, biaya)
+      stTerbaruRef.current = stBaru
+      setSt(stBaru)
+      if (id !== null) {
+        await simpanAsync({ id, payload: stBaru })
+        setBaseline(JSON.stringify(stBaru))
+      }
+    },
+    [id, simpanAsync],
+  )
 
   const { data: usulanHotelList } = useUsulanHotelSt(id)
   const { data: usulanTransportList } = useUsulanTransportSt(id)
@@ -572,15 +601,18 @@ function Editor({
 
           {/* Tahap 1: Data Surat Tugas */}
           <TabPanel idAwal="st" kunci="data" aktif={tab === 'data'}>
-            <KelompokIsian terkunci={terkunci}>
-              <div className="grid gap-6">
-                <KartuDataSt st={st} peta={peta} pengaturan={pengaturan} onUbah={ubahSt} onUbahSumberDana={ubahSumberDana} />
-                <KartuPejabatSt st={st} pengaturan={pengaturan} pegawai={daftarPegawai} onUbah={ubahSt} />
-              </div>
-            </KelompokIsian>
+            {sudahDibuka('data') ? (
+              <KelompokIsian terkunci={terkunci}>
+                <div className="grid gap-6">
+                  <KartuDataSt st={st} peta={peta} pengaturan={pengaturan} onUbah={ubahSt} onUbahSumberDana={ubahSumberDana} />
+                  <KartuPejabatSt st={st} pengaturan={pengaturan} pegawai={daftarPegawai} onUbah={ubahSt} />
+                </div>
+              </KelompokIsian>
+            ) : null}
           </TabPanel>
 
-          {/* Tahap 2: Bukti Pengeluaran & Lampiran */}
+          {/* Tahap 2: Bukti Pengeluaran & Lampiran. Sengaja selalu dipasang (tidak menunggu dibuka): BuktiPanel
+              menyegarkan usulan hotel/transport saat pembacaan AI selesai, dan sinkronisasi otomatis di atas bergantung padanya. */}
           {id !== null ? (
             <TabPanel idAwal="st" kunci="bukti" aktif={tab === 'bukti'}>
               <Tabs gaya="segmen" item={itemSubBukti} aktif={subBukti} onPilih={setSubBukti} idAwal="st-bukti" label="Bagian bukti dan dokumentasi" />
@@ -611,40 +643,46 @@ function Editor({
 
           {/* Tahap 3: Pelaksana & Rincian Biaya */}
           <TabPanel idAwal="st" kunci="pelaksana" aktif={tab === 'pelaksana'}>
-            <TabPelaksanaSt
-              pelaksana={st.pelaksana}
-              kunci={daftarPelaksana.kunci}
-              hasil={hasil.pelaksana}
-              sbm={sbm}
-              pegawai={daftarPegawai}
-              provinsi={provinsi}
-              provinsiKedudukan={pengaturan.provinsiKedudukan}
-              kotaKedudukan={pengaturan.kotaKedudukan}
-              peta={peta}
-              terkunci={terkunci}
-              aktif={daftarPelaksana.aktif}
-              bagian={daftarPelaksana.bagian}
-              onPilih={pilihPelaksana}
-              onBagian={daftarPelaksana.setBagian}
-              onUbah={daftarPelaksana.ubah}
-              onHapus={daftarPelaksana.hapus}
-              onTambah={daftarPelaksana.tambah}
-            />
+            {sudahDibuka('pelaksana') ? (
+              <TabPelaksanaSt
+                pelaksana={st.pelaksana}
+                kunci={daftarPelaksana.kunci}
+                hasil={hasil.pelaksana}
+                sbm={sbm}
+                pegawai={daftarPegawai}
+                provinsi={provinsi}
+                provinsiKedudukan={pengaturan.provinsiKedudukan}
+                kotaKedudukan={pengaturan.kotaKedudukan}
+                peta={peta}
+                terkunci={terkunci}
+                aktif={daftarPelaksana.aktif}
+                bagian={daftarPelaksana.bagian}
+                onPilih={pilihPelaksana}
+                onBagian={daftarPelaksana.setBagian}
+                onUbah={daftarPelaksana.ubah}
+                onHapus={daftarPelaksana.hapus}
+                onTambah={daftarPelaksana.tambah}
+              />
+            ) : null}
           </TabPanel>
 
           {/* Tahap 4: Laporan & Berkas Cetak */}
           {id !== null ? (
             <TabPanel idAwal="st" kunci="laporan" aktif={tab === 'laporan'}>
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/40 p-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">Pratinjau &amp; Unduh Dokumen Lengkap</h3>
-                  <p className="text-xs text-muted-foreground">Unduh berkas SPTB, SPD, Kuitansi Rampung, dan Laporan Perjalanan Dinas sekaligus.</p>
-                </div>
-                <Button variant="default" size="sm" onClick={() => navigate(`/st/${id}/dokumen`)} className="gap-1.5">
-                  <FileTextIcon className="size-4" /> Buka Halaman Unduh Dokumen
-                </Button>
-              </div>
-              <LaporanEditor stId={id} terkunci={terkunci} />
+              {sudahDibuka('laporan') ? (
+                <>
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/40 p-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">Pratinjau &amp; Unduh Dokumen Lengkap</h3>
+                      <p className="text-xs text-muted-foreground">Unduh berkas SPTB, SPD, Kuitansi Rampung, dan Laporan Perjalanan Dinas sekaligus.</p>
+                    </div>
+                    <Button variant="default" size="sm" onClick={() => navigate(`/st/${id}/dokumen`)} className="gap-1.5">
+                      <FileTextIcon className="size-4" /> Buka Halaman Unduh Dokumen
+                    </Button>
+                  </div>
+                  <LaporanEditor stId={id} terkunci={terkunci} />
+                </>
+              ) : null}
             </TabPanel>
           ) : (
             <TabPanel idAwal="st" kunci="laporan" aktif={tab === 'laporan'}>

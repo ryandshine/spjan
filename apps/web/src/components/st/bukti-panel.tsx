@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import {
   AlertCircleIcon,
   BedDoubleIcon,
@@ -69,7 +69,7 @@ function ikonBerkas(mime: string) {
   return <FileIcon className="size-4 text-amber-600" />
 }
 
-export function BuktiPanel({
+function BuktiPanelIsi({
   stId,
   pelaksanaList = [],
   onTerapkanHotel,
@@ -736,3 +736,6 @@ export function BuktiPanel({
     </Card>
   )
 }
+
+/** Di-memo: hanya dirender ulang bila props berubah (dipakai sebagai panel tab editor SPJ). */
+export const BuktiPanel = memo(BuktiPanelIsi)

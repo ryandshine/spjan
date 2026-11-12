@@ -3,6 +3,13 @@
 Catatan hidup untuk melanjutkan pekerjaan tanpa mengulang berpikir. Diperbarui di akhir setiap pekerjaan bermakna.
 Terakhir diperbarui: 2026-11-11 (validasi editor naskah ST).
 
+## Optimalisasi performa dan ketahanan server (2026-11-12, belum di-commit)
+
+- Keluhan: semua halaman terasa berat, server pernah hang. Server cepat (rata-rata 15 ms), gzip dan cache Cloudflare aktif; log sebelum deploy hilang sehingga penyebab hang tidak terbukti.
+- API: `pool.on("error")` (koneksi idle putus sebelumnya bisa mematikan proses), `keepAlive`, `statement_timeout` 30 dtk dan `idle_in_transaction_session_timeout` 60 dtk (pool aplikasi saja; migrasi memakai koneksi sendiri), `withTransaction` membuang klien bila rollback gagal, `scrypt` asinkron (hash lama tetap cocok, `crypto.test.ts`), `unhandledRejection` dicatat, `uncaughtException` dicatat lalu exit(1).
+- Web: semua halaman `lazy()` (index 1.366 → 370 kB; Tiptap hanya di chunk `st-editor`), `ErrorBoundary` di sekitar `<Outlet />` (`kunciReset` = pathname, bukan `key`, agar simpan naskah baru tidak me-mount ulang), Google Fonts dihapus (Figtree lokal). Editor SPJ: tab Data/Pelaksana/Laporan dipasang saat pertama dibuka lalu tetap terpasang; Bukti selalu terpasang (efek penyegar usulan). `memo` pada BuktiPanel, FotoDokumentasiPanel, LaporanEditor, TabPelaksanaSt dengan callback stabil (usulan membaca `st` lewat ref).
+- Sisa: `hasil.pelaksana` berubah tiap ketikan sehingga tab Pelaksana yang pernah dibuka tetap ikut render; invalidasi `['st']` masih luas; rute `ekstrak-undangan` tanpa batas konkurensi.
+
 ## Validasi dan penjaga perubahan editor naskah ST (2026-11-11, belum di-commit)
 
 - `st-naskah-editor.tsx` mengikuti pola editor SPJ: validasi `NaskahStPayloadSchema` (langsung setelah percobaan simpan pertama gagal), galat di tiap isian, ringkasan di `BannerGalatSimpan`, galat server di banner (bukan toast), `usePenjagaPerubahan` + `DialogTinggalkanHalaman`, deskripsi header sesuai keadaan, tombol Simpan nonaktif tanpa perubahan. "Lanjutkan ke SPJ" ditolak bila ada perubahan belum disimpan (SPJ dibuat dari naskah tersimpan).

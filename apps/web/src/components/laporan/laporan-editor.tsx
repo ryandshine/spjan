@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
@@ -41,7 +41,7 @@ function bagianBaru(jenis: JenisBaru): Bagian {
 
 const jamId = (d: Date) => d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(':', '.')
 
-export function LaporanEditor({ stId, terkunci = false }: { stId: number; terkunci?: boolean }) {
+function LaporanEditorIsi({ stId, terkunci = false }: { stId: number; terkunci?: boolean }) {
   const navigate = useNavigate()
   const st = useSuratTugas(stId)
   const pengaturan = usePengaturan()
@@ -259,3 +259,6 @@ export function LaporanEditor({ stId, terkunci = false }: { stId: number; terkun
     </div>
   )
 }
+
+/** Di-memo: hanya dirender ulang bila props berubah (dipakai sebagai panel tab editor SPJ). */
+export const LaporanEditor = memo(LaporanEditorIsi)

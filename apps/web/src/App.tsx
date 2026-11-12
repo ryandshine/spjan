@@ -1,26 +1,26 @@
-import { lazy, Suspense, type ReactNode } from 'react'
+import { lazy, type ReactNode } from 'react'
 import { Route, Routes } from 'react-router-dom'
 
 import { AppShell } from '@/components/app-shell'
 import { RequireAuth } from '@/components/require-auth'
 import { Alert } from '@/components/ui/alert'
 import { useMe } from '@/lib/queries'
-import BuatDariStPage from '@/pages/buat-dari-st'
 import LoginPage from '@/pages/login'
-import AuditPage from '@/pages/audit'
-import PegawaiPage from '@/pages/pegawai'
-import PengaturanPage from '@/pages/pengaturan'
-import PenggunaPage from '@/pages/pengguna'
-import SampahPage from '@/pages/sampah'
-import SbmPage from '@/pages/sbm'
-import StEditorPage from '@/pages/st-editor'
-import SuratTugasListPage from '@/pages/st-list'
-import NaskahStListPage from '@/pages/st-naskah-list'
-import NaskahStEditorPage from '@/pages/st-naskah-editor'
 import { NotFoundPage } from '@/pages/placeholder'
 
-
-// Dokumen memuat @react-pdf/renderer (besar), jadi dimuat saat dibutuhkan.
+// Setiap halaman dimuat saat dibutuhkan agar bundel awal kecil (Tiptap, react-pdf, dll. tidak ikut
+// di chunk utama). Fallback Suspense ada di AppShell, di sekitar <Outlet />.
+const BuatDariStPage = lazy(() => import('@/pages/buat-dari-st'))
+const AuditPage = lazy(() => import('@/pages/audit'))
+const PegawaiPage = lazy(() => import('@/pages/pegawai'))
+const PengaturanPage = lazy(() => import('@/pages/pengaturan'))
+const PenggunaPage = lazy(() => import('@/pages/pengguna'))
+const SampahPage = lazy(() => import('@/pages/sampah'))
+const SbmPage = lazy(() => import('@/pages/sbm'))
+const StEditorPage = lazy(() => import('@/pages/st-editor'))
+const SuratTugasListPage = lazy(() => import('@/pages/st-list'))
+const NaskahStListPage = lazy(() => import('@/pages/st-naskah-list'))
+const NaskahStEditorPage = lazy(() => import('@/pages/st-naskah-editor'))
 const DokumenPage = lazy(() => import('@/pages/dokumen'))
 
 function WajibAdmin({ children }: { children: ReactNode }) {
@@ -43,14 +43,7 @@ export default function App() {
 
           <Route path="st/buat-dari-st" element={<BuatDariStPage />} />
           <Route path="st/:id" element={<StEditorPage />} />
-          <Route
-            path="st/:id/dokumen"
-            element={
-              <Suspense fallback={<p className="text-sm text-muted-foreground">Memuat...</p>}>
-                <DokumenPage />
-              </Suspense>
-            }
-          />
+          <Route path="st/:id/dokumen" element={<DokumenPage />} />
           <Route path="pegawai" element={<PegawaiPage />} />
           <Route path="pengaturan" element={<WajibAdmin><PengaturanPage /></WajibAdmin>} />
           <Route path="sbm" element={<SbmPage />} />

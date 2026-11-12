@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { memo, useRef, useState } from 'react'
 import { CameraIcon, Edit2Icon, ImageIcon, Maximize2Icon, ReceiptIcon, Trash2Icon, UploadCloudIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { BATAS_BERKAS, type BerkasDto } from '@spjan/shared'
@@ -17,7 +17,7 @@ import { useDaftarBerkas, useUbahJenisBerkas, useUpdateBerkas } from '@/lib/quer
 import { useSeretLepas } from '@/lib/use-seret-lepas'
 
 /** Foto kegiatan untuk lembar "Bukti Dokumentasi Kegiatan". Tidak dibaca AI dan tidak memengaruhi hitungan biaya. */
-export function FotoDokumentasiPanel({ stId }: { stId: number }) {
+function FotoDokumentasiPanelIsi({ stId }: { stId: number }) {
   const fotoInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const [sedangUnggah, setSedangUnggah] = useState(false)
@@ -389,3 +389,6 @@ export function FotoDokumentasiPanel({ stId }: { stId: number }) {
     </Card>
   )
 }
+
+/** Di-memo: hanya dirender ulang bila props berubah (dipakai sebagai panel tab editor SPJ). */
+export const FotoDokumentasiPanel = memo(FotoDokumentasiPanelIsi)

@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Suspense, useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { DialogGantiPassword } from '@/components/dialog-ganti-password'
+import { ErrorBoundary } from '@/components/error-boundary'
 import { TombolTema } from '@/components/tombol-tema'
 import { ZoomHalaman } from '@/components/zoom-halaman'
 import { useLogout, useMe } from '@/lib/queries'
@@ -64,6 +65,7 @@ function KartuPengguna({
 
 export function AppShell() {
   const navigate = useNavigate()
+  const location = useLocation()
   const me = useMe()
   const logout = useLogout()
   const [gantiPw, setGantiPw] = useState(false)
@@ -124,7 +126,12 @@ export function AppShell() {
           </div>
         </aside>
         <main className="min-w-0 flex-1 px-5 py-6 md:px-8">
-          <Outlet />
+          {/* Berpindah halaman menghapus status galat ErrorBoundary. */}
+          <ErrorBoundary kunciReset={location.pathname}>
+            <Suspense fallback={<p className="text-sm text-muted-foreground">Memuat...</p>}>
+              <Outlet />
+            </Suspense>
+          </ErrorBoundary>
         </main>
         <DialogGantiPassword buka={gantiPw} onBukaChange={setGantiPw} />
       </div>
