@@ -63,6 +63,7 @@ Terakhir diperbarui: 2026-11-11 (validasi editor naskah ST).
 ## Kabupaten kepulauan at cost (2026-11-02)
 
 - `KAB_KEPULAUAN_AT_COST` (`pagu.ts`): kabupaten di luar tabel PMK, sekarang Sangihe, Siau Tagulandang Biaro, dan Talaud, masuk saran kota. Biaya kapal lewat `TIKET_KAPAL` dengan catatan at cost. Tabel SBM tidak diubah.
+- 2026-11-12: ditambah Kepulauan Riau (Kota Batam, Kab. Karimun, Lingga, Natuna, Kepulauan Anambas); tabel transport darat PMK untuk Kepri hanya memuat Kab. Bintan. `paguTiket` kini mencocokkan kota lewat `samaKota`, jadi "Kota Batam" tetap menemukan rute JAKARTA-BATAM.
 
 ## Arah taksi tempat kedudukan (2026-11-02)
 

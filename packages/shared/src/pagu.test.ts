@@ -67,6 +67,10 @@ describe("paguTiket", () => {
   it("rute yang tidak ada mengembalikan null", () => {
     expect(paguTiket(SBM_2026, "Jakarta", "Tidak Ada", "Ekonomi")).toBeNull();
   });
+
+  it("tujuan berawalan Kota cocok dengan nama di tabel tiket", () => {
+    expect(paguTiket(SBM_2026, "Jakarta", "Kota Batam", "Ekonomi")).toBe(3_091_000);
+  });
 });
 
 describe("SBM fullboard dan sewa roda 4", () => {

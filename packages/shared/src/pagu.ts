@@ -1,4 +1,4 @@
-import { formatRp, norm } from "./teks.js";
+import { formatRp, norm, samaKota } from "./teks.js";
 import type { BiayaInput, Sbm } from "./types.js";
 
 export interface PaguBiaya {
@@ -57,6 +57,7 @@ export function paguBiaya(sbm: Sbm, biaya: BiayaInput, provinsiKedudukan: string
 /** Kabupaten kepulauan yang tidak ada di tabel transportasi darat PMK; dicapai dengan kapal, biayanya at cost. */
 export const KAB_KEPULAUAN_AT_COST: Record<string, string[]> = {
   "SULAWESI UTARA": ["Kab. Kepulauan Sangihe", "Kab. Kepulauan Siau Tagulandang Biaro", "Kab. Kepulauan Talaud"],
+  "KEPULAUAN RIAU": ["Kota Batam", "Kab. Karimun", "Kab. Lingga", "Kab. Natuna", "Kab. Kepulauan Anambas"],
 };
 
 /** Catatan informatif; undefined bila tidak perlu (tiket ditangani terpisah). */
@@ -81,7 +82,7 @@ export function catatanBiaya(sbm: Sbm, biaya: BiayaInput, provinsiKedudukan: str
 
 /** Pagu tiket PP (Jakarta/kedudukan ke kota tujuan) menurut kelas; null bila rute tidak ada di tabel. */
 export function paguTiket(sbm: Sbm, asal: string, tujuan: string, kelas: "Bisnis" | "Ekonomi"): number | null {
-  const baris = sbm.tiketPp.find((r) => r.asal === norm(asal) && r.tujuan === norm(tujuan));
+  const baris = sbm.tiketPp.find((r) => samaKota(r.asal, asal) && samaKota(r.tujuan, tujuan));
   if (!baris) return null;
   return kelas === "Bisnis" ? baris.bisnis : baris.ekonomi;
 }
