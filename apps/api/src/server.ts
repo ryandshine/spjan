@@ -51,6 +51,18 @@ async function start() {
   }
 }
 
+// Penolakan promise yang terlewat dicatat saja; satu galat sesaat tidak boleh mematikan layanan.
+process.on("unhandledRejection", (alasan) => {
+  console.error("[proses] unhandledRejection:", alasan);
+});
+
+// Setelah uncaughtException keadaan proses tidak bisa dipercaya (sumber daya setengah jadi),
+// jadi catat lalu keluar dengan kode 1 agar container di-restart bersih oleh orkestrator.
+process.on("uncaughtException", (error) => {
+  console.error("[proses] uncaughtException, proses dihentikan:", error);
+  process.exit(1);
+});
+
 start().catch((error) => {
   console.error("aplikasi gagal start", error);
   process.exit(1);

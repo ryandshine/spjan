@@ -1,14 +1,25 @@
-import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 
-export function hashPassword(
-  password: string,
-  salt: string = randomBytes(16).toString("hex"),
-): { salt: string; hash: string } {
-  return { salt, hash: scryptSync(password, salt, 64).toString("hex") };
+/**
+ * scrypt asinkron (jalan di threadpool libuv) agar login dan konfirmasi password
+ * tidak memblokir event loop. Parameter bawaan sama dengan scryptSync sehingga
+ * hash yang sudah tersimpan tetap cocok.
+ */
+function turunkanKunci(password: string, salt: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scrypt(password, salt, 64, (error, kunci) => (error ? reject(error) : resolve(kunci)));
+  });
 }
 
-export function verifyPassword(password: string, salt: string, expectedHash: string): boolean {
-  const derived = scryptSync(password, salt, 64);
+export async function hashPassword(
+  password: string,
+  salt: string = randomBytes(16).toString("hex"),
+): Promise<{ salt: string; hash: string }> {
+  return { salt, hash: (await turunkanKunci(password, salt)).toString("hex") };
+}
+
+export async function verifyPassword(password: string, salt: string, expectedHash: string): Promise<boolean> {
+  const derived = await turunkanKunci(password, salt);
   const expected = Buffer.from(expectedHash, "hex");
   return expected.length === derived.length && timingSafeEqual(expected, derived);
 }

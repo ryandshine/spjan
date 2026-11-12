@@ -18,13 +18,14 @@ export async function ensureAdmin(db: Db, username = config.ADMIN_USERNAME, pass
   const { rows } = await db.query<{ n: number }>("select count(*)::int as n from users");
   if ((rows[0]?.n ?? 0) > 0) return false;
   if (!username || !password) return false;
-  const { salt, hash } = hashPassword(password);
+  const { salt, hash } = await hashPassword(password);
   await db.query("insert into users (username, nama, peran, password_salt, password_hash) values ($1, $2, 'admin', $3, $4)", [username, "Administrator", salt, hash]);
   return true;
 }
 
 // Hash tiruan agar waktu respons tidak membedakan "pengguna tidak ada" dari "sandi salah".
 const TIRUAN = hashPassword("tidak-pernah-dipakai");
+TIRUAN.catch(() => undefined); // cegah unhandledRejection bila dihitung sebelum dipakai; galat tetap muncul saat di-await
 
 export async function login(db: Db, username: string, password: string): Promise<{ token: string; user: SessionUser } | null> {
   const { rows } = await db.query<{ id: number; username: string; nama: string; peran: Peran; password_salt: string; password_hash: string }>(
@@ -32,9 +33,13 @@ export async function login(db: Db, username: string, password: string): Promise
     [username],
   );
   const row = rows[0];
-  const ok = row
-    ? verifyPassword(password, row.password_salt, row.password_hash)
-    : (verifyPassword(password, TIRUAN.salt, TIRUAN.hash), false);
+  let ok = false;
+  if (row) {
+    ok = await verifyPassword(password, row.password_salt, row.password_hash);
+  } else {
+    const tiruan = await TIRUAN;
+    await verifyPassword(password, tiruan.salt, tiruan.hash);
+  }
   if (!row || !ok) return null;
   const token = newSessionToken();
   await db.query(
@@ -74,14 +79,15 @@ export async function cekPasswordPengguna(db: Db, userId: number, password: stri
   );
   const row = rows[0];
   if (!row) {
-    verifyPassword(password, TIRUAN.salt, TIRUAN.hash);
+    const tiruan = await TIRUAN;
+    await verifyPassword(password, tiruan.salt, tiruan.hash);
     return false;
   }
-  return verifyPassword(password, row.password_salt, row.password_hash);
+  return await verifyPassword(password, row.password_salt, row.password_hash);
 }
 
 export async function aturPassword(db: Db, userId: number, password: string): Promise<void> {
-  const { salt, hash } = hashPassword(password);
+  const { salt, hash } = await hashPassword(password);
   await db.query("update users set password_salt = $2, password_hash = $3 where id = $1", [userId, salt, hash]);
 }
 

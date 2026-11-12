@@ -46,7 +46,7 @@ export async function buatPengguna(db: Db, v: BuatPenggunaPayload): Promise<Peng
     username = v.username
     nama = v.nama
   }
-  const { salt, hash } = hashPassword(v.password)
+  const { salt, hash } = await hashPassword(v.password)
   try {
     const { rows } = await db.query<{ id: number }>(
       `insert into users (username, nama, peran, pegawai_id, password_salt, password_hash) values ($1, $2, $3, $4, $5, $6) returning id`,
